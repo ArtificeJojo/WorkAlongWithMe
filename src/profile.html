@@ -5,14 +5,17 @@
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="Click to change" />
   <button id="resetPicture" {% if not has_custom_picture %}hidden{% endif %}>Reset to default</button>
+  <h1>{{ username }}</h1>
 </div>
 <input id="pictureInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" hidden />
 
-<h1>{{ username }}</h1>
+<div class="screen-frame"></div>
 
-<button onclick="location.href = '/home'">Home</button>
-<button onclick="location.href = '/connections'">Connections</button>
-<button onclick="location.href = '/logout'">Logout</button>
+<div id="profileButtons">
+  <button onclick="location.href = '/home'">Home</button>
+  <button onclick="location.href = '/connections'">Connections</button>
+  <button onclick="location.href = '/logout'">Logout</button>
+</div>
 
 <script>
   const picture = document.getElementById("profilePicture");
@@ -55,23 +58,20 @@
   body {
     background-color: #d6b65e;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    /*text-align: center;*/
     margin-top: 50px;
   }
 
-  h1
-  {
+  h1 {
     font-size: 36px;
-    margin-bottom: 200px;
+    margin-bottom: 20px;
     margin-left: 500px;
-    text-align: top;
-    overflow: wrap;
   }
 
   #profileBar {
     display: flex;
     align-items: center;
     gap: 16px;
+    margin-left: 60px;
   }
 
   #profilePicture {
@@ -81,4 +81,21 @@
     border-radius: 50%;
     cursor: pointer;
   }
+
+  #profileButtons {
+    display: flex;
+    justify-content: right;
+    gap: 20px;
+    align-items: right;
+    margin-right: 100px;
+  }
+
+  .screen-frame {
+  position: fixed;
+  inset: 4px;                  /* top/right/bottom/left = 0 */
+  border: 4px solid black;
+  border-radius: 8px;
+  pointer-events: none;      /* lets you still click the things underneath */
+  box-sizing: border-box;
+}
 </style>
