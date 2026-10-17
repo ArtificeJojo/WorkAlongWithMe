@@ -7,3 +7,6 @@ next-env.d.ts
 # secrets: never commit these
 .env
 .env*.local
+
+# user uploads (profile pictures) served by Flask
+uploads/

@@ -8,6 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
   avatar        TEXT,
   is_demo       BOOLEAN NOT NULL DEFAULT FALSE,
   auth0_sub     TEXT UNIQUE,   -- Auth0 user ID; NULL for demo users
+  -- /aboutyou form: users can't reach /home until about_you_completed is TRUE
+  organization         TEXT,
+  about_you_completed  BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Uploaded file in uploads/profile_pictures/ (Flask); NULL = default assets/donkey.jpg.
+  -- Separate from avatar, which is the quest hero's animal (e.g. 'fox').
+  profile_picture      TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -6,13 +6,16 @@ from auth0_server_python.auth_server.server_client import ServerClient
 from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginOptions, StateData, TransactionData
 from auth0_server_python.store.abstract import AbstractDataStore
 
-from flask import Flask, request, redirect, url_for, render_template, after_this_request
+from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request
 import asyncio
 from markupsafe import escape
 from urllib.parse import urlencode
 
+import profile
+
 load_dotenv()
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile pictures)
 
 
 @app.route("/")
@@ -42,13 +45,14 @@ async def callback():
             request.url,
             store_options={"request": request},
         )
-        first_login = await register_user(result["state_data"]["user"])
+        completed = await register_user(result["state_data"]["user"])
     except Exception as e:
         # Send the error back to index.html, which already displays ?error= params
         app.logger.warning("Login callback failed", exc_info=True)
         return redirect("/?" + urlencode({"error": "login_failed", "error_description": str(e)}))
 
-    return redirect("/aboutyou" if first_login else "/home")
+    # Keep sending them to /aboutyou until they've submitted the form
+    return redirect("/home" if completed else "/aboutyou")
 
 
 class CookieStore(AbstractDataStore):
@@ -98,17 +102,53 @@ async def logout():
 
 @app.route("/home")
 async def home():
-    if not await auth0().get_user(store_options={"request": request}):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
         return redirect("/")
+    about_you = await get_about_you(user["sub"])
+    if not about_you or not about_you["about_you_completed"]:
+        return redirect("/aboutyou")
 
     with open("..\\src\\home.html") as html:
 
-        return html.read()
+        return render_template_string(html.read(), organization=about_you["organization"])
 
-@app.route("/aboutyou")
+@app.route("/profile-picture", methods=["GET", "POST"])
+async def profile_picture():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if request.method == "POST":
+        try:
+            await profile.replace_profile_picture(user["sub"], request.files["picture"])
+        except (KeyError, ValueError) as e:
+            return str(e), 400
+        return "", 204
+
+    return await profile.send_profile_picture(user["sub"])
+
+@app.route("/aboutyou", methods=["GET", "POST"])
 async def about_you():
-    if not await auth0().get_user(store_options={"request": request}):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
         return redirect("/")
+
+    if request.method == "POST":
+        organization = request.form.get("organization", "").strip()
+        if not organization:
+            return redirect("/aboutyou")
+
+        conn = await asyncpg.connect(env.get("DATABASE_URL"))
+        try:
+            await conn.execute(
+                "UPDATE users SET organization = $1, about_you_completed = TRUE WHERE auth0_sub = $2",
+                organization, user["sub"],
+            )
+        finally:
+            await conn.close()
+
+        return redirect("/home")
 
     with open("..\\src\\about_you.html") as html:
 
@@ -116,20 +156,31 @@ async def about_you():
 
 async def register_user(user):
     """Create a users row for this Auth0 account if there isn't one yet.
-    Returns True when the row was just created, i.e. this is their first login."""
+    Returns whether they've completed the /aboutyou form."""
     display_name = user.get("name") or user.get("nickname") or user.get("email") or user["sub"]
 
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
-        new_id = await conn.fetchval(
+        await conn.execute(
             "INSERT INTO users (display_name, auth0_sub) VALUES ($1, $2) "
-            "ON CONFLICT (auth0_sub) DO NOTHING RETURNING id",
+            "ON CONFLICT (auth0_sub) DO NOTHING",
             display_name, user["sub"],
         )
     finally:
         await conn.close()
 
-    return new_id is not None
+    about_you = await get_about_you(user["sub"])
+    return bool(about_you and about_you["about_you_completed"])
+
+async def get_about_you(auth0_sub):
+    """Returns the user's /aboutyou answers and completion flag, or None if they have no row."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        return await conn.fetchrow(
+            "SELECT organization, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
+        )
+    finally:
+        await conn.close()
 
 async def main():
     conn = await asyncpg.connect(env.get("DATABASE_URL"))

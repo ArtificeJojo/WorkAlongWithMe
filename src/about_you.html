@@ -4,4 +4,8 @@
 
 <h1>Hello, World!</h1>
 
-<button onclick="location.href = '/home'">Continue</button>
+<form method="post" action="/aboutyou">
+  <label for="organization">Organization</label>
+  <input id="organization" name="organization" required />
+  <button type="submit">Continue</button>
+</form>
