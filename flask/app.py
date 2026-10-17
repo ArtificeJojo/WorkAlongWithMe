@@ -118,6 +118,7 @@ async def home():
             html.read(),
             username=about_you["display_name"],
             organization=about_you["organization"],
+            projects=await project.get_feed(user["sub"]),
         )
 
 @app.route("/profile")
@@ -283,6 +284,22 @@ async def project_create():
     with open("..\\src\\project_create.html") as html:
 
         return html.read()
+
+@app.route("/project/<uuid:project_id>")
+async def view_project(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou")
+
+    details = await project.get_project(user["sub"], project_id)
+    if not details:
+        return "Project not found", 404
+
+    with open("..\\src\\project.html") as html:
+
+        return render_template_string(html.read(), project=details)
 
 @app.route("/invites")
 async def invites():
