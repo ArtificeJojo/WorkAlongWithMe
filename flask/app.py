@@ -15,6 +15,7 @@ from uuid import UUID
 import profile
 import connection
 import project
+import post
 
 load_dotenv()
 app = Flask(__name__)
@@ -122,6 +123,7 @@ async def home():
             username=about_you["display_name"],
             organization=about_you["organization"],
             projects=await project.get_feed(user["sub"]),
+            posts=await post.get_feed(user["sub"]),
         )
 
 @app.route("/profile")
@@ -350,6 +352,36 @@ async def view_project(project_id):
     with open("..\\src\\project.html") as html:
 
         return render_template_string(html.read(), project=details)
+
+@app.route("/create_post", methods=["GET", "POST"])
+async def create_post():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/") if request.method == "GET" else ("Not logged in", 401)
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+
+    if request.method == "POST":
+        try:
+            post_id = await post.create_post(
+                user["sub"], request.form.get("body"), request.files.get("image"), request.form.get("project"),
+                use_project_thumbnail=request.form.get("useProjectThumbnail") == "true",
+            )
+        except post.PostError as e:
+            return jsonify({"error": str(e), "missing": e.missing}), 400
+        return jsonify({"id": str(post_id)}), 201
+
+    with open("..\\src\\create_post.html") as html:
+
+        return render_template_string(html.read(), projects=await post.get_linkable_projects(user["sub"]))
+
+@app.route("/posts/<uuid:post_id>/image")
+async def post_image(post_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    return await post.send_image(user["sub"], post_id) or ("No image", 404)
 
 @app.route("/invites")
 async def invites():

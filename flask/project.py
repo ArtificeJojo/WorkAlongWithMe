@@ -23,6 +23,31 @@ VISIBLE_TO_ME = f"""
 """
 
 
+# Start of a query that defines `me` (the logged-in user's id, from $1) and `connected`: their
+# friends plus their teammates (anyone sharing a project with them as owner or accepted member).
+# Used by the home page feeds for projects and posts.
+CONNECTIONS_CTE = f"""
+    WITH me AS (SELECT {ME} AS id),
+    friends AS (
+        SELECT CASE WHEN fr.sender_id = me.id THEN fr.recipient_id ELSE fr.sender_id END AS id
+        FROM friend_requests fr, me
+        WHERE fr.status = 'accepted' AND me.id IN (fr.sender_id, fr.recipient_id)
+    ),
+    my_projects AS (
+        SELECT p.id FROM projects p, me WHERE p.owner_id = me.id
+        UNION
+        SELECT c.project_id FROM project_contributors c, me WHERE c.user_id = me.id AND c.status = 'accepted'
+    ),
+    teammates AS (
+        SELECT p.owner_id AS id FROM projects p WHERE p.id IN (SELECT id FROM my_projects)
+        UNION
+        SELECT c.user_id FROM project_contributors c
+        WHERE c.status = 'accepted' AND c.project_id IN (SELECT id FROM my_projects)
+    ),
+    connected AS (SELECT id FROM friends UNION SELECT id FROM teammates)
+"""
+
+
 class ProjectError(ValueError):
     """Bad project submission. missing lists the mandatory fields that were left empty."""
 
@@ -280,26 +305,10 @@ async def get_feed(auth0_sub, limit=3):
     try:
         rows = await conn.fetch(
             f"""
-            WITH me AS (SELECT {ME} AS id),
-            friends AS (
-                SELECT CASE WHEN fr.sender_id = me.id THEN fr.recipient_id ELSE fr.sender_id END AS id
-                FROM friend_requests fr, me
-                WHERE fr.status = 'accepted' AND me.id IN (fr.sender_id, fr.recipient_id)
-            ),
-            my_projects AS (
-                SELECT p.id FROM projects p, me WHERE p.owner_id = me.id
-                UNION
-                SELECT c.project_id FROM project_contributors c, me WHERE c.user_id = me.id AND c.status = 'accepted'
-            ),
-            teammates AS (
-                SELECT p.owner_id AS id FROM projects p WHERE p.id IN (SELECT id FROM my_projects)
-                UNION
-                SELECT c.user_id FROM project_contributors c
-                WHERE c.status = 'accepted' AND c.project_id IN (SELECT id FROM my_projects)
-            )
+            {CONNECTIONS_CTE}
             SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail
             FROM projects p, me
-            WHERE p.owner_id IN (SELECT id FROM friends UNION SELECT id FROM teammates)
+            WHERE p.owner_id IN (SELECT id FROM connected)
               AND p.owner_id <> me.id
               AND {VISIBLE_TO_ME}
             ORDER BY p.created_at DESC, p.id
