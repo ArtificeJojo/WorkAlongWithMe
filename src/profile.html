@@ -18,6 +18,8 @@
   <button onclick="location.href = '/logout'">Logout</button>
 </div>
 
+<div id="pfpFrame"></div>
+
 <script>
   const picture = document.getElementById("profilePicture");
   const pictureInput = document.getElementById("pictureInput");
@@ -100,6 +102,13 @@
     gap: 20px;
     align-items: right;
     margin-right: 100px;
+  }
+
+  #pfpFrame {
+    position: fixed;
+    inset: 6px;                  /* top/right/bottom/left = 0 */
+    border: 4px solid rgb(35, 105, 246);
+    border-radius: 16px;
   }
 
   .screen-frame {
