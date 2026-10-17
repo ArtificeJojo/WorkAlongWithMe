@@ -135,6 +135,18 @@ async def view_profile():
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
         )
 
+@app.route("/connections")
+async def connections():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou")
+
+    with open("..\\src\\connections.html") as html:
+
+        return html.read()
+
 @app.route("/profile-picture", methods=["GET", "POST", "DELETE"])
 async def profile_picture():
     user = await auth0().get_user(store_options={"request": request})
