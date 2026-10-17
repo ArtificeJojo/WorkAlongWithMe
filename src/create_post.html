@@ -1,0 +1,256 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button id="homeButton" onclick="location.href = '/home'">Home</button>
+
+<h1>Create a post</h1>
+
+<form id="postForm" novalidate>
+  <label for="image">Image</label>
+  <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" />
+  <img id="imagePreview" alt="" hidden />
+  <button id="removeImage" type="button" hidden>Remove image</button>
+
+  <label for="body">What's on your mind?</label>
+  <textarea id="body" name="body" rows="6" maxlength="250"></textarea>
+  <span id="charCount"></span>
+
+  <label for="project">Link a project</label>
+  <select id="project" name="project">
+    <option value="">No project</option>
+    {% for project in projects %}
+      <option value="{{ project.id }}" data-thumbnail="{{ project.thumbnail or '' }}">{{ project.title }}</option>
+    {% endfor %}
+  </select>
+  {% if not projects %}
+    <span class="hint">Projects you create or join will show up here.</span>
+  {% endif %}
+  <label id="useThumbnailLabel" class="checkbox" hidden>
+    <input id="useProjectThumbnail" name="useProjectThumbnail" type="checkbox" value="true" />
+    Use the project's thumbnail as the image
+  </label>
+
+  <p id="formError" role="alert" hidden></p>
+  <button id="submitButton" type="submit">Post</button>
+</form>
+
+<script>
+  const MAX_CHARACTERS = 250;
+
+  const form = document.getElementById("postForm");
+  const formError = document.getElementById("formError");
+  const image = document.getElementById("image");
+  const preview = document.getElementById("imagePreview");
+  const removeImage = document.getElementById("removeImage");
+  const body = document.getElementById("body");
+  const charCount = document.getElementById("charCount");
+
+  // Same counting as the server: leading/trailing spaces don't count
+  const countCharacters = text => text.trim().length;
+
+  const updateCharCount = () => {
+    const characters = countCharacters(body.value);
+    charCount.textContent = `${characters} / ${MAX_CHARACTERS} characters`;
+    charCount.classList.toggle("over", characters > MAX_CHARACTERS);
+  };
+
+  // Linking a project with a thumbnail offers it as the post's image instead of an upload
+  const projectSelect = document.getElementById("project");
+  const useThumbnailLabel = document.getElementById("useThumbnailLabel");
+  const useThumbnail = document.getElementById("useProjectThumbnail");
+  const selectedThumbnail = () => projectSelect.selectedOptions[0].dataset.thumbnail;
+
+  const applyThumbnailChoice = () => {
+    const thumbnail = selectedThumbnail();
+    useThumbnailLabel.hidden = !thumbnail;
+    if (!thumbnail) useThumbnail.checked = false;
+
+    image.disabled = useThumbnail.checked;
+    if (useThumbnail.checked) {
+      image.value = "";
+      preview.src = thumbnail;
+      preview.hidden = false;
+      removeImage.hidden = true;
+      image.classList.remove("missing");
+      body.classList.remove("missing");
+    } else if (!image.files.length) {
+      preview.hidden = removeImage.hidden = true;
+    }
+  };
+
+  projectSelect.onchange = applyThumbnailChoice;
+  useThumbnail.onchange = applyThumbnailChoice;
+
+  // Image preview
+  image.onchange = () => {
+    const file = image.files[0];
+    preview.hidden = removeImage.hidden = !file;
+    if (file) preview.src = URL.createObjectURL(file);
+    image.classList.remove("missing");
+    body.classList.remove("missing");
+  };
+
+  removeImage.onclick = () => {
+    image.value = "";
+    preview.hidden = removeImage.hidden = true;
+  };
+
+  body.oninput = () => {
+    updateCharCount();
+    if (body.value.trim()) {
+      body.classList.remove("missing");
+      image.classList.remove("missing");
+    }
+  };
+  updateCharCount();
+
+  // Problems: red message, and the fields at fault highlighted in yellow
+  const showError = (fields, message) => {
+    [image, body].forEach(input => input.classList.toggle("missing", fields.includes(input.id)));
+    formError.textContent = message;
+    formError.hidden = false;
+  };
+
+  form.onsubmit = async event => {
+    event.preventDefault();
+
+    if (!body.value.trim() && !image.files.length && !useThumbnail.checked) {
+      showError(["body", "image"], "Add some text or an image before posting.");
+      return;
+    }
+    if (countCharacters(body.value) > MAX_CHARACTERS) {
+      showError(["body"], `Posts can be at most ${MAX_CHARACTERS} characters.`);
+      return;
+    }
+
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    const response = await fetch("/create_post", { method: "POST", body: new FormData(form) });
+    submitButton.disabled = false;
+
+    if (response.ok) {
+      location.href = "/home";
+      return;
+    }
+    if (response.status === 413) {
+      showError(["image"], "That image is too large (5 MB max).");
+      return;
+    }
+    const error = await response.json().catch(() => ({ error: "Couldn't publish the post.", missing: [] }));
+    showError(error.missing || [], error.error);
+  };
+</script>
+
+<style>
+  body {
+    background-color: #d6b65e;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  #homeButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+  h1 {
+    margin-top: 50px;
+  }
+
+  #postForm {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 640px;
+  }
+
+  #postForm label {
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  #postForm textarea {
+    padding: 6px;
+    font: inherit;
+    border: 1px solid #999;
+    border-radius: 4px;
+  }
+
+  #imagePreview {
+    max-width: 320px;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  #removeImage {
+    align-self: flex-start;
+  }
+
+  #charCount {
+    font-size: 0.85em;
+    color: #555;
+    align-self: flex-end;
+  }
+
+  #postForm select {
+    padding: 6px;
+    font: inherit;
+    border: 1px solid #999;
+    border-radius: 4px;
+    align-self: flex-start;
+  }
+
+  #postForm .checkbox {
+    margin-top: 0;
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* display: flex above would otherwise override the hidden attribute */
+  #postForm .checkbox[hidden] {
+    display: none;
+  }
+
+  .hint {
+    font-size: 0.85em;
+    color: #555;
+  }
+
+  #charCount.over {
+    color: #b00020;
+    font-weight: bold;
+  }
+
+  .missing {
+    background-color: #ffe066;
+  }
+
+  #formError {
+    color: #b00020;
+    font-weight: bold;
+  }
+
+  #submitButton {
+    align-self: flex-start;
+    margin-top: 12px;
+  }
+</style>

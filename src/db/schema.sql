@@ -109,6 +109,19 @@ CREATE TABLE IF NOT EXISTS project_contributors (
 );
 CREATE INDEX IF NOT EXISTS project_contributors_user ON project_contributors (user_id);
 
+-- Posts from /create_post: up to 250 characters of text and/or one image, shown on /home.
+CREATE TABLE IF NOT EXISTS posts (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body        TEXT CONSTRAINT posts_body_length CHECK (char_length(body) <= 250),
+  image       TEXT,   -- uploaded file in uploads/post_images/ (Flask); NULL = none
+  -- Optional linked project the author created or joined; cleared if the project is deleted
+  project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (btrim(coalesce(body, '')) <> '' OR image IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS posts_author_created ON posts (author_id, created_at DESC);
+
 -- Groups formed in the Party Camp, plus the Gemini-written team guide.
 CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
