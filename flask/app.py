@@ -12,7 +12,7 @@ app.run()
 def start():
     asyncio.run(main())
     
-    return ""
+    return "True"
 
 async def main():
     conn = await asyncpg.connect(CONNECTION)
