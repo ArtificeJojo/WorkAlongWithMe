@@ -2,9 +2,7 @@
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
 
-<div id="topBar">
-  <button onclick="location.href = '/project_create'">Create project</button>
-</div>
+
 
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
@@ -15,6 +13,7 @@
 <div id="underPB">
   <h2>{{ organization }}</h2>
   <button onclick="location.href = '/logout'">Logout</button>
+  <button onclick="location.href = '/project_create'">Create project</button>
 </div>
 
 <div class="screenframe"></div>
@@ -62,7 +61,7 @@
     align-items: center;
     gap: 16px;
     justify-content: center;
-    margin-left: 950px;
+    margin-left: 750px;
   }
 
   body {
@@ -113,7 +112,11 @@
     pointer-events: none;      /* lets you still click the things underneath */
     box-sizing: border-box;
      /* 100% minus the border width */
+  }     
+  
+  #topBar{
+    justify-content: center;
+    align-items: center;
   }
-
-
 </style>
+s
