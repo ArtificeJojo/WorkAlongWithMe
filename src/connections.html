@@ -2,6 +2,8 @@
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
 
+<p id="notice" role="status" hidden></p>
+
 <button onclick="location.href = '/profile'">Back to profile</button>
 
 <h1>Connections</h1>
@@ -10,24 +12,40 @@
   <button role="tab" data-tab="search">Find users</button>
   <button role="tab" data-tab="friends">Friends</button>
   <button role="tab" data-tab="requests">Friend requests</button>
+  <button role="tab" data-tab="blocked">Blocked users</button>
 </div>
 
 <section id="search" role="tabpanel">
   <input id="userSearch" type="search" placeholder="Search by username" autocomplete="off" />
-  <ul id="searchResults"></ul>
+  <ul id="searchResults" class="user-list"></ul>
 </section>
 
 <section id="friends" role="tabpanel" hidden>
-  <!-- Filled in once adding friends is implemented -->
-  <p class="empty">You don't have any friends yet.</p>
+  <ul id="friendList" class="user-list"></ul>
+  <p id="noFriends" class="empty" hidden>You don't have any friends yet.</p>
 </section>
 
 <section id="requests" role="tabpanel" hidden>
-  <p class="empty">You don't have any friend requests.</p>
+  <ul id="requestList" class="user-list"></ul>
+  <p id="noRequests" class="empty" hidden>You don't have any friend requests.</p>
 </section>
+
+<section id="blocked" role="tabpanel" hidden>
+  <ul id="blockedList" class="user-list"></ul>
+  <p id="noBlocked" class="empty" hidden>You haven't blocked anyone.</p>
+</section>
+
+<!-- Shared "are you sure?" popup for unfriending and blocking -->
+<dialog id="confirmDialog">
+  <p id="confirmMessage"></p>
+  <button id="confirmAction"></button>
+  <button id="cancelAction">Cancel</button>
+</dialog>
 
 <script>
   const tabs = document.querySelectorAll("#tabs [role=tab]");
+  const friendsTab = document.querySelector("[data-tab=friends]");
+  const requestsTab = document.querySelector("[data-tab=requests]");
 
   const showTab = name => tabs.forEach(tab => {
     const selected = tab.dataset.tab === name;
@@ -36,13 +54,180 @@
   });
 
   tabs.forEach(tab => tab.onclick = () => showTab(tab.dataset.tab));
+
+  // A request you sent was accepted: highlight stays until you open the Friends tab
+  friendsTab.addEventListener("click", () => {
+    if (!friendsTab.classList.contains("highlight")) return;
+    friendsTab.classList.remove("highlight");
+    fetch("/friends/seen", { method: "POST" });
+  });
+
   showTab("search");
 
+  // One row in any of the lists: picture, username, smaller ID, then any buttons
+  const userItem = (user, ...buttons) => {
+    const item = document.createElement("li");
+
+    const picture = document.createElement("img");
+    picture.src = user.picture;
+    picture.alt = "";
+
+    const name = document.createElement("span");
+    name.className = "username";
+    name.textContent = user.username;
+
+    const id = document.createElement("span");
+    id.className = "user-id";
+    id.textContent = user.id;
+
+    const text = document.createElement("div");
+    text.append(name, id);
+    item.append(picture, text, ...buttons);
+    return item;
+  };
+
+  const button = (label, onclick) => {
+    const element = document.createElement("button");
+    element.textContent = label;
+    element.onclick = onclick;
+    return element;
+  };
+
+  const notice = document.getElementById("notice");
+  const showNotice = text => {
+    notice.textContent = text;
+    notice.hidden = false;
+  };
+
+  const refreshAfterChange = () => Promise.all([refreshConnections(), runSearch()]);
+
+  // Friends, incoming requests, blocked users and the tab highlights
+  const refreshConnections = async () => {
+    const response = await fetch("/friends");
+    if (!response.ok) return;
+    const { friends, requests, blocked, new_friends } = await response.json();
+
+    document.getElementById("friendList").replaceChildren(...friends.map(user => userItem(user,
+      button("Remove friend", () => askToUnfriend(user)),
+      button("Block", () => askToBlock(user)),
+    )));
+    document.getElementById("noFriends").hidden = friends.length > 0;
+
+    document.getElementById("requestList").replaceChildren(...requests.map(user => userItem(user,
+      button("Accept", () => respond(user.id, "accept")),
+      button("Reject", () => respond(user.id, "reject")),
+      button("Block", () => askToBlock(user)),
+    )));
+    document.getElementById("noRequests").hidden = requests.length > 0;
+
+    document.getElementById("blockedList").replaceChildren(...blocked.map(user => userItem(user,
+      button("Unblock", () => unblock(user)),
+    )));
+    document.getElementById("noBlocked").hidden = blocked.length > 0;
+
+    requestsTab.classList.toggle("highlight", requests.length > 0);
+    // Don't re-highlight while they're already looking at their friends.
+    // Also clears it if the new friend unfriended or blocked them before they looked.
+    const viewingFriends = friendsTab.getAttribute("aria-selected") === "true";
+    friendsTab.classList.toggle("highlight", new_friends && !viewingFriends);
+    if (new_friends && viewingFriends) fetch("/friends/seen", { method: "POST" });
+  };
+
+  const respond = async (userId, action) => {
+    const response = await fetch(`/friends/requests/${userId}/${action}`, { method: "POST" });
+    if (!response.ok) alert("Couldn't respond to that friend request.");
+    await refreshAfterChange();
+  };
+
+  const sendRequest = async userId => {
+    const response = await fetch(`/friends/requests/${userId}`, { method: "POST" });
+    if (!response.ok) alert(await response.text());
+    // Sending to someone who already asked you makes you friends, so refresh everything
+    await refreshAfterChange();
+  };
+
+  // Confirmation popup: fill in the message (username as plain text) and what "confirm" does
+  const confirmDialog = document.getElementById("confirmDialog");
+  let onConfirm = null;
+
+  const askToConfirm = (before, username, after, actionLabel, action) => {
+    const name = document.createElement("strong");
+    name.textContent = username;
+    document.getElementById("confirmMessage").replaceChildren(before, name, after);
+    document.getElementById("confirmAction").textContent = actionLabel;
+    onConfirm = action;
+    confirmDialog.showModal();
+  };
+
+  document.getElementById("cancelAction").onclick = () => confirmDialog.close();
+  document.getElementById("confirmAction").onclick = () => {
+    confirmDialog.close();
+    onConfirm();
+  };
+
+  const askToUnfriend = user => askToConfirm(
+    "Are you sure you want to remove ", user.username, " as your friend?", "Remove",
+    async () => {
+      const response = await fetch(`/friends/${user.id}`, { method: "DELETE" });
+      // 404 = already not friends (e.g. they unfriended you first), which is the outcome they wanted anyway
+      if (!response.ok && response.status !== 404) {
+        alert("Couldn't remove that friend.");
+        return;
+      }
+      showNotice(`${user.username} successfully unfriended`);
+      await refreshAfterChange();
+    },
+  );
+
+  const askToBlock = user => askToConfirm(
+    "Are you sure you want to block ", user.username,
+    "? This removes them as a friend and deletes any friend requests between you.", "Block",
+    async () => {
+      const response = await fetch(`/blocks/${user.id}`, { method: "POST" });
+      if (!response.ok) {
+        alert(await response.text());
+        return;
+      }
+      showNotice(`${user.username} successfully blocked`);
+      await refreshAfterChange();
+    },
+  );
+
+  const unblock = async user => {
+    const response = await fetch(`/blocks/${user.id}`, { method: "DELETE" });
+    // 404 = already unblocked (e.g. in another tab)
+    if (!response.ok && response.status !== 404) {
+      alert("Couldn't unblock that user.");
+      return;
+    }
+    showNotice(`${user.username} unblocked`);
+    await refreshAfterChange();
+  };
+
+  // Search: buttons depend on how you relate to each result
   const searchInput = document.getElementById("userSearch");
   const searchResults = document.getElementById("searchResults");
   let latestQuery = "";
 
-  searchInput.oninput = async () => {
+  const disabledButton = label => {
+    const element = button(label);
+    element.disabled = true;
+    return element;
+  };
+
+  const relationshipButtons = user => {
+    const block = button("Block", () => askToBlock(user));
+    switch (user.relationship) {
+      case "none": return [button("Add friend", () => sendRequest(user.id)), block];
+      case "request_received": return [button("Accept request", () => respond(user.id, "accept")), block];
+      case "request_sent": return [disabledButton("Request pending"), block];
+      case "friends": return [block];
+      case "blocked": return [disabledButton("Blocked")];  // unblock from the Blocked users tab
+      default: return [];  // yourself
+    }
+  };
+
+  const runSearch = async () => {
     const query = searchInput.value;
     latestQuery = query;
 
@@ -56,27 +241,17 @@
     if (query !== latestQuery || !response.ok) return;
 
     const users = await response.json();
-    searchResults.replaceChildren(...users.map(user => {
-      const item = document.createElement("li");
-
-      const picture = document.createElement("img");
-      picture.src = user.picture;
-      picture.alt = "";
-
-      const name = document.createElement("span");
-      name.className = "username";
-      name.textContent = user.username;
-
-      const id = document.createElement("span");
-      id.className = "user-id";
-      id.textContent = user.id;
-
-      const text = document.createElement("div");
-      text.append(name, id);
-      item.append(picture, text);
-      return item;
-    }));
+    searchResults.replaceChildren(...users.map(user => userItem(user, ...relationshipButtons(user))));
   };
+
+  searchInput.oninput = runSearch;
+  refreshConnections();
+
+  // Pick up new requests, accepted/rejected requests and search result changes without reloading.
+  // Skipped while the browser tab is in the background; catches up as soon as it's visible again.
+  const refreshAll = () => { if (!document.hidden) refreshAfterChange(); };
+  setInterval(refreshAll, 20000);
+  document.addEventListener("visibilitychange", refreshAll);
 </script>
 
 <style>
@@ -99,35 +274,45 @@
     font-weight: bold;
   }
 
+  #tabs [role=tab].highlight {
+    background-color: #ffe066;
+  }
+
   .empty {
     color: #555;
   }
 
-  #searchResults {
+  #notice {
+    padding: 8px 12px;
+    background-color: #d4edda;
+    border-radius: 4px;
+  }
+
+  .user-list {
     list-style: none;
     padding: 0;
   }
 
-  #searchResults li {
+  .user-list li {
     display: flex;
     align-items: center;
     gap: 12px;
     margin: 8px 0;
   }
 
-  #searchResults img {
+  .user-list img {
     width: 48px;
     height: 48px;
     object-fit: cover;
     border-radius: 50%;
   }
 
-  #searchResults .username {
+  .user-list .username {
     display: block;
     font-size: 1.1em;
   }
 
-  #searchResults .user-id {
+  .user-list .user-id {
     display: block;
     font-size: 0.75em;
     color: #555;
