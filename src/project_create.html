@@ -1,0 +1,269 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button id="homeButton" onclick="location.href = '/home'">Home</button>
+
+<h1>Create a project</h1>
+
+<form id="projectForm" novalidate>
+  <label for="title">Title <span class="required">*</span></label>
+  <input id="title" name="title" maxlength="100" />
+
+  <label for="summary">Short summary <span class="required">*</span></label>
+  <textarea id="summary" name="summary" rows="2" maxlength="300"></textarea>
+
+  <label for="description">Description</label>
+  <textarea id="description" name="description" rows="8" maxlength="10000"></textarea>
+
+  <label for="thumbnail">Thumbnail</label>
+  <input id="thumbnail" name="thumbnail" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" />
+  <img id="thumbnailPreview" alt="" hidden />
+
+  <label for="teammateSearch">Invite teammates</label>
+  <ul id="teammates" class="user-list"></ul>
+  <input id="teammateSearch" type="search" placeholder="Search by username" autocomplete="off" />
+  <ul id="searchResults" class="user-list"></ul>
+
+  <p id="formError" role="alert" hidden></p>
+  <button id="submitButton" type="submit">Submit</button>
+</form>
+
+<script>
+  const form = document.getElementById("projectForm");
+  const formError = document.getElementById("formError");
+  const mandatory = ["title", "summary"].map(id => document.getElementById(id));
+
+  // Thumbnail preview
+  const thumbnail = document.getElementById("thumbnail");
+  const preview = document.getElementById("thumbnailPreview");
+  thumbnail.onchange = () => {
+    const file = thumbnail.files[0];
+    preview.hidden = !file;
+    if (file) preview.src = URL.createObjectURL(file);
+  };
+
+  // Teammates picked so far, by user id
+  const teammates = new Map();
+
+  // One row: picture, username, smaller ID, then any buttons (same look as /connections)
+  const userItem = (user, ...buttons) => {
+    const item = document.createElement("li");
+
+    const picture = document.createElement("img");
+    picture.src = user.picture;
+    picture.alt = "";
+
+    const name = document.createElement("span");
+    name.className = "username";
+    name.textContent = user.username;
+
+    const id = document.createElement("span");
+    id.className = "user-id";
+    id.textContent = user.id;
+
+    const text = document.createElement("div");
+    text.append(name, id);
+    item.append(picture, text, ...buttons);
+    return item;
+  };
+
+  const button = (label, onclick, disabled = false) => {
+    const element = document.createElement("button");
+    element.type = "button";  // don't submit the form
+    element.textContent = label;
+    element.onclick = onclick;
+    element.disabled = disabled;
+    return element;
+  };
+
+  const renderTeammates = () => {
+    document.getElementById("teammates").replaceChildren(...[...teammates.values()].map(user => userItem(user,
+      button("Remove", () => { teammates.delete(user.id); renderTeammates(); runSearch(); }),
+    )));
+  };
+
+  // Search: same rules as /connections (up to 7, starts-with, alphabetical),
+  // except teammates already added are left out
+  const searchInput = document.getElementById("teammateSearch");
+  const searchResults = document.getElementById("searchResults");
+  let latestSearch = 0;
+
+  const addButton = user => {
+    if (user.relationship === "self") return [];
+    if (user.relationship === "blocked") return [button("Blocked", null, true)];
+    return [button("Add", () => { teammates.set(user.id, user); renderTeammates(); runSearch(); })];
+  };
+
+  const runSearch = async () => {
+    const query = searchInput.value;
+    const searchId = ++latestSearch;
+
+    if (!query) {
+      searchResults.replaceChildren();
+      return;
+    }
+
+    const params = new URLSearchParams({ limit: 7, q: query });
+    teammates.forEach((_, id) => params.append("exclude", id));
+    const response = await fetch("/users/search?" + params);
+    // Typing fast (or adding/removing teammates) can make responses arrive out of order; only show the newest one
+    if (searchId !== latestSearch || !response.ok) return;
+
+    const users = await response.json();
+    searchResults.replaceChildren(...users.map(user => userItem(user, ...addButton(user))));
+  };
+
+  searchInput.oninput = runSearch;
+  // Enter in the search box shouldn't submit the project
+  searchInput.onkeydown = event => { if (event.key === "Enter") event.preventDefault(); };
+
+  // Missing mandatory fields: red message + yellow highlight until they're filled in
+  const showMissing = (fields, message) => {
+    mandatory.forEach(input => input.classList.toggle("missing", fields.includes(input.id)));
+    formError.textContent = message;
+    formError.hidden = false;
+  };
+
+  mandatory.forEach(input => input.oninput = () => {
+    if (input.value.trim()) input.classList.remove("missing");
+  });
+
+  form.onsubmit = async event => {
+    event.preventDefault();
+
+    const missing = mandatory.filter(input => !input.value.trim()).map(input => input.id);
+    if (missing.length) {
+      showMissing(missing, "Some mandatory fields have not been completed.");
+      return;
+    }
+
+    const data = new FormData(form);
+    data.delete("teammateSearch");
+    teammates.forEach((_, id) => data.append("contributors", id));
+
+    const submitButton = document.getElementById("submitButton");
+    submitButton.disabled = true;
+    const response = await fetch("/project_create", { method: "POST", body: data });
+    submitButton.disabled = false;
+
+    if (response.ok) {
+      location.href = "/home";
+      return;
+    }
+    if (response.status === 413) {
+      showMissing([], "That thumbnail is too large (5 MB max).");
+      return;
+    }
+    const error = await response.json().catch(() => ({ error: "Couldn't create the project.", missing: [] }));
+    showMissing(error.missing || [], error.error);
+  };
+</script>
+
+<style>
+  body {
+    background-color: #d6b65e;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  #homeButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+  h1 {
+    margin-top: 50px;
+  }
+
+  #projectForm {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 640px;
+  }
+
+  #projectForm label {
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  #projectForm input:not([type=file]),
+  #projectForm textarea {
+    padding: 6px;
+    font: inherit;
+    border: 1px solid #999;
+    border-radius: 4px;
+  }
+
+  .required {
+    color: #b00020;
+  }
+
+  .missing {
+    background-color: #ffe066;
+  }
+
+  #thumbnailPreview {
+    max-width: 240px;
+    max-height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  #formError {
+    color: #b00020;
+    font-weight: bold;
+  }
+
+  #submitButton {
+    align-self: flex-start;
+    margin-top: 12px;
+  }
+
+  .user-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .user-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+  }
+
+  .user-list img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .user-list .username {
+    display: block;
+    font-size: 1.1em;
+  }
+
+  .user-list .user-id {
+    display: block;
+    font-size: 0.75em;
+    color: #555;
+  }
+</style>

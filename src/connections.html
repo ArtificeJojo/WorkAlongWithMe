@@ -93,6 +93,8 @@
     return element;
   };
 
+  const viewProfileButton = user => button("View profile", () => location.href = `/friend/${user.id}`);
+
   const notice = document.getElementById("notice");
   const showNotice = text => {
     notice.textContent = text;
@@ -108,6 +110,7 @@
     const { friends, requests, blocked, new_friends } = await response.json();
 
     document.getElementById("friendList").replaceChildren(...friends.map(user => userItem(user,
+      viewProfileButton(user),
       button("Remove friend", () => askToUnfriend(user)),
       button("Block", () => askToBlock(user)),
     )));
@@ -216,13 +219,15 @@
   };
 
   const relationshipButtons = user => {
+    const view = viewProfileButton(user);
     const block = button("Block", () => askToBlock(user));
     switch (user.relationship) {
-      case "none": return [button("Add friend", () => sendRequest(user.id)), block];
-      case "request_received": return [button("Accept request", () => respond(user.id, "accept")), block];
-      case "request_sent": return [disabledButton("Request pending"), block];
-      case "friends": return [block];
-      case "blocked": return [disabledButton("Blocked")];  // unblock from the Blocked users tab
+      case "none": return [view, button("Add friend", () => sendRequest(user.id)), block];
+      case "request_received": return [view, button("Accept request", () => respond(user.id, "accept")), block];
+      case "request_sent": return [view, disabledButton("Request pending"), block];
+      case "friends": return [view, block];
+      // Can't view someone you've blocked; unblock from the Blocked users tab
+      case "blocked": return [disabledButton("Blocked")];
       default: return [];  // yourself
     }
   };

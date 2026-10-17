@@ -2,6 +2,10 @@
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
 
+<div id="topBar">
+  <button onclick="location.href = '/project_create'">Create project</button>
+</div>
+
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
   <button onclick="location.href = '/profile'">View profile</button>
@@ -16,6 +20,12 @@
 <div class="screenframe"></div>
 
 <style>
+  #topBar {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
   #profileBar {
     display: flex;
     align-items: center;

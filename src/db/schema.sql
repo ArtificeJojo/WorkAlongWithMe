@@ -85,6 +85,29 @@ CREATE TABLE IF NOT EXISTS blocks (
 );
 CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks (blocked_id);
 
+-- Projects created on /project_create. owner_id is the publishing user;
+-- teammates they invited are in project_contributors.
+CREATE TABLE IF NOT EXISTS projects (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL CHECK (btrim(title) <> ''),
+  summary      TEXT NOT NULL CHECK (btrim(summary) <> ''),
+  description  TEXT,
+  thumbnail    TEXT,   -- uploaded file in uploads/project_thumbnails/ (Flask); NULL = none
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS projects_owner ON projects (owner_id);
+
+-- Teammates are invited: 'pending' until they accept on /invites. Rejecting deletes the row.
+CREATE TABLE IF NOT EXISTS project_contributors (
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+  invited_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (project_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS project_contributors_user ON project_contributors (user_id);
+
 -- Groups formed in the Party Camp, plus the Gemini-written team guide.
 CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

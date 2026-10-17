@@ -6,16 +6,45 @@ import profile
 # The logged-in user's users.id, from their Auth0 ID ($1 in every query below that uses it)
 ME = "(SELECT id FROM users WHERE auth0_sub = $1)"
 
+# How the logged-in user relates to users row u. Needs the friend_requests join below.
+RELATIONSHIP = f"""
+    CASE
+        WHEN u.id = {ME} THEN 'self'
+        WHEN EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = {ME} AND b.blocked_id = u.id) THEN 'blocked'
+        WHEN fr.status = 'accepted' THEN 'friends'
+        WHEN fr.sender_id = {ME} THEN 'request_sent'
+        WHEN fr.sender_id = u.id THEN 'request_received'
+        ELSE 'none'
+    END
+"""
+FRIEND_REQUEST_JOIN = f"""
+    LEFT JOIN friend_requests fr
+           ON (fr.sender_id = u.id AND fr.recipient_id = {ME})
+           OR (fr.recipient_id = u.id AND fr.sender_id = {ME})
+"""
+# u has blocked the logged-in user
+BLOCKED_BY_U = f"EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = u.id AND b.blocked_id = {ME})"
 
-async def send_profile_picture_by_id(user_id):
-    """Respond with any user's profile picture by their users.id (e.g. search results)."""
-    return await profile.send_picture("SELECT profile_picture FROM users WHERE id = $1", user_id)
+
+async def send_profile_picture_by_id(auth0_sub, user_id):
+    """Respond with any user's profile picture by their users.id (e.g. search results).
+    Users who have blocked each other (either way) get the default picture instead."""
+    return await profile.send_picture(
+        f"""
+        SELECT u.profile_picture FROM users u
+        WHERE u.id = $2
+          AND NOT {BLOCKED_BY_U}
+          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = {ME} AND b.blocked_id = u.id)
+        """,
+        auth0_sub, user_id,
+    )
 
 
-async def search_users(auth0_sub, prefix, limit=4):
+async def search_users(auth0_sub, prefix, limit=4, exclude=()):
     """Users whose username starts with prefix (case-insensitive), alphabetically.
     Only users who finished /aboutyou, since that's where usernames are chosen,
-    and never anyone who has blocked the searcher.
+    and never anyone who has blocked the searcher or whose id is in exclude
+    (e.g. teammates already added on /project_create).
     Each result says how they relate to the searcher: 'self', 'blocked' (by the searcher),
     'friends', 'request_sent', 'request_received' or 'none'."""
     if not prefix:
@@ -25,31 +54,44 @@ async def search_users(auth0_sub, prefix, limit=4):
     try:
         rows = await conn.fetch(
             f"""
-            SELECT u.id, u.display_name,
-                   CASE
-                       WHEN u.id = {ME} THEN 'self'
-                       WHEN EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = {ME} AND b.blocked_id = u.id)
-                           THEN 'blocked'
-                       WHEN fr.status = 'accepted' THEN 'friends'
-                       WHEN fr.sender_id = {ME} THEN 'request_sent'
-                       WHEN fr.sender_id = u.id THEN 'request_received'
-                       ELSE 'none'
-                   END AS relationship
+            SELECT u.id, u.display_name, {RELATIONSHIP} AS relationship
             FROM users u
-            LEFT JOIN friend_requests fr
-                   ON (fr.sender_id = u.id AND fr.recipient_id = {ME})
-                   OR (fr.recipient_id = u.id AND fr.sender_id = {ME})
+            {FRIEND_REQUEST_JOIN}
             WHERE u.about_you_completed AND starts_with(lower(u.display_name), lower($2))
-              AND NOT EXISTS (SELECT 1 FROM blocks b WHERE b.blocker_id = u.id AND b.blocked_id = {ME})
+              AND NOT {BLOCKED_BY_U}
+              AND u.id <> ALL($4::uuid[])
             ORDER BY lower(u.display_name), u.id
             LIMIT $3
             """,
-            auth0_sub, prefix, limit,
+            auth0_sub, prefix, limit, list(exclude),
         )
     finally:
         await conn.close()
 
     return [{**_user_json(row), "relationship": row["relationship"]} for row in rows]
+
+
+async def get_user_profile(auth0_sub, user_id):
+    """Another user's profile as the logged-in user sees it: id, username, picture and relationship.
+    None if they don't exist, haven't finished /aboutyou, or either of you has blocked the other
+    (indistinguishable on purpose, so a block isn't revealed)."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        row = await conn.fetchrow(
+            f"""
+            SELECT u.id, u.display_name, {RELATIONSHIP} AS relationship
+            FROM users u
+            {FRIEND_REQUEST_JOIN}
+            WHERE u.id = $2 AND u.about_you_completed AND NOT {BLOCKED_BY_U}
+            """,
+            auth0_sub, user_id,
+        )
+    finally:
+        await conn.close()
+
+    if not row or row["relationship"] == "blocked":
+        return None
+    return {**_user_json(row), "relationship": row["relationship"]}
 
 
 async def send_friend_request(auth0_sub, user_id):

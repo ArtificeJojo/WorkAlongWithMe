@@ -14,6 +14,7 @@
 <div id="profileButtons">
   <button onclick="location.href = '/home'">Home</button>
   <button onclick="location.href = '/connections'">Connections</button>
+  <button id="invitesButton" {% if has_invites %}class="highlight"{% endif %} onclick="location.href = '/invites'">Invites</button>
   <button onclick="location.href = '/logout'">Logout</button>
 </div>
 
@@ -86,6 +87,11 @@
     object-fit: cover;
     border-radius: 50%;
     cursor: pointer;
+  }
+
+  /* Invites button when there are pending project invites */
+  #invitesButton.highlight {
+    background-color: #ffe066;
   }
 
   #profileButtons {

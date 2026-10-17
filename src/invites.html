@@ -1,0 +1,195 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<p id="notice" role="status" hidden></p>
+
+<button onclick="location.href = '/profile'">Back to profile</button>
+
+<h1>Project invites</h1>
+
+<ul id="inviteList"></ul>
+<p id="noInvites" class="empty" hidden>You don't have any project invites.</p>
+
+<script>
+  const notice = document.getElementById("notice");
+
+  // Green for accepting, red for rejecting
+  const showNotice = (text, kind) => {
+    notice.textContent = text;
+    notice.className = kind;
+    notice.hidden = false;
+  };
+
+  // Small picture + username, as in the user lists on /connections
+  const userChip = user => {
+    const chip = document.createElement("span");
+    chip.className = "user-chip";
+
+    const picture = document.createElement("img");
+    picture.src = user.picture;
+    picture.alt = "";
+
+    const name = document.createElement("span");
+    name.textContent = user.username;
+
+    chip.append(picture, name);
+    return chip;
+  };
+
+  const button = (label, onclick) => {
+    const element = document.createElement("button");
+    element.textContent = label;
+    element.onclick = onclick;
+    return element;
+  };
+
+  const inviteItem = invite => {
+    const item = document.createElement("li");
+
+    if (invite.thumbnail) {
+      const thumbnail = document.createElement("img");
+      thumbnail.className = "thumbnail";
+      thumbnail.src = invite.thumbnail;
+      thumbnail.alt = "";
+      item.append(thumbnail);
+    }
+
+    const details = document.createElement("div");
+    details.className = "details";
+
+    const title = document.createElement("h2");
+    title.textContent = invite.title;
+
+    const owner = document.createElement("p");
+    owner.append("Created by ", userChip(invite.owner));
+
+    const members = document.createElement("p");
+    if (invite.accepted.length) members.append("Team members: ", ...invite.accepted.map(userChip));
+    else members.append("No one has accepted yet.");
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.append(
+      button("Accept", () => respond(invite, "accept")),
+      button("Reject", () => respond(invite, "reject")),
+    );
+
+    details.append(title, owner, members, actions);
+    item.append(details);
+    return item;
+  };
+
+  const loadInvites = async () => {
+    const response = await fetch("/projects/invites");
+    if (!response.ok) return;
+    const invites = await response.json();
+    document.getElementById("inviteList").replaceChildren(...invites.map(inviteItem));
+    document.getElementById("noInvites").hidden = invites.length > 0;
+  };
+
+  const respond = async (invite, action) => {
+    const response = await fetch(`/projects/${invite.id}/invite/${action}`, { method: "POST" });
+    // 404 = already answered (e.g. in another tab); just drop it from the list
+    if (!response.ok && response.status !== 404) {
+      alert("Couldn't respond to that invite.");
+      return;
+    }
+    if (action === "accept") showNotice(`You joined ${invite.title}`, "accepted");
+    else showNotice(`You declined ${invite.title}`, "rejected");
+    await loadInvites();
+  };
+
+  loadInvites();
+</script>
+
+<style>
+  body {
+    background-color: #d6b65e;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  #notice {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+
+  #notice.accepted {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  #notice.rejected {
+    background-color: #f8d7da;
+    color: #b00020;
+  }
+
+  .empty {
+    color: #555;
+  }
+
+  #inviteList {
+    list-style: none;
+    padding: 0;
+  }
+
+  #inviteList > li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin: 16px 0;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+  }
+
+  .thumbnail {
+    width: 160px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .details h2 {
+    margin: 0 0 6px;
+  }
+
+  .details p {
+    margin: 4px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 6px;
+  }
+
+  .user-chip img {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+</style>

@@ -17,11 +17,11 @@ async def send_profile_picture(auth0_sub):
     return await send_picture("SELECT profile_picture FROM users WHERE auth0_sub = $1", auth0_sub)
 
 
-async def send_picture(query, key):
-    """Respond with the uploaded picture whose filename query returns for key, or the default donkey."""
+async def send_picture(query, *args):
+    """Respond with the uploaded picture whose filename query returns, or the default donkey."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
-        filename = await conn.fetchval(query, key)
+        filename = await conn.fetchval(query, *args)
     finally:
         await conn.close()
 

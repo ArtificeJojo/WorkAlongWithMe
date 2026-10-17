@@ -10,9 +10,11 @@ from flask import Flask, request, redirect, url_for, render_template, render_tem
 import asyncio
 from markupsafe import escape
 from urllib.parse import urlencode
+from uuid import UUID
 
 import profile
 import connection
+import project
 
 load_dotenv()
 app = Flask(__name__)
@@ -133,6 +135,7 @@ async def view_profile():
             html.read(),
             username=about_you["display_name"],
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
+            has_invites=await project.has_pending_invites(user["sub"]),
         )
 
 @app.route("/connections")
@@ -174,7 +177,12 @@ async def search_users():
 
     # connections.html asks for 7; cap it so nobody can list every user
     limit = min(request.args.get("limit", 4, type=int), 7)
-    return jsonify(await connection.search_users(user["sub"], request.args.get("q", ""), max(limit, 1)))
+    # project_create.html leaves out teammates it already added (?exclude=<id>&exclude=<id>...)
+    try:
+        exclude = [UUID(user_id) for user_id in request.args.getlist("exclude")]
+    except ValueError:
+        return "Invalid user id in exclude", 400
+    return jsonify(await connection.search_users(user["sub"], request.args.get("q", ""), max(limit, 1), exclude))
 
 @app.route("/friends")
 async def friends():
@@ -244,10 +252,94 @@ async def mark_new_friends_seen():
 
 @app.route("/users/<uuid:user_id>/picture")
 async def user_picture(user_id):
-    if not await auth0().get_user(store_options={"request": request}):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
         return "Not logged in", 401
 
-    return await connection.send_profile_picture_by_id(user_id)
+    return await connection.send_profile_picture_by_id(user["sub"], user_id)
+
+@app.route("/project_create", methods=["GET", "POST"])
+async def project_create():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/") if request.method == "GET" else ("Not logged in", 401)
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+
+    if request.method == "POST":
+        try:
+            project_id = await project.create_project(
+                user["sub"],
+                request.form.get("title"),
+                request.form.get("summary"),
+                request.form.get("description"),
+                request.files.get("thumbnail"),
+                request.form.getlist("contributors"),
+            )
+        except project.ProjectError as e:
+            return jsonify({"error": str(e), "missing": e.missing}), 400
+        return jsonify({"id": str(project_id)}), 201
+
+    with open("..\\src\\project_create.html") as html:
+
+        return html.read()
+
+@app.route("/invites")
+async def invites():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou")
+
+    with open("..\\src\\invites.html") as html:
+
+        return html.read()
+
+@app.route("/projects/invites")
+async def project_invites():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    return jsonify(await project.get_invites(user["sub"]))
+
+@app.route("/projects/<uuid:project_id>/invite/<any(accept, reject):action>", methods=["POST"])
+async def respond_to_project_invite(project_id, action):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    title = await project.respond_to_invite(user["sub"], project_id, accept=action == "accept")
+    if title is None:
+        return "No pending invite to that project", 404
+    return jsonify({"title": title})
+
+@app.route("/projects/<uuid:project_id>/thumbnail")
+async def project_thumbnail(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    return await project.send_thumbnail(user["sub"], project_id) or ("No thumbnail", 404)
+
+@app.route("/friend/<uuid:user_id>")
+async def view_other_profile(user_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou")
+
+    other = await connection.get_user_profile(user["sub"], user_id)
+    if not other:
+        return "User not found", 404
+    if other["relationship"] == "self":
+        return redirect("/profile")
+
+    with open("..\\src\\friend.html") as html:
+
+        return render_template_string(html.read(), user=other)
 
 @app.route("/aboutyou", methods=["GET", "POST"])
 async def about_you():
