@@ -14,7 +14,7 @@
 </div>
 
 <div id="view-unauthenticated" hidden>
-  <button id="loginButton" onclick="client.loginWithRedirect()">Login</button>
+  <button id="loginButton" onclick="location.href = FLASK_BASE_URL + '/login'">Login</button>
   <button id="signupButton" onclick="client.loginWithRedirect({authorizationParams:{screen_hint:'signup'}})">Signup</button>
 </div>
 
@@ -22,6 +22,9 @@
 <script src="https://cdn.auth0.com/js/auth0-spa-js/2.18/auth0-spa-js.production.js"></script>
 
 <script>
+  // Flask server (currently forwarded through ngrok)
+  const FLASK_BASE_URL = "https://spool-banshee-rectangle.ngrok-free.dev";
+
   // Helpers
   const displayView = name => ['loading', 'error', 'authenticated', 'unauthenticated'].forEach(v => document.getElementById(`view-${v}`).hidden = v !== name);
   const setTextContent = (id, content) => document.getElementById(id).textContent = content;
