@@ -1,0 +1,7 @@
+tunnel: flask-app
+credentials-file: C:\Backup\WorkAlongWithMe\flask\.cloudflared\<TUNNEL-ID>.json
+
+ingress:
+  - hostname: workalongwithme.us 
+    service: http://localhost:5000
+  - service: http_status:404
