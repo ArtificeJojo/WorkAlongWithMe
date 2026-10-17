@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   hero_name     TEXT,
   avatar        TEXT,
   is_demo       BOOLEAN NOT NULL DEFAULT FALSE,
+  auth0_sub     TEXT UNIQUE,   -- Auth0 user ID; NULL for demo users
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -2,66 +2,25 @@
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
 
-<div id="view-loading">Loading...</div>
-
 <div id="view-error" hidden></div>
 
-<div id="view-authenticated" hidden>
-  <p>Logged in as <span id="user-email"></span></p>
-  <h1>User Profile</h1>
-  <pre id="user-profile"></pre>
-  <button onclick="client.logout({logoutParams:{returnTo:location.origin}})">Logout</button>
-</div>
-
-<div id="view-unauthenticated" hidden>
+<div id="view-unauthenticated">
   <button id="loginButton" onclick="location.href = FLASK_BASE_URL + '/login'">Login</button>
-  <button id="signupButton" onclick="client.loginWithRedirect({authorizationParams:{screen_hint:'signup'}})">Signup</button>
+  <button id="signupButton" onclick="location.href = FLASK_BASE_URL + '/login?screen_hint=signup'">Signup</button>
 </div>
-
-<!-- Install the Auth0 SPA SDK -->
-<script src="https://cdn.auth0.com/js/auth0-spa-js/2.18/auth0-spa-js.production.js"></script>
 
 <script>
   // Flask server (currently forwarded through ngrok)
   const FLASK_BASE_URL = "https://spool-banshee-rectangle.ngrok-free.dev";
 
-  // Helpers
-  const displayView = name => ['loading', 'error', 'authenticated', 'unauthenticated'].forEach(v => document.getElementById(`view-${v}`).hidden = v !== name);
-  const setTextContent = (id, content) => document.getElementById(id).textContent = content;
-
-  (async () => {
-    // Initialize the Auth0 SDK
-    window.client = await auth0.createAuth0Client({
-      domain: 'dev-ywzn2charsqamqr8.us.auth0.com',
-      clientId: 'Of7fTzvmSmNxKNzUSz6I3AXXniGq68Up',
-      authorizationParams: { redirect_uri: location.origin },
-    });
-
-    // Handle errors returned by Auth0 after a redirect
-    if (location.search.includes("error=")) {
-      const params = new URLSearchParams(location.search);
-      setTextContent("view-error", `Error: ${params.get("error")} — ${params.get("error_description")}`);
-      displayView("error");
-      history.replaceState({}, "", location.pathname);
-      return;
-    }
-
-    // Handle the redirect callback after a successful login
-    if (location.search.includes("code=") && location.search.includes("state=")) {
-      await window.client.handleRedirectCallback();
-      history.replaceState({}, "", location.pathname);
-    }
-
-    if (await window.client.isAuthenticated()) {
-      const user = await window.client.getUser();
-      setTextContent("user-email", user.email);
-      setTextContent("user-profile", JSON.stringify(user, null, 2));
-      displayView("authenticated");
-      return;
-    }
-
-    displayView("unauthenticated");
-  })();
+  // Show errors that Flask's /callback passes back after a failed login
+  if (location.search.includes("error=")) {
+    const params = new URLSearchParams(location.search);
+    const errorView = document.getElementById("view-error");
+    errorView.textContent = `Error: ${params.get("error")} — ${params.get("error_description")}`;
+    errorView.hidden = false;
+    history.replaceState({}, "", location.pathname);
+  }
 </script>
 
 <style>

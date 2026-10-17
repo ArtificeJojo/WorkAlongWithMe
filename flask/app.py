@@ -11,8 +11,6 @@ import asyncio
 from markupsafe import escape
 from urllib.parse import urlencode
 
-CONNECTION = "postgres://tsdbadmin:nuvtsphtfx9213t1@ohkx4rugfy.jytsb7wpa9.tsdb.cloud.timescale.com:31169/tsdb?sslmode=require"
-
 load_dotenv()
 app = Flask(__name__)
 
@@ -40,16 +38,17 @@ async def login():
 @app.route("/callback")
 async def callback():
     try:
-        await auth0().complete_interactive_login(
+        result = await auth0().complete_interactive_login(
             request.url,
             store_options={"request": request},
         )
+        first_login = await register_user(result["state_data"]["user"])
     except Exception as e:
         # Send the error back to index.html, which already displays ?error= params
         app.logger.warning("Login callback failed", exc_info=True)
         return redirect("/?" + urlencode({"error": "login_failed", "error_description": str(e)}))
 
-    return redirect("/")
+    return redirect("/aboutyou" if first_login else "/home")
 
 
 class CookieStore(AbstractDataStore):
@@ -89,14 +88,51 @@ class CookieStore(AbstractDataStore):
 
 
 
-# @app.route("/home")
-# def home():
-#     keyID = request.cookies.get("SESSION")
-#     if not keyID:
-#         return redirect(url_for(""))
+@app.route("/logout")
+async def logout():
+    url = await auth0().logout(
+        options=LogoutOptions(return_to=env.get("APP_BASE_URL")),
+        store_options={"request": request},
+    )
+    return redirect(url)
+
+@app.route("/home")
+async def home():
+    if not await auth0().get_user(store_options={"request": request}):
+        return redirect("/")
+
+    with open("..\\src\\home.html") as html:
+
+        return html.read()
+
+@app.route("/aboutyou")
+async def about_you():
+    if not await auth0().get_user(store_options={"request": request}):
+        return redirect("/")
+
+    with open("..\\src\\about_you.html") as html:
+
+        return html.read()
+
+async def register_user(user):
+    """Create a users row for this Auth0 account if there isn't one yet.
+    Returns True when the row was just created, i.e. this is their first login."""
+    display_name = user.get("name") or user.get("nickname") or user.get("email") or user["sub"]
+
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        new_id = await conn.fetchval(
+            "INSERT INTO users (display_name, auth0_sub) VALUES ($1, $2) "
+            "ON CONFLICT (auth0_sub) DO NOTHING RETURNING id",
+            display_name, user["sub"],
+        )
+    finally:
+        await conn.close()
+
+    return new_id is not None
 
 async def main():
-    conn = await asyncpg.connect(CONNECTION)
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
     extensions = await conn.fetch("select current_date")
     for extension in extensions:
         print(extension)
