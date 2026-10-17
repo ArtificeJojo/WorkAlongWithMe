@@ -5,18 +5,24 @@
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
   <button onclick="location.href = '/profile'">View profile</button>
+  <h1>{{ username }}</h1>
 </div>
 
-<h1>{{ username }}</h1>
-<h2>{{ organization }}</h2>
+<div id="underPB">
+  <h2>{{ organization }}</h2>
+  <button onclick="location.href = '/logout'">Logout</button>
+</div>
 
-<button onclick="location.href = '/logout'">Logout</button>
+<div class="screenframe"></div>
 
 <style>
   #profileBar {
     display: flex;
     align-items: center;
     gap: 16px;
+    justify-content: center;
+    margin-top: 100px;
+    margin-bottom: 0;
   }
 
   #profilePicture {
@@ -25,5 +31,29 @@
     object-fit: cover;
     border-radius: 50%;
     cursor: pointer;
+  }
+
+  #underPB {
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+    margin-left: 640px;
+  }
+
+  body {
+    background-color: #d6b65e;
+    font-family: Arial, sans-serif;
+  }
+
+  .screenframe{
+    position: fixed;
+    inset: 60px;                  /* top/right/bottom/left = 0 */
+    border: 4px solid rgb(35, 105, 246);
+    border-radius: 8px;
+    pointer-events: none;      /* lets you still click the things underneath */
+    box-sizing: border-box;
+    width: 600px;   /* 100% minus the border width */
+    margin-left: 250px;  /* top/right/bottom/left = 0 */
+    height: 600px;  /* 100% minus the border width */
   }
 </style>
