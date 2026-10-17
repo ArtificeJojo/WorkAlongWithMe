@@ -6,7 +6,7 @@ from auth0_server_python.auth_server.server_client import ServerClient
 from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginOptions, StateData, TransactionData
 from auth0_server_python.store.abstract import AbstractDataStore
 
-from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request, jsonify
+from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request, jsonify, send_from_directory
 import asyncio
 from markupsafe import escape
 from urllib.parse import urlencode
@@ -32,6 +32,12 @@ def start():
     with open("..\\src\\index.html") as html:
     
         return html.read()
+
+@app.route("/Images/<path:filename>")
+def site_image(filename):
+    # Shared site images (e.g. the bg.png page background). Public, since the login page uses them too.
+    # send_from_directory refuses paths that try to escape the folder (e.g. ../.env)
+    return send_from_directory(profile.ROOT / "Images", filename)
 
 @app.route("/login")
 async def login():
