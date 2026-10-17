@@ -1,0 +1,141 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<div id="profileBar">
+  <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="Click to change" />
+  <button id="resetPicture" {% if not has_custom_picture %}hidden{% endif %}>Reset to default</button>
+</div>
+<input id="pictureInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" hidden />
+
+<h1>{{ username }}</h1>
+
+<button onclick="location.href = '/home'">Home</button>
+<button onclick="location.href = '/logout'">Logout</button>
+
+<h2>Find users</h2>
+<input id="userSearch" type="search" placeholder="Search by username" autocomplete="off" />
+<ul id="searchResults"></ul>
+
+<script>
+  const picture = document.getElementById("profilePicture");
+  const pictureInput = document.getElementById("pictureInput");
+  const resetButton = document.getElementById("resetPicture");
+
+  // Same URL, new image: add a timestamp so the browser fetches it again
+  const refreshPicture = () => picture.src = "/profile-picture?t=" + Date.now();
+
+  picture.onclick = () => pictureInput.click();
+
+  pictureInput.onchange = async () => {
+    if (!pictureInput.files.length) return;
+
+    const form = new FormData();
+    form.append("picture", pictureInput.files[0]);
+    const response = await fetch("/profile-picture", { method: "POST", body: form });
+    pictureInput.value = "";
+
+    if (!response.ok) {
+      alert(response.status === 413 ? "That image is too large (5 MB max)." : await response.text());
+      return;
+    }
+    refreshPicture();
+    resetButton.hidden = false;
+  };
+
+  resetButton.onclick = async () => {
+    const response = await fetch("/profile-picture", { method: "DELETE" });
+    if (!response.ok) {
+      alert("Couldn't reset your profile picture.");
+      return;
+    }
+    refreshPicture();
+    resetButton.hidden = true;
+  };
+
+  const searchInput = document.getElementById("userSearch");
+  const searchResults = document.getElementById("searchResults");
+  let latestQuery = "";
+
+  searchInput.oninput = async () => {
+    const query = searchInput.value;
+    latestQuery = query;
+
+    if (!query) {
+      searchResults.replaceChildren();
+      return;
+    }
+
+    const response = await fetch("/users/search?q=" + encodeURIComponent(query));
+    // Typing fast can make responses arrive out of order; only show the newest one
+    if (query !== latestQuery || !response.ok) return;
+
+    const users = await response.json();
+    searchResults.replaceChildren(...users.map(user => {
+      const item = document.createElement("li");
+
+      const picture = document.createElement("img");
+      picture.src = user.picture;
+      picture.alt = "";
+
+      const name = document.createElement("span");
+      name.className = "username";
+      name.textContent = user.username;
+
+      const id = document.createElement("span");
+      id.className = "user-id";
+      id.textContent = user.id;
+
+      const text = document.createElement("div");
+      text.append(name, id);
+      item.append(picture, text);
+      return item;
+    }));
+  };
+</script>
+
+<style>
+  #profileBar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #profilePicture {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  #searchResults {
+    list-style: none;
+    padding: 0;
+  }
+
+  #searchResults li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+  }
+
+  #searchResults img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  #searchResults .username {
+    display: block;
+    font-size: 1.1em;
+  }
+
+  #searchResults .user-id {
+    display: block;
+    font-size: 0.75em;
+    color: #555;
+  }
+</style>

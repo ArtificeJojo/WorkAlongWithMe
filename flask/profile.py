@@ -14,11 +14,14 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 async def send_profile_picture(auth0_sub):
     """Respond with the user's uploaded picture, or the default donkey if they haven't uploaded one."""
+    return await send_picture("SELECT profile_picture FROM users WHERE auth0_sub = $1", auth0_sub)
+
+
+async def send_picture(query, key):
+    """Respond with the uploaded picture whose filename query returns for key, or the default donkey."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
-        filename = await conn.fetchval(
-            "SELECT profile_picture FROM users WHERE auth0_sub = $1", auth0_sub,
-        )
+        filename = await conn.fetchval(query, key)
     finally:
         await conn.close()
 
@@ -39,6 +42,32 @@ async def replace_profile_picture(auth0_sub, file):
     filename = uuid4().hex + extension
     file.save(UPLOAD_DIR / filename)
 
+    try:
+        await _set_profile_picture(auth0_sub, filename)
+    except Exception:
+        (UPLOAD_DIR / filename).unlink(missing_ok=True)
+        raise
+
+
+async def reset_profile_picture(auth0_sub):
+    """Go back to the default donkey and delete the user's uploaded picture, if any."""
+    await _set_profile_picture(auth0_sub, None)
+
+
+async def has_custom_profile_picture(auth0_sub):
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        filename = await conn.fetchval(
+            "SELECT profile_picture FROM users WHERE auth0_sub = $1", auth0_sub,
+        )
+    finally:
+        await conn.close()
+
+    return bool(filename and (UPLOAD_DIR / filename).is_file())
+
+
+async def _set_profile_picture(auth0_sub, filename):
+    """Point the user at a new uploaded file (None = default) and delete the file they had before."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         async with conn.transaction():
@@ -48,9 +77,6 @@ async def replace_profile_picture(auth0_sub, file):
             await conn.execute(
                 "UPDATE users SET profile_picture = $1 WHERE auth0_sub = $2", filename, auth0_sub,
             )
-    except Exception:
-        (UPLOAD_DIR / filename).unlink(missing_ok=True)
-        raise
     finally:
         await conn.close()
 

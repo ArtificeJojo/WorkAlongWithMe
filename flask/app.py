@@ -6,12 +6,13 @@ from auth0_server_python.auth_server.server_client import ServerClient
 from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginOptions, StateData, TransactionData
 from auth0_server_python.store.abstract import AbstractDataStore
 
-from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request
+from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request, jsonify
 import asyncio
 from markupsafe import escape
 from urllib.parse import urlencode
 
 import profile
+import connection
 
 load_dotenv()
 app = Flask(__name__)
@@ -111,9 +112,30 @@ async def home():
 
     with open("..\\src\\home.html") as html:
 
-        return render_template_string(html.read(), organization=about_you["organization"])
+        return render_template_string(
+            html.read(),
+            username=about_you["display_name"],
+            organization=about_you["organization"],
+        )
 
-@app.route("/profile-picture", methods=["GET", "POST"])
+@app.route("/profile")
+async def view_profile():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    about_you = await get_about_you(user["sub"])
+    if not about_you or not about_you["about_you_completed"]:
+        return redirect("/aboutyou")
+
+    with open("..\\src\\profile.html") as html:
+
+        return render_template_string(
+            html.read(),
+            username=about_you["display_name"],
+            has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
+        )
+
+@app.route("/profile-picture", methods=["GET", "POST", "DELETE"])
 async def profile_picture():
     user = await auth0().get_user(store_options={"request": request})
     if not user:
@@ -126,7 +148,25 @@ async def profile_picture():
             return str(e), 400
         return "", 204
 
+    if request.method == "DELETE":
+        await profile.reset_profile_picture(user["sub"])
+        return "", 204
+
     return await profile.send_profile_picture(user["sub"])
+
+@app.route("/users/search")
+async def search_users():
+    if not await auth0().get_user(store_options={"request": request}):
+        return "Not logged in", 401
+
+    return jsonify(await connection.search_users(request.args.get("q", "")))
+
+@app.route("/users/<uuid:user_id>/picture")
+async def user_picture(user_id):
+    if not await auth0().get_user(store_options={"request": request}):
+        return "Not logged in", 401
+
+    return await connection.send_profile_picture_by_id(user_id)
 
 @app.route("/aboutyou", methods=["GET", "POST"])
 async def about_you():
@@ -135,15 +175,17 @@ async def about_you():
         return redirect("/")
 
     if request.method == "POST":
+        username = request.form.get("username", "").strip()
         organization = request.form.get("organization", "").strip()
-        if not organization:
+        if not username or not organization:
             return redirect("/aboutyou")
 
         conn = await asyncpg.connect(env.get("DATABASE_URL"))
         try:
             await conn.execute(
-                "UPDATE users SET organization = $1, about_you_completed = TRUE WHERE auth0_sub = $2",
-                organization, user["sub"],
+                "UPDATE users SET display_name = $1, organization = $2, about_you_completed = TRUE "
+                "WHERE auth0_sub = $3",
+                username, organization, user["sub"],
             )
         finally:
             await conn.close()
@@ -169,7 +211,10 @@ async def register_user(user):
     finally:
         await conn.close()
 
-    about_you = await get_about_you(user["sub"])
+    return await about_you_completed(user["sub"])
+
+async def about_you_completed(auth0_sub):
+    about_you = await get_about_you(auth0_sub)
     return bool(about_you and about_you["about_you_completed"])
 
 async def get_about_you(auth0_sub):
@@ -177,7 +222,7 @@ async def get_about_you(auth0_sub):
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT organization, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
+            "SELECT display_name, organization, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:
         await conn.close()
