@@ -1,0 +1,124 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button id="homeButton" onclick="location.href = '/home'">Home</button>
+
+<main>
+  {% if project.thumbnail %}
+    <img id="thumbnail" src="{{ project.thumbnail }}" alt="" />
+  {% endif %}
+
+  <h1>{{ project.title }}</h1>
+  <p id="summary">{{ project.summary }}</p>
+
+  {% if project.description %}
+    <h2>About this project</h2>
+    <p id="description">{{ project.description }}</p>
+  {% endif %}
+
+  {# One person: picture + name, linking to their profile unless one of you blocked the other #}
+  {% macro person(user) %}
+    {% if user.viewable %}
+      <a class="person" href="/friend/{{ user.id }}">
+        <img src="{{ user.picture }}" alt="" />
+        <span>{{ user.username }}</span>
+      </a>
+    {% else %}
+      <span class="person">
+        <img src="{{ user.picture }}" alt="" />
+        <span>{{ user.username }}</span>
+      </span>
+    {% endif %}
+  {% endmacro %}
+
+  <h2>Created by</h2>
+  <div class="people">{{ person(project.owner) }}</div>
+
+  <h2>Contributors</h2>
+  {% if project.members %}
+    <div class="people">
+      {% for member in project.members %}{{ person(member) }}{% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">No one has joined this project yet.</p>
+  {% endif %}
+
+  <p class="created">Created {{ project.created_at.strftime("%B %d, %Y") }}</p>
+</main>
+
+<style>
+  body {
+    background-color: #d6b65e;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  #homeButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+  main {
+    max-width: 720px;
+    margin: 60px auto 0;
+  }
+
+  #thumbnail {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  #summary {
+    font-size: 1.15em;
+  }
+
+  /* Keep the line breaks the creator typed */
+  #description {
+    white-space: pre-wrap;
+  }
+
+  .people {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .person {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 24px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.person:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  .person img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .empty, .created {
+    color: #555;
+  }
+</style>
