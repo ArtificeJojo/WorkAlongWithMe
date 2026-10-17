@@ -171,7 +171,9 @@ async def search_users():
     if not await auth0().get_user(store_options={"request": request}):
         return "Not logged in", 401
 
-    return jsonify(await connection.search_users(request.args.get("q", "")))
+    # connections.html asks for 7; cap it so nobody can list every user
+    limit = min(request.args.get("limit", 4, type=int), 7)
+    return jsonify(await connection.search_users(request.args.get("q", ""), max(limit, 1)))
 
 @app.route("/users/<uuid:user_id>/picture")
 async def user_picture(user_id):
