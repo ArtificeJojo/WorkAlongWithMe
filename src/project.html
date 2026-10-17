@@ -3,6 +3,9 @@
 <title>Work Along With Me</title>
 
 <button id="homeButton" onclick="location.href = '/home'">Home</button>
+{% if project.is_owner %}
+  <button id="editButton" onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
+{% endif %}
 
 <main>
   {% if project.thumbnail %}
@@ -67,6 +70,12 @@
     position: absolute;
     top: 20px;
     left: 20px;
+  }
+
+  #editButton {
+    position: absolute;
+    top: 20px;
+    right: 20px;
   }
 
   main {

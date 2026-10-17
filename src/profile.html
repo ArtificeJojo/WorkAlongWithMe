@@ -18,7 +18,91 @@
   <button onclick="location.href = '/logout'">Logout</button>
 </div>
 
-<div id="pfpFrame"></div>
+<section id="projects">
+  <h2>Projects</h2>
+  <div id="projectGrid"></div>
+  <p id="noProjects" class="empty" hidden>No projects yet.</p>
+  <div id="pager" hidden>
+    <button id="prevPage">Previous</button>
+    <span id="pageLabel"></span>
+    <button id="nextPage">Next</button>
+  </div>
+</section>
+
+<script>
+  // Projects this person created or joined, 6 per page, newest first
+  (() => {
+    const userId = {{ user_id|tojson }};
+    const grid = document.getElementById("projectGrid");
+    const pager = document.getElementById("pager");
+    const prevPage = document.getElementById("prevPage");
+    const nextPage = document.getElementById("nextPage");
+    let page = 1;
+
+    const projectCard = project => {
+      const card = document.createElement("a");
+      card.className = "project-card";
+      card.href = `/project/${project.id}`;
+
+      if (project.thumbnail) {
+        const thumbnail = document.createElement("img");
+        thumbnail.src = project.thumbnail;
+        thumbnail.alt = "";
+        card.append(thumbnail);
+      } else {
+        const placeholder = document.createElement("div");
+        placeholder.className = "no-thumbnail";
+        card.append(placeholder);
+      }
+
+      const title = document.createElement("span");
+      title.className = "title";
+      title.textContent = project.title;
+
+      const role = document.createElement("span");
+      role.className = "role";
+      role.textContent = project.role === "creator" ? "Creator" : "Contributor";
+
+      // Creator + up to 3 members, with "+N" after the last picture for anyone not shown
+      const people = document.createElement("div");
+      people.className = "people";
+      project.people.forEach(person => {
+        const picture = document.createElement("img");
+        picture.src = person.picture;
+        picture.alt = person.username;
+        picture.title = person.username;
+        people.append(picture);
+      });
+      if (project.extra > 0) {
+        const extra = document.createElement("span");
+        extra.className = "extra";
+        extra.textContent = `+${project.extra}`;
+        people.append(extra);
+      }
+
+      card.append(title, role, people);
+      return card;
+    };
+
+    const loadProjects = async () => {
+      const response = await fetch(`/users/${userId}/projects?page=${page}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      page = data.page;
+
+      grid.replaceChildren(...data.projects.map(projectCard));
+      document.getElementById("noProjects").hidden = data.projects.length > 0;
+      pager.hidden = data.pages <= 1;
+      document.getElementById("pageLabel").textContent = `Page ${data.page} of ${data.pages}`;
+      prevPage.disabled = data.page <= 1;
+      nextPage.disabled = data.page >= data.pages;
+    };
+
+    prevPage.onclick = () => { page--; loadProjects(); };
+    nextPage.onclick = () => { page++; loadProjects(); };
+    loadProjects();
+  })();
+</script>
 
 <script>
   const picture = document.getElementById("profilePicture");
@@ -121,4 +205,79 @@
   pointer-events: none;      /* lets you still click the things underneath */
   box-sizing: border-box;
 }
+
+  #projects {
+    margin: 40px 60px;
+  }
+
+  #projectGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .project-card:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  .project-card img,
+  .project-card .no-thumbnail {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .project-card .title {
+    font-weight: bold;
+  }
+
+  .project-card .role {
+    font-size: 0.8em;
+    color: #555;
+  }
+
+  .project-card .people {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Overrides the thumbnail size from .project-card img */
+  .project-card .people img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: transparent;
+  }
+
+  .project-card .extra {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #555;
+  }
+
+  #pager {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  #projects .empty {
+    color: #555;
+  }
 </style>

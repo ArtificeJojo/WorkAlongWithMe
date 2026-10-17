@@ -4,21 +4,23 @@
 
 <button id="homeButton" onclick="location.href = '/home'">Home</button>
 
-<h1>Create a project</h1>
+{# Used for both /project_create (project is None) and /project/<id>/edit (filled in) #}
+<h1>{% if project %}Edit project{% else %}Create a project{% endif %}</h1>
 
 <form id="projectForm" novalidate>
   <label for="title">Title <span class="required">*</span></label>
-  <input id="title" name="title" maxlength="100" />
+  <input id="title" name="title" maxlength="100" value="{% if project %}{{ project.title }}{% endif %}" />
 
   <label for="summary">Short summary <span class="required">*</span></label>
-  <textarea id="summary" name="summary" rows="2" maxlength="300"></textarea>
+  <textarea id="summary" name="summary" rows="2" maxlength="300">{% if project %}{{ project.summary }}{% endif %}</textarea>
 
   <label for="description">Description</label>
-  <textarea id="description" name="description" rows="8" maxlength="10000"></textarea>
+  <textarea id="description" name="description" rows="8" maxlength="10000">{% if project %}{{ project.description }}{% endif %}</textarea>
 
   <label for="thumbnail">Thumbnail</label>
   <input id="thumbnail" name="thumbnail" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" />
   <img id="thumbnailPreview" alt="" hidden />
+  <button id="removeThumbnail" type="button" hidden>Remove thumbnail</button>
 
   <label for="teammateSearch">Invite teammates</label>
   <ul id="teammates" class="user-list"></ul>
@@ -26,25 +28,45 @@
   <ul id="searchResults" class="user-list"></ul>
 
   <p id="formError" role="alert" hidden></p>
-  <button id="submitButton" type="submit">Submit</button>
+  <button id="submitButton" type="submit">{% if project %}Save changes{% else %}Submit{% endif %}</button>
 </form>
 
 <script>
+  // The project being edited, or null when creating a new one
+  const existing = {{ project|tojson }};
+
   const form = document.getElementById("projectForm");
   const formError = document.getElementById("formError");
   const mandatory = ["title", "summary"].map(id => document.getElementById(id));
 
-  // Thumbnail preview
+  // Thumbnail preview; when editing, starts as the current thumbnail and can be removed
   const thumbnail = document.getElementById("thumbnail");
   const preview = document.getElementById("thumbnailPreview");
-  thumbnail.onchange = () => {
-    const file = thumbnail.files[0];
-    preview.hidden = !file;
-    if (file) preview.src = URL.createObjectURL(file);
+  const removeThumbnailButton = document.getElementById("removeThumbnail");
+  let removeThumbnail = false;
+
+  const showPreview = src => {
+    preview.hidden = !src;
+    removeThumbnailButton.hidden = !src;
+    if (src) preview.src = src;
   };
 
-  // Teammates picked so far, by user id
-  const teammates = new Map();
+  thumbnail.onchange = () => {
+    const file = thumbnail.files[0];
+    if (file) removeThumbnail = false;
+    showPreview(file ? URL.createObjectURL(file) : (!removeThumbnail && existing && existing.thumbnail));
+  };
+
+  removeThumbnailButton.onclick = () => {
+    thumbnail.value = "";
+    removeThumbnail = true;
+    showPreview(null);
+  };
+
+  if (existing) showPreview(existing.thumbnail);
+
+  // Teammates picked so far, by user id. When editing, starts with current members and pending invites.
+  const teammates = new Map(existing ? existing.teammates.map(user => [user.id, user]) : []);
 
   // One row: picture, username, smaller ID, then any buttons (same look as /connections)
   const userItem = (user, ...buttons) => {
@@ -77,11 +99,22 @@
     return element;
   };
 
+  // Existing teammates show whether they've joined; anyone added now gets invited on save
+  const statusLabel = user => {
+    const label = document.createElement("span");
+    label.className = "status";
+    label.textContent = { accepted: "Member", pending: "Invited" }[user.status] || "Will be invited";
+    return label;
+  };
+
   const renderTeammates = () => {
     document.getElementById("teammates").replaceChildren(...[...teammates.values()].map(user => userItem(user,
+      ...(existing ? [statusLabel(user)] : []),
       button("Remove", () => { teammates.delete(user.id); renderTeammates(); runSearch(); }),
     )));
   };
+
+  renderTeammates();
 
   // Search: same rules as /connections (up to 7, starts-with, alphabetical),
   // except teammates already added are left out
@@ -141,21 +174,23 @@
     const data = new FormData(form);
     data.delete("teammateSearch");
     teammates.forEach((_, id) => data.append("contributors", id));
+    if (removeThumbnail) data.append("removeThumbnail", "true");
 
     const submitButton = document.getElementById("submitButton");
     submitButton.disabled = true;
-    const response = await fetch("/project_create", { method: "POST", body: data });
+    const url = existing ? `/project/${existing.id}/edit` : "/project_create";
+    const response = await fetch(url, { method: "POST", body: data });
     submitButton.disabled = false;
 
     if (response.ok) {
-      location.href = "/home";
+      location.href = existing ? `/project/${existing.id}` : "/home";
       return;
     }
     if (response.status === 413) {
       showMissing([], "That thumbnail is too large (5 MB max).");
       return;
     }
-    const error = await response.json().catch(() => ({ error: "Couldn't create the project.", missing: [] }));
+    const error = await response.json().catch(() => ({ error: "Couldn't save the project.", missing: [] }));
     showMissing(error.missing || [], error.error);
   };
 </script>
@@ -217,6 +252,15 @@
 
   .missing {
     background-color: #ffe066;
+  }
+
+  #removeThumbnail {
+    align-self: flex-start;
+  }
+
+  .user-list .status {
+    color: #555;
+    font-size: 0.85em;
   }
 
   #thumbnailPreview {

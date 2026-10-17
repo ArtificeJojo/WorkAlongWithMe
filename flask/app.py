@@ -18,6 +18,9 @@ import project
 
 load_dotenv()
 app = Flask(__name__)
+
+# /aboutyou track choices (users.track); their descriptions live in about_you.html
+TRACKS = {"gators", "turtle"}
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile pictures)
 
 
@@ -135,6 +138,7 @@ async def view_profile():
         return render_template_string(
             html.read(),
             username=about_you["display_name"],
+            user_id=str(about_you["id"]),
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
             has_invites=await project.has_pending_invites(user["sub"]),
         )
@@ -283,7 +287,53 @@ async def project_create():
 
     with open("..\\src\\project_create.html") as html:
 
-        return html.read()
+        return render_template_string(html.read(), project=None)
+
+@app.route("/project/<uuid:project_id>/edit", methods=["GET", "POST"])
+async def project_edit(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/") if request.method == "GET" else ("Not logged in", 401)
+    if not await about_you_completed(user["sub"]):
+        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+
+    if request.method == "POST":
+        try:
+            updated = await project.update_project(
+                user["sub"],
+                project_id,
+                request.form.get("title"),
+                request.form.get("summary"),
+                request.form.get("description"),
+                request.files.get("thumbnail"),
+                request.form.get("removeThumbnail") == "true",
+                request.form.getlist("contributors"),
+            )
+        except project.ProjectError as e:
+            return jsonify({"error": str(e), "missing": e.missing}), 400
+        if not updated:
+            return jsonify({"error": "You can only edit your own projects", "missing": []}), 404
+        return jsonify({"id": str(project_id)})
+
+    details = await project.get_project_for_edit(user["sub"], project_id)
+    if not details:
+        return "Project not found", 404
+
+    # Same form as creating a project, filled in with the current values
+    with open("..\\src\\project_create.html") as html:
+
+        return render_template_string(html.read(), project=details)
+
+@app.route("/users/<uuid:user_id>/projects")
+async def user_projects(user_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    projects = await project.get_user_projects(user["sub"], user_id, request.args.get("page", 1, type=int))
+    if projects is None:
+        return "User not found", 404
+    return jsonify(projects)
 
 @app.route("/project/<uuid:project_id>")
 async def view_project(project_id):
@@ -367,24 +417,27 @@ async def about_you():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         organization = request.form.get("organization", "").strip()
-        if not username or not organization:
+        track = request.form.get("track", "")
+        if not username or not organization or track not in TRACKS:
             return redirect("/aboutyou")
 
         conn = await asyncpg.connect(env.get("DATABASE_URL"))
         try:
             await conn.execute(
-                "UPDATE users SET display_name = $1, organization = $2, about_you_completed = TRUE "
-                "WHERE auth0_sub = $3",
-                username, organization, user["sub"],
+                "UPDATE users SET display_name = $1, organization = $2, track = $3, about_you_completed = TRUE "
+                "WHERE auth0_sub = $4",
+                username, organization, track, user["sub"],
             )
         finally:
             await conn.close()
 
         return redirect("/home")
 
+    # Pre-fill whatever they've answered before
+    about_you = await get_about_you(user["sub"])
     with open("..\\src\\about_you.html") as html:
 
-        return html.read()
+        return render_template_string(html.read(), about_you=about_you or {})
 
 async def register_user(user):
     """Create a users row for this Auth0 account if there isn't one yet.
@@ -412,7 +465,7 @@ async def get_about_you(auth0_sub):
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT display_name, organization, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
+            "SELECT id, display_name, organization, track, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:
         await conn.close()

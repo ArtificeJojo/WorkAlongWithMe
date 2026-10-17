@@ -1,4 +1,5 @@
 import asyncpg
+import json
 from os import environ as env
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -31,54 +32,17 @@ class ProjectError(ValueError):
 
 
 async def create_project(auth0_sub, title, summary, description, thumbnail, contributor_ids):
-    """Create a project owned by the logged-in user, with the teammates they picked.
+    """Create a project owned by the logged-in user, inviting the teammates they picked.
     thumbnail is an uploaded file or None. Returns the new project's id.
     Raises ProjectError if a mandatory field is empty or anything else is invalid."""
-    title = (title or "").strip()
-    summary = (summary or "").strip()
-    description = (description or "").strip() or None
-
-    missing = [field for field, value in (("title", title), ("summary", summary)) if not value]
-    if missing:
-        raise ProjectError("Some mandatory fields have not been completed", missing)
-
-    for field, value in (("title", title), ("summary", summary), ("description", description)):
-        if value and len(value) > MAX_LENGTHS[field]:
-            raise ProjectError(f"The {field} is too long ({MAX_LENGTHS[field]} characters max)")
-
-    try:
-        contributors = list({UUID(user_id) for user_id in contributor_ids})
-    except ValueError:
-        raise ProjectError("Some teammates can't be added")
-
-    thumbnail_name = None
-    if thumbnail and thumbnail.filename:
-        extension = Path(thumbnail.filename).suffix.lower()
-        if extension not in profile.ALLOWED_EXTENSIONS:
-            raise ProjectError("The thumbnail must be a .jpg, .jpeg, .png, .gif or .webp file")
-        THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
-        thumbnail_name = uuid4().hex + extension
-        thumbnail.save(THUMBNAIL_DIR / thumbnail_name)
+    title, summary, description = _clean_fields(title, summary, description)
+    contributors = _parse_user_ids(contributor_ids)
+    thumbnail_name = _save_thumbnail(thumbnail)
 
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         async with conn.transaction():
-            # Teammates must be real users who finished /aboutyou, not you, and not blocked either way
-            allowed = await conn.fetchval(
-                f"""
-                SELECT count(*) FROM users u
-                WHERE u.id = ANY($2::uuid[]) AND u.about_you_completed AND u.id <> {ME}
-                  AND NOT EXISTS (
-                      SELECT 1 FROM blocks b
-                      WHERE (b.blocker_id = u.id AND b.blocked_id = {ME})
-                         OR (b.blocker_id = {ME} AND b.blocked_id = u.id)
-                  )
-                """,
-                auth0_sub, contributors,
-            )
-            if allowed != len(contributors):
-                raise ProjectError("Some teammates can't be added")
-
+            await _check_invitable(conn, auth0_sub, contributors)
             project_id = await conn.fetchval(
                 f"""
                 INSERT INTO projects (owner_id, title, summary, description, thumbnail)
@@ -98,6 +62,119 @@ async def create_project(auth0_sub, title, summary, description, thumbnail, cont
         await conn.close()
 
     return project_id
+
+
+async def update_project(auth0_sub, project_id, title, summary, description, thumbnail, remove_thumbnail,
+                         contributor_ids):
+    """Edit a project the logged-in user owns. Same rules as create_project.
+    thumbnail replaces the current one; remove_thumbnail clears it; neither keeps it.
+    contributor_ids is the full list of teammates wanted: anyone left out is removed (member or
+    pending invite), anyone new is invited (pending), everyone else keeps their status.
+    Returns False if the project doesn't exist or isn't theirs."""
+    title, summary, description = _clean_fields(title, summary, description)
+    contributors = _parse_user_ids(contributor_ids)
+    new_thumbnail = _save_thumbnail(thumbnail)
+
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            old_thumbnail = await conn.fetchrow(
+                f"SELECT thumbnail FROM projects WHERE id = $2 AND owner_id = {ME} FOR UPDATE",
+                auth0_sub, project_id,
+            )
+            if old_thumbnail is None:
+                if new_thumbnail:
+                    (THUMBNAIL_DIR / new_thumbnail).unlink(missing_ok=True)
+                return False
+            old_thumbnail = old_thumbnail["thumbnail"]
+
+            current = {row["user_id"] for row in await conn.fetch(
+                "SELECT user_id FROM project_contributors WHERE project_id = $1", project_id,
+            )}
+            # Only newly invited people are checked; existing teammates stay unless removed
+            invited = [user_id for user_id in contributors if user_id not in current]
+            await _check_invitable(conn, auth0_sub, invited)
+
+            thumbnail_name = new_thumbnail or (None if remove_thumbnail else old_thumbnail)
+            await conn.execute(
+                "UPDATE projects SET title = $2, summary = $3, description = $4, thumbnail = $5 WHERE id = $1",
+                project_id, title, summary, description, thumbnail_name,
+            )
+            await conn.execute(
+                "DELETE FROM project_contributors WHERE project_id = $1 AND user_id <> ALL($2::uuid[])",
+                project_id, contributors,
+            )
+            await conn.executemany(
+                "INSERT INTO project_contributors (project_id, user_id) VALUES ($1, $2)",
+                [(project_id, user_id) for user_id in invited],
+            )
+    except Exception:
+        if new_thumbnail:
+            (THUMBNAIL_DIR / new_thumbnail).unlink(missing_ok=True)
+        raise
+    finally:
+        await conn.close()
+
+    # The old file is no longer used once it was replaced or removed
+    if old_thumbnail and old_thumbnail != thumbnail_name:
+        (THUMBNAIL_DIR / old_thumbnail).unlink(missing_ok=True)
+    return True
+
+
+def _clean_fields(title, summary, description):
+    """Trimmed (title, summary, description); description None if empty.
+    Raises ProjectError for missing mandatory fields or anything too long."""
+    title = (title or "").strip()
+    summary = (summary or "").strip()
+    description = (description or "").strip() or None
+
+    missing = [field for field, value in (("title", title), ("summary", summary)) if not value]
+    if missing:
+        raise ProjectError("Some mandatory fields have not been completed", missing)
+
+    for field, value in (("title", title), ("summary", summary), ("description", description)):
+        if value and len(value) > MAX_LENGTHS[field]:
+            raise ProjectError(f"The {field} is too long ({MAX_LENGTHS[field]} characters max)")
+
+    return title, summary, description
+
+
+def _parse_user_ids(user_ids):
+    try:
+        return list({UUID(user_id) for user_id in user_ids})
+    except ValueError:
+        raise ProjectError("Some teammates can't be added")
+
+
+def _save_thumbnail(thumbnail):
+    """Save an uploaded thumbnail under a random name and return it, or None if there isn't one."""
+    if not thumbnail or not thumbnail.filename:
+        return None
+    extension = Path(thumbnail.filename).suffix.lower()
+    if extension not in profile.ALLOWED_EXTENSIONS:
+        raise ProjectError("The thumbnail must be a .jpg, .jpeg, .png, .gif or .webp file")
+    THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
+    thumbnail_name = uuid4().hex + extension
+    thumbnail.save(THUMBNAIL_DIR / thumbnail_name)
+    return thumbnail_name
+
+
+async def _check_invitable(conn, auth0_sub, user_ids):
+    """Teammates must be real users who finished /aboutyou, not you, and not blocked either way."""
+    allowed = await conn.fetchval(
+        f"""
+        SELECT count(*) FROM users u
+        WHERE u.id = ANY($2::uuid[]) AND u.about_you_completed AND u.id <> {ME}
+          AND NOT EXISTS (
+              SELECT 1 FROM blocks b
+              WHERE (b.blocker_id = u.id AND b.blocked_id = {ME})
+                 OR (b.blocker_id = {ME} AND b.blocked_id = u.id)
+          )
+        """,
+        auth0_sub, user_ids,
+    )
+    if allowed != len(user_ids):
+        raise ProjectError("Some teammates can't be added")
 
 
 async def has_pending_invites(auth0_sub):
@@ -252,7 +329,8 @@ async def get_project(auth0_sub, project_id):
         row = await conn.fetchrow(
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
-                   p.created_at, o.id AS owner_id, o.display_name AS owner_name
+                   p.created_at, o.id AS owner_id, o.display_name AS owner_name,
+                   o.id = {ME} AS is_owner
             FROM projects p JOIN users o ON o.id = p.owner_id
             WHERE p.id = $2 AND {VISIBLE_TO_ME}
             """,
@@ -284,9 +362,128 @@ async def get_project(auth0_sub, project_id):
         "description": row["description"],
         "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
         "created_at": row["created_at"],
+        "is_owner": row["is_owner"],
         # Visible project = owner not blocked either way, so the owner is always viewable
         "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
         "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],
+    }
+
+
+PROJECTS_PER_PAGE = 6
+
+
+async def get_user_projects(auth0_sub, user_id, page=1):
+    """One page (up to 6, newest first) of the projects user_id has worked on: ones they created
+    and ones they accepted an invite to. Projects hidden from the viewer are left out.
+    None if the viewer can't see user_id's profile (blocked either way, or no such user)."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        visible_user = await conn.fetchval(
+            f"""
+            SELECT EXISTS (
+                SELECT 1 FROM users u
+                WHERE u.id = $2 AND u.about_you_completed
+                  AND NOT EXISTS (
+                      SELECT 1 FROM blocks b
+                      WHERE (b.blocker_id = u.id AND b.blocked_id = {ME})
+                         OR (b.blocker_id = {ME} AND b.blocked_id = u.id)
+                  )
+            )
+            """,
+            auth0_sub, user_id,
+        )
+        if not visible_user:
+            return None
+
+        worked_on = f"""
+            FROM projects p
+            JOIN (
+                SELECT id AS project_id, 'creator' AS role FROM projects WHERE owner_id = $2
+                UNION ALL
+                SELECT project_id, 'contributor' FROM project_contributors WHERE user_id = $2 AND status = 'accepted'
+            ) w ON w.project_id = p.id
+            WHERE {VISIBLE_TO_ME}
+        """
+        total = await conn.fetchval(f"SELECT count(*) {worked_on}", auth0_sub, user_id)
+        pages = max(1, -(-total // PROJECTS_PER_PAGE))
+        page = min(max(page, 1), pages)
+        rows = await conn.fetch(
+            f"""
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, w.role,
+                   o.id AS owner_id, o.display_name AS owner_name,
+                   (SELECT count(*) FROM project_contributors c
+                    WHERE c.project_id = p.id AND c.status = 'accepted') AS member_count,
+                   -- First 3 members to have been invited (the ones whose pictures are shown)
+                   (SELECT coalesce(json_agg(json_build_object('id', m.id, 'username', m.display_name)), '[]')
+                    FROM (
+                        SELECT u.id, u.display_name
+                        FROM project_contributors c JOIN users u ON u.id = c.user_id
+                        WHERE c.project_id = p.id AND c.status = 'accepted'
+                        ORDER BY c.invited_at, lower(u.display_name), u.id
+                        LIMIT 3
+                    ) m) AS first_members
+            {worked_on.replace("FROM projects p", "FROM projects p JOIN users o ON o.id = p.owner_id", 1)}
+            ORDER BY p.created_at DESC, p.id
+            LIMIT $3 OFFSET $4
+            """,
+            auth0_sub, user_id, PROJECTS_PER_PAGE, (page - 1) * PROJECTS_PER_PAGE,
+        )
+    finally:
+        await conn.close()
+
+    return {
+        "page": page,
+        "pages": pages,
+        "projects": [
+            {
+                "id": str(row["id"]),
+                "title": row["title"],
+                "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+                "role": row["role"],
+                # Up to 4 pictures: creator + first 3 members; extra = members not pictured ("+N")
+                "people": [_user_json(row["owner_id"], row["owner_name"])] + [
+                    _user_json(member["id"], member["username"]) for member in json.loads(row["first_members"])
+                ],
+                "extra": max(0, row["member_count"] - 3),
+            }
+            for row in rows
+        ],
+    }
+
+
+async def get_project_for_edit(auth0_sub, project_id):
+    """The project's current values plus every teammate (members and pending invites) for the
+    edit form. None unless the logged-in user owns it."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        row = await conn.fetchrow(
+            f"""
+            SELECT id, title, summary, description, thumbnail IS NOT NULL AS has_thumbnail
+            FROM projects WHERE id = $2 AND owner_id = {ME}
+            """,
+            auth0_sub, project_id,
+        )
+        if not row:
+            return None
+        teammates = await conn.fetch(
+            """
+            SELECT u.id, u.display_name, c.status
+            FROM project_contributors c JOIN users u ON u.id = c.user_id
+            WHERE c.project_id = $1
+            ORDER BY lower(u.display_name), u.id
+            """,
+            project_id,
+        )
+    finally:
+        await conn.close()
+
+    return {
+        "id": str(row["id"]),
+        "title": row["title"],
+        "summary": row["summary"],
+        "description": row["description"] or "",
+        "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+        "teammates": [{**_user_json(t["id"], t["display_name"]), "status": t["status"]} for t in teammates],
     }
 
 
