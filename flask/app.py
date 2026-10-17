@@ -1,5 +1,5 @@
 import asyncpg
-from flask import Flask
+from flask import Flask, request, redirect, url_for, render_template
 import asyncio
 
 CONNECTION = "postgres://tsdbadmin:nuvtsphtfx9213t1@ohkx4rugfy.jytsb7wpa9.tsdb.cloud.timescale.com:31169/tsdb?sslmode=require"
@@ -12,7 +12,16 @@ app.run()
 def start():
     asyncio.run(main())
     
-    return "True"
+    with open("index.html") as html:
+    
+        return html.read()
+
+
+# @app.route("/home")
+# def home():
+#     keyID = request.cookies.get("SESSION")
+#     if not keyID:
+#         return redirect(url_for(""))
 
 async def main():
     conn = await asyncpg.connect(CONNECTION)
