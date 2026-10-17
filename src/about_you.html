@@ -4,22 +4,47 @@
 
 <h1>Tell us more about yourself!</h1>
 
+{# Fields are pre-filled with anything the user has answered before #}
 <form method="post" action="/aboutyou">
   <label for="username">Username</label>
-  <input id="username" name="username" required />
+  <input id="username" name="username" required value="{{ about_you.display_name or '' }}" />
 
   <label for="organization">Organization</label>
-  <input id="organization" name="organization" required />
+  <input id="organization" name="organization" required value="{{ about_you.organization or '' }}" />
+
+  <label for="track">Track</label>
+  <select id="track" name="track" required>
+    <option value="" disabled {% if not about_you.track %}selected{% endif %}>Choose a track</option>
+    <option value="gators" {% if about_you.track == "gators" %}selected{% endif %}>The Gators</option>
+    <option value="turtle" {% if about_you.track == "turtle" %}selected{% endif %}>The Turtle</option>
+  </select>
 
   <button type="submit">Continue</button>
 </form>
+
+<p id="trackDescription"></p>
+
+<script>
+  // Placeholder descriptions for each track; replace with the real ones later
+  const GATORS_DESCRIPTION = "Hello World!";
+  const TURTLE_DESCRIPTION = "Goodbye World";
+
+  const trackDescriptions = { gators: GATORS_DESCRIPTION, turtle: TURTLE_DESCRIPTION };
+  const track = document.getElementById("track");
+  const showDescription = () => {
+    document.getElementById("trackDescription").textContent = trackDescriptions[track.value] || "";
+  };
+
+  track.onchange = showDescription;
+  showDescription();
+</script>
 
 <style>
   body{
     background-color: #d6b65e;
     font-family: Arial, sans-serif;
   }
-  
+
   h1{
     text-align: center;
   }
@@ -30,5 +55,10 @@
     gap: 16px;
     margin-top: 100px;
     justify-content: center;
+  }
+
+  #trackDescription {
+    text-align: center;
+    margin-top: 24px;
   }
 </style>
