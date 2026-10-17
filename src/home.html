@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<div id="profileBar">
+  <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
+  <button onclick="location.href = '/profile'">View profile</button>
+</div>
+
+<h1>{{ username }}</h1>
+<h2>{{ organization }}</h2>
+
+<button onclick="location.href = '/logout'">Logout</button>
+
+<style>
+  #profileBar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #profilePicture {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+</style>

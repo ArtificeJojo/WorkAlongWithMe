@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+# secrets: never commit these
+.env
+.env*.local
+
+# user uploads (profile pictures) served by Flask
+uploads/

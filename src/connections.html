@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button onclick="location.href = '/profile'">Back to profile</button>
+
+<h1>Connections</h1>
+
+<div id="tabs" role="tablist">
+  <button role="tab" data-tab="friends">Friends</button>
+  <button role="tab" data-tab="requests">Friend requests</button>
+</div>
+
+<section id="friends" role="tabpanel">
+  <!-- Filled in once adding friends is implemented -->
+  <p class="empty">You don't have any friends yet.</p>
+</section>
+
+<section id="requests" role="tabpanel" hidden>
+  <p class="empty">You don't have any friend requests.</p>
+</section>
+
+<script>
+  const tabs = document.querySelectorAll("#tabs [role=tab]");
+
+  const showTab = name => tabs.forEach(tab => {
+    const selected = tab.dataset.tab === name;
+    tab.setAttribute("aria-selected", selected);
+    document.getElementById(tab.dataset.tab).hidden = !selected;
+  });
+
+  tabs.forEach(tab => tab.onclick = () => showTab(tab.dataset.tab));
+  showTab("friends");
+</script>
+
+<style>
+  #tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid #ccc;
+  }
+
+  #tabs [role=tab] {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  #tabs [role=tab][aria-selected=true] {
+    border-bottom: 2px solid #333;
+    margin-bottom: -2px;
+    font-weight: bold;
+  }
+
+  .empty {
+    color: #555;
+  }
+</style>
