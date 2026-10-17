@@ -54,6 +54,37 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Friend system (/connections). One row per pair of users:
+--   'pending'  = sender asked, recipient hasn't answered
+--   'accepted' = they're friends
+-- Rejecting deletes the row, so the sender sees no "request pending" and can ask again.
+-- sender_seen: FALSE once accepted, until the sender opens their Friends tab (drives its highlight).
+CREATE TABLE IF NOT EXISTS friend_requests (
+  sender_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+  sender_seen   BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  responded_at  TIMESTAMPTZ,
+  PRIMARY KEY (sender_id, recipient_id),
+  CHECK (sender_id <> recipient_id)
+);
+-- At most one row per pair, whichever direction it was sent in
+CREATE UNIQUE INDEX IF NOT EXISTS friend_requests_pair
+  ON friend_requests (LEAST(sender_id, recipient_id), GREATEST(sender_id, recipient_id));
+CREATE INDEX IF NOT EXISTS friend_requests_recipient ON friend_requests (recipient_id);
+
+-- blocker_id blocked blocked_id. Blocking deletes any friendship/request between them;
+-- the blocked user can't find the blocker in search or send them requests.
+CREATE TABLE IF NOT EXISTS blocks (
+  blocker_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (blocker_id, blocked_id),
+  CHECK (blocker_id <> blocked_id)
+);
+CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks (blocked_id);
+
 -- Groups formed in the Party Camp, plus the Gemini-written team guide.
 CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

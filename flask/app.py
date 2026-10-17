@@ -168,12 +168,79 @@ async def profile_picture():
 
 @app.route("/users/search")
 async def search_users():
-    if not await auth0().get_user(store_options={"request": request}):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
         return "Not logged in", 401
 
     # connections.html asks for 7; cap it so nobody can list every user
     limit = min(request.args.get("limit", 4, type=int), 7)
-    return jsonify(await connection.search_users(request.args.get("q", ""), max(limit, 1)))
+    return jsonify(await connection.search_users(user["sub"], request.args.get("q", ""), max(limit, 1)))
+
+@app.route("/friends")
+async def friends():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    return jsonify(await connection.get_connections(user["sub"]))
+
+@app.route("/friends/requests/<uuid:user_id>", methods=["POST"])
+async def send_friend_request(user_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    try:
+        relationship = await connection.send_friend_request(user["sub"], user_id)
+    except ValueError as e:
+        return str(e), 400
+    return jsonify({"relationship": relationship})
+
+@app.route("/friends/requests/<uuid:user_id>/<any(accept, reject):action>", methods=["POST"])
+async def respond_to_friend_request(user_id, action):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await connection.respond_to_friend_request(user["sub"], user_id, accept=action == "accept"):
+        return "No pending friend request from that user", 404
+    return "", 204
+
+@app.route("/friends/<uuid:user_id>", methods=["DELETE"])
+async def remove_friend(user_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await connection.remove_friend(user["sub"], user_id):
+        return "You aren't friends with that user", 404
+    return "", 204
+
+@app.route("/blocks/<uuid:user_id>", methods=["POST", "DELETE"])
+async def block(user_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if request.method == "DELETE":
+        if not await connection.unblock_user(user["sub"], user_id):
+            return "You haven't blocked that user", 404
+        return "", 204
+
+    try:
+        await connection.block_user(user["sub"], user_id)
+    except ValueError as e:
+        return str(e), 400
+    return "", 204
+
+@app.route("/friends/seen", methods=["POST"])
+async def mark_new_friends_seen():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    await connection.mark_new_friends_seen(user["sub"])
+    return "", 204
 
 @app.route("/users/<uuid:user_id>/picture")
 async def user_picture(user_id):
