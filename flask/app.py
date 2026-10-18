@@ -54,9 +54,10 @@ def voice_clip(filename):
     return send_from_directory(profile.ROOT / "src" / "audio", filename)
 
 @app.route("/favicon.ico")
+@app.route("/logo")
 def favicon():
     # Every page links here; browsers also ask for it on pages without a <link rel="icon">, e.g. plain-text error pages.
-    # A square multi-size .ico (made from LogoNoBg.png) works in both Chrome and Firefox
+    # A square multi-size .ico (made from LogoNoBg.png) works in both Chrome and Firefox. /logo is the same file.
     return send_from_directory(profile.ROOT / "Images", "favicon.ico", mimetype="image/x-icon")
 
 @app.route("/login")
