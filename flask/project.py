@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from flask import send_from_directory
 
 import profile
+import skills as skill_list
 from connection import ME
 from likes import like_columns, like_json
 
@@ -57,12 +58,13 @@ class ProjectError(ValueError):
         self.missing = list(missing)
 
 
-async def create_project(auth0_sub, title, summary, description, thumbnail, contributor_ids):
+async def create_project(auth0_sub, title, summary, description, thumbnail, contributor_ids, skills=()):
     """Create a project owned by the logged-in user, inviting the teammates they picked.
-    thumbnail is an uploaded file or None. Returns the new project's id.
+    thumbnail is an uploaded file or None; skills are cleaned like a user's (up to 5). Returns the new project's id.
     Raises ProjectError if a mandatory field is empty or anything else is invalid."""
     title, summary, description = _clean_fields(title, summary, description)
     contributors = _parse_user_ids(contributor_ids)
+    skills = skill_list.clean(skills)
     thumbnail_name = _save_thumbnail(thumbnail)
 
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
@@ -71,10 +73,10 @@ async def create_project(auth0_sub, title, summary, description, thumbnail, cont
             await _check_invitable(conn, auth0_sub, contributors)
             project_id = await conn.fetchval(
                 f"""
-                INSERT INTO projects (owner_id, title, summary, description, thumbnail)
-                VALUES ({ME}, $2, $3, $4, $5) RETURNING id
+                INSERT INTO projects (owner_id, title, summary, description, thumbnail, skills)
+                VALUES ({ME}, $2, $3, $4, $5, $6) RETURNING id
                 """,
-                auth0_sub, title, summary, description, thumbnail_name,
+                auth0_sub, title, summary, description, thumbnail_name, skills,
             )
             await conn.executemany(
                 "INSERT INTO project_contributors (project_id, user_id) VALUES ($1, $2)",
@@ -91,7 +93,7 @@ async def create_project(auth0_sub, title, summary, description, thumbnail, cont
 
 
 async def update_project(auth0_sub, project_id, title, summary, description, thumbnail, remove_thumbnail,
-                         contributor_ids):
+                         contributor_ids, skills=()):
     """Edit a project the logged-in user owns. Same rules as create_project.
     thumbnail replaces the current one; remove_thumbnail clears it; neither keeps it.
     contributor_ids is the full list of teammates wanted: anyone left out is removed (member or
@@ -99,6 +101,7 @@ async def update_project(auth0_sub, project_id, title, summary, description, thu
     Returns False if the project doesn't exist or isn't theirs."""
     title, summary, description = _clean_fields(title, summary, description)
     contributors = _parse_user_ids(contributor_ids)
+    skills = skill_list.clean(skills)
     new_thumbnail = _save_thumbnail(thumbnail)
 
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
@@ -123,8 +126,8 @@ async def update_project(auth0_sub, project_id, title, summary, description, thu
 
             thumbnail_name = new_thumbnail or (None if remove_thumbnail else old_thumbnail)
             await conn.execute(
-                "UPDATE projects SET title = $2, summary = $3, description = $4, thumbnail = $5 WHERE id = $1",
-                project_id, title, summary, description, thumbnail_name,
+                "UPDATE projects SET title = $2, summary = $3, description = $4, thumbnail = $5, skills = $6 WHERE id = $1",
+                project_id, title, summary, description, thumbnail_name, skills,
             )
             await conn.execute(
                 "DELETE FROM project_contributors WHERE project_id = $1 AND user_id <> ALL($2::uuid[])",
@@ -377,7 +380,7 @@ async def get_feed(auth0_sub, limit=3):
         rows = await conn.fetch(
             f"""
             {CONNECTIONS_CTE}
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, {like_columns("project")}
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, p.skills, {like_columns("project")}
             FROM projects p, me
             WHERE p.owner_id IN (SELECT id FROM connected)
               AND p.owner_id <> me.id
@@ -395,6 +398,7 @@ async def get_feed(auth0_sub, limit=3):
             "id": str(row["id"]),
             "title": row["title"],
             "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+            "skills": list(row["skills"]),
             "likes": like_json(row),
         }
         for row in rows
@@ -410,7 +414,7 @@ async def get_project(auth0_sub, project_id):
         row = await conn.fetchrow(
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
-                   p.created_at, p.board_added_at IS NOT NULL AS on_board, {like_columns("project")},
+                   p.skills, p.created_at, p.board_added_at IS NOT NULL AS on_board, {like_columns("project")},
                    o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner,
                    (SELECT c.status FROM project_contributors c
                     WHERE c.project_id = p.id AND c.user_id = {ME}) AS my_status,
@@ -450,6 +454,9 @@ async def get_project(auth0_sub, project_id):
         "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
         "created_at": row["created_at"],
         "is_owner": row["is_owner"],
+        "skills": list(row["skills"]),
+        # Unlike the rest of the project, the team (creator and accepted contributors) can change these
+        "can_edit_skills": row["is_owner"] or row["my_status"] == "accepted",
         "on_board": row["on_board"],
         "likes": like_json(row),
         "collaboration": _collaboration_status(row),
@@ -459,6 +466,30 @@ async def get_project(auth0_sub, project_id):
         "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
         "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],
     }
+
+
+async def set_skills(auth0_sub, project_id, skills):
+    """Replace a project's skills (cleaned like a user's, up to 5). Allowed for its creator and
+    accepted contributors. Returns the saved skills, or None if the logged-in user isn't on the team."""
+    skills = skill_list.clean(skills)
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        saved = await conn.fetchval(
+            f"""
+            UPDATE projects p SET skills = $3
+            WHERE p.id = $2 AND (
+                p.owner_id = {ME}
+                OR EXISTS (SELECT 1 FROM project_contributors c
+                           WHERE c.project_id = p.id AND c.user_id = {ME} AND c.status = 'accepted')
+            )
+            RETURNING p.skills
+            """,
+            auth0_sub, project_id, skills,
+        )
+    finally:
+        await conn.close()
+
+    return None if saved is None else list(saved)
 
 
 def _collaboration_status(row):
@@ -646,8 +677,11 @@ BOARD_PER_PAGE = 10
 
 
 async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
-    """One page of the projects on the board, most recently added first. Projects whose owner
-    and the viewer have blocked each other (either way) are left out."""
+    """One page of the projects on the board, ordered by:
+    1. most skills shared with the viewer's own skills (ignoring case),
+    2. fewest pending collaborator requests,
+    3. longest on the board (earliest added first).
+    Projects whose owner and the viewer have blocked each other (either way) are left out."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         on_board = f"FROM projects p WHERE p.board_added_at IS NOT NULL AND {VISIBLE_TO_ME}"
@@ -656,9 +690,16 @@ async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
         page = min(max(page, 1), pages)
         rows = await conn.fetch(
             f"""
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, {like_columns("project")}
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, p.skills, {like_columns("project")}
             {on_board}
-            ORDER BY p.board_added_at DESC, p.id
+            ORDER BY
+                (SELECT count(*) FROM unnest(p.skills) AS s(skill)
+                 WHERE lower(s.skill) IN (
+                     SELECT lower(mine.skill) FROM users u, unnest(u.skills) AS mine(skill) WHERE u.auth0_sub = $1
+                 )) DESC,
+                (SELECT count(*) FROM collaborator_requests r
+                 WHERE r.project_id = p.id AND r.status = 'pending'),
+                p.board_added_at, p.id
             LIMIT $2 OFFSET $3
             """,
             auth0_sub, per_page, (page - 1) * per_page,
@@ -674,6 +715,7 @@ async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
                 "id": str(row["id"]),
                 "title": row["title"],
                 "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+                "skills": list(row["skills"]),
                 "likes": like_json(row),
             }
             for row in rows
@@ -721,7 +763,7 @@ async def get_user_projects(auth0_sub, user_id, page=1):
         page = min(max(page, 1), pages)
         rows = await conn.fetch(
             f"""
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, w.role, {like_columns("project")},
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, p.skills, w.role, {like_columns("project")},
                    o.id AS owner_id, o.display_name AS owner_name,
                    (SELECT count(*) FROM project_contributors c
                     WHERE c.project_id = p.id AND c.status = 'accepted') AS member_count,
@@ -752,6 +794,7 @@ async def get_user_projects(auth0_sub, user_id, page=1):
                 "title": row["title"],
                 "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
                 "role": row["role"],
+                "skills": list(row["skills"]),
                 "likes": like_json(row),
                 # Up to 4 pictures: creator + first 3 members; extra = members not pictured ("+N")
                 "people": [_user_json(row["owner_id"], row["owner_name"])] + [
@@ -771,7 +814,7 @@ async def get_project_for_edit(auth0_sub, project_id):
     try:
         row = await conn.fetchrow(
             f"""
-            SELECT id, title, summary, description, thumbnail IS NOT NULL AS has_thumbnail
+            SELECT id, title, summary, description, thumbnail IS NOT NULL AS has_thumbnail, skills
             FROM projects WHERE id = $2 AND owner_id = {ME}
             """,
             auth0_sub, project_id,
@@ -795,6 +838,7 @@ async def get_project_for_edit(auth0_sub, project_id):
         "title": row["title"],
         "summary": row["summary"],
         "description": row["description"] or "",
+        "skills": list(row["skills"]),
         "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
         "teammates": [{**_user_json(t["id"], t["display_name"]), "status": t["status"]} for t in teammates],
     }

@@ -19,6 +19,10 @@
   <label for="description">Description</label>
   <textarea id="description" name="description" rows="8" maxlength="10000">{% if project %}{{ project.description }}{% endif %}</textarea>
 
+  {# Optional, up to 5; filled in by /js/skills.js, which adds a hidden "skills" input per skill #}
+  <span class="field-label">Skills (up to {{ max_skills }})</span>
+  <div id="skillsBox"></div>
+
   <label for="thumbnail">Thumbnail</label>
   <input id="thumbnail" name="thumbnail" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" />
   <img id="thumbnailPreview" alt="" hidden />
@@ -33,9 +37,18 @@
   <button id="submitButton" type="submit">{% if project %}Save changes{% else %}Submit{% endif %}</button>
 </form>
 
+<script src="/js/skills.js"></script>
 <script>
   // The project being edited, or null when creating a new one
   const existing = {{ project|tojson }};
+
+  const skillPickerBox = skillPicker(document.getElementById("skillsBox"), {
+    suggestions: {{ skill_suggestions|tojson }},
+    max: {{ max_skills|tojson }},
+    maxLength: {{ max_skill_length|tojson }},
+    initial: existing ? existing.skills : [],
+    name: "skills",
+  });
 
   const form = document.getElementById("projectForm");
   const formError = document.getElementById("formError");
@@ -173,6 +186,7 @@
       return;
     }
 
+    skillPickerBox.commit();  // a skill still in the box counts too
     const data = new FormData(form);
     data.delete("teammateSearch");
     teammates.forEach((_, id) => data.append("contributors", id));
@@ -244,9 +258,18 @@
     max-width: 640px;
   }
 
-  #projectForm label {
+  #projectForm label,
+  #projectForm .field-label {
     margin-top: 12px;
     font-weight: bold;
+    color: white;
+  }
+
+  /* White box so the picker's hint and suggestions are readable on the starry background */
+  #skillsBox {
+    padding: 10px 12px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
   }
 
   #projectForm input:not([type=file]),

@@ -152,7 +152,9 @@ async def home():
             organization=about_you["organization"],
             projects=await project.get_feed(user["sub"]),
             posts=await post.get_feed(user["sub"]),
-            # Board tab: the 5 most recently added; "See more" goes to /board
+            # Find tab: the 10 newest posts from people you aren't friends or teammates with (and haven't blocked)
+            find_posts=await post.get_find_feed(user["sub"]),
+            # Board tab: the first 5 in board order (see project.get_board); "See more" goes to /board
             board=(await project.get_board(user["sub"], per_page=5))["projects"],
             # Yellow/red "View profile" until they've seen an answered collaborator request on /profile
             profile_highlight=await project.request_update_highlight(user["sub"]),
@@ -332,6 +334,7 @@ async def project_create():
                 request.form.get("description"),
                 request.files.get("thumbnail"),
                 request.form.getlist("contributors"),
+                request.form.getlist("skills"),
             )
         except project.ProjectError as e:
             return jsonify({"error": str(e), "missing": e.missing}), 400
@@ -339,7 +342,7 @@ async def project_create():
 
     with open("..\\src\\project_create.html", encoding="utf-8") as html:
 
-        return render_template_string(html.read(), project=None)
+        return render_template_string(html.read(), project=None, **skill_picker_options())
 
 @app.route("/project/<uuid:project_id>/edit", methods=["GET", "POST"])
 async def project_edit(project_id):
@@ -360,6 +363,7 @@ async def project_edit(project_id):
                 request.files.get("thumbnail"),
                 request.form.get("removeThumbnail") == "true",
                 request.form.getlist("contributors"),
+                request.form.getlist("skills"),
             )
         except project.ProjectError as e:
             return jsonify({"error": str(e), "missing": e.missing}), 400
@@ -374,7 +378,7 @@ async def project_edit(project_id):
     # Same form as creating a project, filled in with the current values
     with open("..\\src\\project_create.html", encoding="utf-8") as html:
 
-        return render_template_string(html.read(), project=details)
+        return render_template_string(html.read(), project=details, **skill_picker_options())
 
 @app.route("/users/<uuid:user_id>/projects")
 async def user_projects(user_id):
@@ -401,7 +405,22 @@ async def view_project(project_id):
 
     with open("..\\src\\project.html", encoding="utf-8") as html:
 
-        return render_template_string(html.read(), project=details)
+        return render_template_string(html.read(), project=details, **skill_picker_options())
+
+@app.route("/projects/<uuid:project_id>/skills", methods=["PUT"])
+async def project_skills(project_id):
+    """The creator or an accepted contributor replaces the project's skills: JSON {"skills": [...]}."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    submitted = (request.get_json(silent=True) or {}).get("skills")
+    if not isinstance(submitted, list) or not all(isinstance(skill, str) for skill in submitted):
+        return "Send a list of skills", 400
+    saved = await project.set_skills(user["sub"], project_id, submitted)
+    if saved is None:
+        return "Only the project's team can change its skills", 404
+    return jsonify({"skills": saved})
 
 @app.route("/create_post", methods=["GET", "POST"])
 async def create_post():
@@ -604,10 +623,7 @@ async def about_you():
     about_you = await get_about_you(user["sub"])
     with open("..\\src\\about_you.html", encoding="utf-8") as html:
 
-        return render_template_string(
-            html.read(), about_you=about_you or {},
-            skill_suggestions=skills.suggestions(), max_skills=skills.MAX_SKILLS, max_skill_length=skills.MAX_LENGTH,
-        )
+        return render_template_string(html.read(), about_you=about_you or {}, **skill_picker_options())
 
 @app.route("/quest")
 async def quest_start():
@@ -773,6 +789,10 @@ async def register_user(user):
         await conn.close()
 
     return await setup_redirect(user["sub"])
+
+def skill_picker_options():
+    """Template values for the skill picker (/js/skills.js) on /aboutyou and the project pages."""
+    return {"skill_suggestions": skills.suggestions(), "max_skills": skills.MAX_SKILLS, "max_skill_length": skills.MAX_LENGTH}
 
 def setup_step(about_you):
     """First-time setup is the /aboutyou form, including at least one technical skill
