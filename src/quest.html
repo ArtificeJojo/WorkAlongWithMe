@@ -7,14 +7,15 @@
 <script src="/js/pixel.js"></script>
 <script src="/js/sfx.js"></script>
 <style>
+  /* Same colours as the rest of the site; only the scenery behind is the quest's own */
   :root {
-    --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
-    --focus: #1f5fd6; --chip: #eef5ea; --tag: #2f7d4f; --sun-y: 0px;
+    --ink: #222; --panel: rgba(255, 255, 255, 0.92); --muted: #555; --button: rgb(107, 204, 236); --frame: rgb(35, 105, 246);
+    --focus: #1f5fd6; --chip: #e6f6fc; --highlight: #ffe066; --tag: var(--frame); --sun-y: 0px;
   }
-  body.pond { --tag: #2c7f86; }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45; background: #1f1a3d; }
+  body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45; background: #1f1a3d; }
+  .screenframe { position: fixed; inset: 6px; z-index: 6; border: 4px solid var(--frame); border-radius: 16px; pointer-events: none; }
   body.pond { background: #7ec8f0; }
 
   /* ---------- the scenic world (decorative, behind everything) ---------- */
@@ -41,9 +42,10 @@
   /* ---------- layout ---------- */
   #ui { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; max-width: 980px; margin: 0 auto; padding: 12px 16px 16px; }
   header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-  header h1 { margin: 0; font-size: 1.15rem; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
+  header h1 { margin: 0; font-size: 1.4rem; color: white; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
   .toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pill { font: inherit; font-size: 1rem; background: var(--panel); color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; display: inline-flex; gap: 6px; align-items: center; min-height: 48px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 0 var(--ink); }
+  .pill { font: inherit; font-size: 1rem; background: var(--button); color: var(--ink); border: none; border-radius: 16px; padding: 6px 14px; display: inline-flex; gap: 6px; align-items: center; min-height: 40px; cursor: pointer; text-decoration: none; }
+  .pill:hover { animation: shake 0.4s; }
   .pill input { width: 20px; height: 20px; }
   .pill[aria-pressed="false"] { opacity: .75; }
 
@@ -51,9 +53,10 @@
   .map { position: relative; margin: 14px 4px 0; height: 74px; }
   .map .trail { position: absolute; left: 22px; right: 22px; top: 50px; border-top: 5px dashed rgba(255,253,246,.85); }
   .map .stops { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: flex-end; }
-  .map .stop { width: 44px; height: 44px; border-radius: 12px; border: 3px solid var(--ink); background: var(--panel); display: grid; place-items: center; font-size: 1.3rem; box-shadow: 0 3px 0 var(--ink); }
-  .map .stop.done { background: #f6d44a; }
-  .map .stop.now { outline: 4px solid #fff; outline-offset: 2px; }
+  .map .stop { width: 44px; height: 44px; border-radius: 12px; background: var(--panel); display: grid; place-items: center; font-size: 1.3rem; }
+  .map .stop:last-child { font-size: .85rem; }
+  .map .stop.done { background: var(--highlight); }
+  .map .stop.now { outline: 4px solid var(--frame); outline-offset: 2px; }
   .map .traveler { position: absolute; top: -4px; width: 44px; transform: translateX(-50%); transition: left .9s steps(9); }
 
   /* stage: the character lives here, standing in the world */
@@ -73,32 +76,40 @@
   @keyframes splash { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
 
   /* dialogue box, like a story game */
-  .dialog { position: relative; background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 22px 18px 16px; box-shadow: 0 6px 0 var(--ink); max-height: 62vh; overflow: auto; }
-  .name-tag { position: absolute; z-index: 2; top: -18px; left: 18px; background: var(--tag); color: #fff; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 10px; font-size: .95rem; }
+  .dialog { position: relative; background: var(--panel); border: 4px solid var(--frame); border-radius: 16px; padding: 22px 18px 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); max-height: 62vh; overflow: auto; }
+  .name-tag { position: absolute; z-index: 2; top: -16px; left: 18px; background: var(--tag); color: #fff; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; padding: 4px 14px; border-radius: 16px; font-size: .95rem; }
   .dialog-wrap { position: relative; margin-top: 18px; }
   .scene-title { margin: 0 0 6px; font-size: 1.05rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .line { margin: 0; font-size: 1.25rem; min-height: 2.6em; }
   .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
-  .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--chip); cursor: pointer; color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
-  .choice .emoji { font-size: 1.6rem; }
-  .choice[aria-pressed="true"] { background: #f6d44a; }
+  .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 2px solid var(--button); border-radius: 12px; background: var(--chip); cursor: pointer; color: var(--ink); }
+  .choice[aria-pressed="true"] { background: var(--highlight); border-color: #f5c400; }
   .choice:hover { transform: translateY(-2px); }
   .actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; box-shadow: 0 4px 0 var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
-  .btn.secondary { background: var(--panel); color: var(--ink); }
-  .btn.big { font-size: 1.3rem; padding: 14px 28px; background: #f6d44a; color: var(--ink); }
-  .btn:disabled { opacity: .5; cursor: default; }
+  .btn { font: inherit; min-height: 44px; padding: 8px 18px; border-radius: 16px; border: none; background: var(--button); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  .btn.secondary { background: #ddd; }
+  .btn.big { font-size: 1.2rem; font-weight: bold; padding: 12px 26px; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .btn:not(:disabled):hover { animation: shake 0.4s; }
   button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
   .title-card { text-align: center; }
   .title-card h2 { margin: 0 0 6px; font-size: 1.7rem; }
   .title-card p { margin: 0 0 14px; }
   .mirror-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
-  .mirror-list li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--chip); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; }
-  .mirror-list select { font: inherit; min-height: 44px; border: 2px solid var(--ink); border-radius: 10px; padding: 4px 8px; }
+  .mirror-list li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--chip); border-radius: 12px; padding: 10px 14px; }
+  .mirror-list select { font: inherit; min-height: 40px; border: 1px solid #999; border-radius: 4px; padding: 4px 8px; }
   .muted { color: var(--muted); font-size: .95rem; }
-  .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 1.3rem; font-weight: bold; background: #f6d44a; border: 3px solid var(--ink); border-radius: 999px; padding: 8px 18px; }
-  .error { color: #9b1c1c; font-weight: bold; }
-  fieldset { border: 3px solid var(--ink); border-radius: 14px; margin: 0 0 12px; padding: 10px 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 1.3rem; font-weight: bold; background: var(--highlight); border-radius: 16px; padding: 8px 18px; }
+  .error { color: #b00020; font-weight: bold; }
+  fieldset { border: 2px solid var(--button); border-radius: 12px; margin: 0 0 12px; padding: 10px 14px; }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
   legend { font-weight: bold; padding: 0 6px; }
   .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
   .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
@@ -123,7 +134,7 @@
   <header>
     <h1 id="questName">Quest</h1>
     <div class="toggles">
-      <button class="pill" id="voiceToggle" aria-pressed="true">🔊 Sound</button>
+      <button class="pill" id="voiceToggle" aria-pressed="true">Sound on</button>
       <label class="pill"><input type="checkbox" id="calmToggle" /> Calm mode</label>
       <a class="pill" href="/home">Home</a>
     </div>
@@ -137,6 +148,7 @@
   </div>
 </div>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
+<div class="screenframe" aria-hidden="true"></div>
 
 <script>
   const DATA = {{ quests_json|safe }};
@@ -144,12 +156,6 @@
   const QUEST = DATA.quests["{{ quest_id }}"];
   const POND = QUEST.id === "turtle";
 
-  // Journey map landmarks, one per scene, plus the finale.
-  const LANDMARKS = {
-    powers: "✨", workbench: "🧰", mega_bug: "👾", launch_bridge: "🌉", locked_gate: "🚪",
-    message_flood: "🍾", slow_riddle: "⏳", frog_bug: "🐸", rainstorm: "⛈️", pond_fair: "🎪",
-  };
-  const FINALE_LANDMARK = POND ? "🏆" : "🚀";
   // The first words, before the quest's own intro line: the "who, me?" moment.
   const HELLO = POND
     ? { line: "Oh... hello there. Sorry, I'm a little slow. I was hoping someone kind would come by.", button: "Hi, Ponder!" }
@@ -177,14 +183,14 @@
   let voiceOn = store.get("wawm-voice") !== "0";  // controls the voice AND the sound effects
   const setVoiceButton = () => {
     voiceToggle.setAttribute("aria-pressed", String(voiceOn));
-    voiceToggle.textContent = voiceOn ? "🔊 Sound" : "🔇 Sound off";
+    voiceToggle.textContent = voiceOn ? "Sound on" : "Sound off";
     Sfx.enabled = voiceOn;
   };
   setVoiceButton();
 
   document.body.classList.toggle("pond", POND);
   document.body.classList.toggle("calm", calmToggle.checked);
-  document.getElementById("questName").textContent = `${QUEST.badge_emoji} ${QUEST.name}`;
+  document.getElementById("questName").textContent = QUEST.name;
   document.getElementById("nameTag").textContent = QUEST.guide;
 
   // ------------------------------------------------------------- voice
@@ -276,8 +282,8 @@
   const map = document.getElementById("map");
   const stopsCount = QUEST.scenes.length + 1;
   map.innerHTML = `<div class="trail"></div><div class="stops"></div><div class="traveler"></div>`;
-  map.querySelector(".stops").append(...[...QUEST.scenes.map(s => LANDMARKS[s.id] || "⭐"), FINALE_LANDMARK].map(icon => {
-    const d = document.createElement("div"); d.className = "stop"; d.textContent = icon; return d;
+  map.querySelector(".stops").append(...[...QUEST.scenes.map((s, i) => String(i + 1)), "End"].map(label => {
+    const d = document.createElement("div"); d.className = "stop"; d.textContent = label; return d;
   }));
   map.querySelector(".traveler").append(Pixel.svgFor(Pixel.sprites[QUEST.character]({}), 44, ""));
 
@@ -336,7 +342,7 @@
     propEl.replaceChildren();
     actorEl.className = calm() ? "" : (POND ? "offstage" : "submerged");
     actor.setMood("idle");
-    const start = el("button", { class: "btn big", text: "▶ Start the adventure", onclick: entrance });
+    const start = el("button", { class: "btn big", text: "Start the adventure", onclick: entrance });
     // (sounds can only start after this first click, so the title card itself is silent)
     show(el("div", { class: "title-card" },
       el("h2", { text: QUEST.name }),
@@ -402,12 +408,12 @@
     const line = say(s.line);
     const multi = s.multi || 0;
     let picked = multi ? [...(answers[s.field] || [])] : answers[s.field] ?? null;
-    const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next ▶" : "See what I learned ▶", onclick: () => { Sfx.play("next"); advance(); } });
+    const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next" : "See what I learned", onclick: () => { Sfx.play("next"); advance(); } });
     next.disabled = multi ? false : picked == null;
 
     const buttons = s.choices.map(c => {
       const b = el("button", { class: "choice", "aria-pressed": "false" },
-        el("span", { class: "emoji", "aria-hidden": "true", text: c.emoji }), el("span", { text: c.label }));
+        el("span", { text: c.label }));
       b.dataset.value = c.value;
       b.addEventListener("click", () => {
         if (multi) picked = picked.includes(c.value) ? picked.filter(v => v !== c.value) : (multi === 1 ? [c.value] : [...picked, c.value].slice(-multi));
@@ -430,9 +436,9 @@
     function sync() { buttons.forEach(b => b.setAttribute("aria-pressed", String(multi ? picked.includes(b.dataset.value) : picked === b.dataset.value))); }
     sync();
     const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { Sfx.play("next"); answers[s.field] = multi ? [] : null; advance(); } });
-    const back = el("button", { class: "btn secondary", text: "◀ Back", onclick: () => { Sfx.play("back"); i === 0 ? intro() : scene(i - 1); } });
+    const back = el("button", { class: "btn secondary", text: "Back", onclick: () => { Sfx.play("back"); i === 0 ? intro() : scene(i - 1); } });
     show(
-      el("h2", { class: "scene-title", id: "sceneTitle", text: `${LANDMARKS[s.id] || ""} ${s.title}` }),
+      el("h2", { class: "scene-title", id: "sceneTitle", text: s.title }),
       line,
       multi > 1 ? el("p", { class: "muted", text: `Pick up to ${multi}.` }) : null,
       el("div", { class: "choices", role: "group", "aria-label": s.title }, buttons),
@@ -445,7 +451,7 @@
     return QUEST.scenes.flatMap(s => {
       const v = answers[s.field];
       const picked = Array.isArray(v) ? v : v ? [v] : [];
-      const labels = picked.map(p => s.choices.find(c => c.value === p)).filter(Boolean).map(c => `${c.emoji} ${c.label}`);
+      const labels = picked.map(p => s.choices.find(c => c.value === p)).filter(Boolean).map(c => c.label);
       return labels.length ? [{ field: s.field, title: s.title, text: labels.join(" + ") }] : [];
     });
   }
@@ -478,7 +484,7 @@
         finale(body.progress);
       } catch (e) { error.textContent = e.message; yes.disabled = false; }
     });
-    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "🪞 The Mirror" }), line, list,
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "The Mirror" }), line, list,
       el("p", { class: "muted", text: "Choose who can see each answer. \"After we match\" answers help matching but stay hidden until your group forms. \"Only me\" answers are never used or shown." }),
       error,
       el("div", { class: "actions" }, el("button", { class: "btn secondary", text: "Not quite, let me change it", onclick: () => scene(0) }), yes));
@@ -502,10 +508,10 @@
     const nextId = DATA.order.find(q => !progress.completed.includes(q));
     const nextQuest = nextId && DATA.quests[nextId];
     const go = nextQuest
-      ? el("a", { class: "btn big", href: `/quest/${nextId}`, text: `${nextQuest.badge_emoji} Start ${nextQuest.name.split(":")[0]} ▶` })
-      : el("a", { class: "btn big", href: "/tavern", text: "🍺 Enter the Tavern ▶" });
+      ? el("a", { class: "btn big", href: `/quest/${nextId}`, text: `Start ${nextQuest.name.split(":")[0]}` })
+      : el("a", { class: "btn big", href: "/tavern", text: "Enter the Tavern" });
     show(el("h2", { class: "scene-title", id: "sceneTitle", text: "Quest complete!" }), line,
-      el("p", {}, el("span", { class: "badge" }, el("span", { "aria-hidden": "true", text: QUEST.badge_emoji }), `${QUEST.badge} badge earned`)),
+      el("p", {}, el("span", { class: "badge" }, `${QUEST.badge} badge earned`)),
       nextQuest ? el("p", { text: `Unlocked: ${nextQuest.name}. ${nextQuest.card}` })
         : el("p", { text: "Both quests done! The Tavern now knows how you work best, so your matches will be great." }),
       el("div", { class: "actions" }, el("a", { class: "btn secondary", href: "/home", text: "Back home" }), go));
@@ -525,7 +531,7 @@
         s.choices.map(c => {
           const input = el("input", { type, name: s.field, value: c.value });
           input.checked = Array.isArray(current) ? current.includes(c.value) : current === c.value;
-          return el("label", { style: "display:flex;gap:8px;align-items:center;min-height:40px" }, input, `${c.emoji} ${c.label}`);
+          return el("label", { style: "display:flex;gap:8px;align-items:center;min-height:40px" }, input, c.label);
         })));
     });
     form.append(el("div", { class: "actions" }, el("button", { class: "btn secondary", type: "button", text: "Back to the story", onclick: titleCard }), el("button", { class: "btn", type: "submit", text: "See my mirror" })));

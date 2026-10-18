@@ -11,7 +11,18 @@
     </button>
     <button id="boardButton"></button>
     <button onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
+    <button id="deleteButton" class="danger">Delete project</button>
   </div>
+
+  {# Two warnings in a row: the second only appears after confirming the first #}
+  <dialog id="deleteDialog">
+    <h2 id="deleteTitle"></h2>
+    <p id="deleteText"></p>
+    <div class="dialog-buttons">
+      <button id="deleteConfirm" class="danger"></button>
+      <button id="deleteCancel" class="secondary">Cancel</button>
+    </div>
+  </dialog>
 
   <dialog id="boardDialog">
     <h2>Add to the board?</h2>
@@ -175,6 +186,63 @@
   document.getElementById("boardCancel").onclick = () => boardDialog.close();
 
   showBoardButton();
+
+  // Deleting: not while it's on the board, and only after two warnings
+  const deleteDialog = document.getElementById("deleteDialog");
+  const deleteConfirm = document.getElementById("deleteConfirm");
+  const warnings = [
+    {
+      title: "Delete this project?",
+      text: "Its page, likes, invites and collaborator requests will be removed. Everyone on the team will be told it was deleted.",
+      button: "Yes, delete it",
+    },
+    {
+      title: "Are you absolutely sure?",
+      text: "This can't be undone. The project will be gone for you and every contributor.",
+      button: "Delete forever",
+    },
+  ];
+  let warning = 0;
+
+  const showWarning = () => {
+    document.getElementById("deleteTitle").textContent = warnings[warning].title;
+    document.getElementById("deleteText").textContent = warnings[warning].text;
+    deleteConfirm.textContent = warnings[warning].button;
+  };
+
+  document.getElementById("deleteButton").onclick = () => {
+    if (onBoard) {
+      showNotice("Take this project off the board before deleting it.", "error");
+      return;
+    }
+    warning = 0;
+    showWarning();
+    deleteDialog.showModal();
+  };
+
+  deleteConfirm.onclick = async () => {
+    if (warning < warnings.length - 1) {
+      warning++;
+      showWarning();
+      return;
+    }
+    deleteDialog.close();
+    const response = await fetch(`/projects/${projectId}`, { method: "DELETE" });
+    if (response.ok) {
+      location.href = "/profile";
+      return;
+    }
+    if (response.status === 409) {
+      // Put on the board in another tab since this page loaded
+      onBoard = true;
+      showBoardButton();
+      showNotice("Take this project off the board before deleting it.", "error");
+      return;
+    }
+    showNotice("Couldn't delete the project. Please try again.", "error");
+  };
+
+  document.getElementById("deleteCancel").onclick = () => deleteDialog.close();
 </script>
 {% endif %}
 
@@ -229,6 +297,27 @@
   #notice.error {
     background-color: #f8d7da;
     color: #b00020;
+  }
+
+  button.danger {
+    background-color: #e05561;
+    color: white;
+  }
+
+  #deleteDialog {
+    max-width: 420px;
+    border: none;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+
+  #deleteDialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  #deleteDialog h2, #deleteDialog p {
+    color: #222;
+    margin-top: 0;
   }
 
   #boardDialog {

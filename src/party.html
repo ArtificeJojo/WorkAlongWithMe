@@ -6,44 +6,55 @@
 <title>{{ party.name }}: Party Camp</title>
 <script src="/js/pixel.js"></script>
 <style>
-  :root { --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --focus: #1f5fd6; --chip: #eef5ea; }
+  /* Same look as the rest of the site: starry background, white headings, light-blue buttons, white cards */
+  :root { --button: rgb(107, 204, 236); --frame: rgb(35, 105, 246); --card: rgba(255, 255, 255, 0.85); --ink: #222; --muted: #555; --highlight: #ffe066; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.5;
-         background: linear-gradient(180deg, #1f2a4a 0%, #3b3f6b 45%, #6b4e5e 75%, #c47a45 100%); }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  .panel { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); margin-bottom: 18px; }
-  h1 { margin: 0; }
-  .camp { display: flex; gap: 14px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
-  .fire { font-size: 3.2rem; line-height: 1; }
-  .members { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-  .members li { display: flex; gap: 10px; align-items: flex-start; background: var(--chip); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 12px; }
-  .members img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ink); flex: 0 0 auto; background: #fff; }
+  body { margin: 0; min-height: 100vh; background-image: url('/Images/bg.png'); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: white; line-height: 1.5; }
+  .screenframe { position: fixed; inset: 6px; border: 4px solid var(--frame); border-radius: 16px; pointer-events: none; }
+  main { max-width: 860px; margin: 0 auto; padding: 60px 40px 40px; }
+  .panel { margin-bottom: 32px; }
+  h1, h2 { color: white; margin: 0 0 12px; }
+  .eyebrow { margin: 0; color: #d8dcf0; }
+  .camp { display: flex; gap: 24px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+  .members { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .members li { display: flex; gap: 10px; align-items: flex-start; background: var(--card); color: var(--ink); border-radius: 12px; padding: 10px 12px; }
+  .members img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: #fff; }
+  .members .muted { color: var(--muted); }
   .pact { counter-reset: rule; list-style: none; padding: 0; display: grid; gap: 10px; }
-  .pact li { counter-increment: rule; display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 12px 14px; font-size: 1.1rem; }
-  .pact li::before { content: counter(rule); flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; border: 3px solid var(--ink); background: #f6d44a; font-weight: bold; }
-  .muted { color: var(--muted); font-size: .95rem; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
-  .btn.secondary { background: var(--panel); color: var(--ink); }
+  .pact li { counter-increment: rule; display: flex; gap: 12px; align-items: flex-start; background: var(--card); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: 1.05rem; }
+  .pact li::before { content: counter(rule); flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--highlight); font-weight: bold; }
+  .muted { color: #d8dcf0; font-size: .95rem; }
+  .btn { font: inherit; padding: 6px 14px; border: none; border-radius: 16px; background: var(--button); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
+  .btn:hover { animation: shake 0.4s; }
   .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  a:focus-visible, button:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--highlight); outline-offset: 3px; }
   .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .confetti { display: none; } }
 </style>
 </head>
 <body>
+<div class="screenframe"></div>
 <main>
   <section class="panel" aria-labelledby="title">
-    <p class="muted" style="margin:0">Party Camp</p>
-    <h1 id="title">🔥 {{ party.name }}</h1>
+    <p class="eyebrow">Party Camp</p>
+    <h1 id="title">{{ party.name }}</h1>
     <div class="camp" aria-hidden="true">
-      <div id="chomp"></div><div class="fire">🔥</div><div id="ponder"></div>
+      <div id="chomp"></div><div id="ponder"></div>
     </div>
   </section>
 
   <section class="panel" aria-labelledby="membersTitle">
-    <h2 id="membersTitle" style="margin-top:0">Your party</h2>
+    <h2 id="membersTitle">Your party</h2>
     <ul class="members">
       {% for m in party.members %}
         <li>
@@ -55,7 +66,7 @@
   </section>
 
   <section class="panel" aria-labelledby="pactTitle">
-    <h2 id="pactTitle" style="margin-top:0">📜 Your Party Pact</h2>
+    <h2 id="pactTitle">Your Party Pact</h2>
     <p>The agreements your party works by, written from how each of you works best.</p>
     <ol class="pact">
       {% for rule in party.pact.rules %}<li>{{ rule }}</li>{% endfor %}
@@ -65,7 +76,7 @@
 
   <div class="actions">
     <a class="btn" href="/home">Back home</a>
-    <a class="btn secondary" href="/tavern">Back to the Tavern</a>
+    <a class="btn" href="/tavern">Back to the Tavern</a>
   </div>
 </main>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
