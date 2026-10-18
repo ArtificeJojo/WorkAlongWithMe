@@ -183,7 +183,7 @@ async def remove_friend(auth0_sub, user_id):
 
 
 async def block_user(auth0_sub, user_id):
-    """Block user_id: unfriend them and delete any pending request either way.
+    """Block user_id: unfriend them and delete any pending friend or collaborator request either way.
     Raises ValueError for yourself or a user who doesn't exist."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
@@ -201,6 +201,14 @@ async def block_user(auth0_sub, user_id):
             await conn.execute(
                 "DELETE FROM friend_requests WHERE (sender_id = $1 AND recipient_id = $2) "
                 "OR (sender_id = $2 AND recipient_id = $1)",
+                me, target,
+            )
+            # Pending requests to collaborate on each other's projects too, so they stop
+            # taking up one of the project's 5 request spots
+            await conn.execute(
+                "DELETE FROM collaborator_requests r USING projects p "
+                "WHERE p.id = r.project_id AND r.status = 'pending' "
+                "AND ((r.user_id = $1 AND p.owner_id = $2) OR (r.user_id = $2 AND p.owner_id = $1))",
                 me, target,
             )
     finally:

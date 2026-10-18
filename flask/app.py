@@ -17,12 +17,14 @@ import connection
 import project
 import post
 import quiz
+import quests
+import matching
+import party
 
 load_dotenv()
 app = Flask(__name__)
 
-# /aboutyou track choices (users.track); their descriptions live in about_you.html
-TRACKS = {"gators", "turtle"}
+# Everyone plays both quest tracks in order (Gators, then Turtle), so /aboutyou no longer picks one.
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile pictures)
 
 
@@ -30,7 +32,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile
 def start():
     asyncio.run(main())
     
-    with open("..\\src\\index.html") as html:
+    with open("..\\src\\index.html", encoding="utf-8") as html:
     
         return html.read()
 
@@ -39,6 +41,11 @@ def site_image(filename):
     # Shared site images (e.g. the bg.png page background). Public, since the login page uses them too.
     # send_from_directory refuses paths that try to escape the folder (e.g. ../.env)
     return send_from_directory(profile.ROOT / "Images", filename)
+
+@app.route("/js/<path:filename>")
+def site_script(filename):
+    # Shared page scripts (e.g. pixel.js, the animated pixel characters)
+    return send_from_directory(profile.ROOT / "src" / "js", filename)
 
 @app.route("/login")
 async def login():
@@ -130,7 +137,7 @@ async def home():
     if step := setup_step(about_you):
         return redirect(step)
 
-    with open("..\\src\\home.html") as html:
+    with open("..\\src\\home.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -142,6 +149,7 @@ async def home():
             board=(await project.get_board(user["sub"], per_page=5))["projects"],
             # Yellow/red "View profile" until they've seen an answered collaborator request on /profile
             profile_highlight=await project.request_update_highlight(user["sub"]),
+            quest_cards=await quest_cards(user["sub"]),
         )
 
 @app.route("/board")
@@ -152,7 +160,7 @@ async def board():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\board.html") as html:
+    with open("..\\src\\board.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), board=await project.get_board(user["sub"], request.args.get("page", 1, type=int)))
 
@@ -165,7 +173,7 @@ async def view_profile():
     if step := setup_step(about_you):
         return redirect(step)
 
-    with open("..\\src\\profile.html") as html:
+    with open("..\\src\\profile.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -185,7 +193,7 @@ async def connections():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\connections.html") as html:
+    with open("..\\src\\connections.html", encoding="utf-8") as html:
 
         return html.read()
 
@@ -319,7 +327,7 @@ async def project_create():
             return jsonify({"error": str(e), "missing": e.missing}), 400
         return jsonify({"id": str(project_id)}), 201
 
-    with open("..\\src\\project_create.html") as html:
+    with open("..\\src\\project_create.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=None)
 
@@ -354,7 +362,7 @@ async def project_edit(project_id):
         return "Project not found", 404
 
     # Same form as creating a project, filled in with the current values
-    with open("..\\src\\project_create.html") as html:
+    with open("..\\src\\project_create.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details)
 
@@ -381,7 +389,7 @@ async def view_project(project_id):
     if not details:
         return "Project not found", 404
 
-    with open("..\\src\\project.html") as html:
+    with open("..\\src\\project.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details)
 
@@ -403,7 +411,7 @@ async def create_post():
             return jsonify({"error": str(e), "missing": e.missing}), 400
         return jsonify({"id": str(post_id)}), 201
 
-    with open("..\\src\\create_post.html") as html:
+    with open("..\\src\\create_post.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), projects=await post.get_linkable_projects(user["sub"]))
 
@@ -423,7 +431,7 @@ async def invites():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\invites.html") as html:
+    with open("..\\src\\invites.html", encoding="utf-8") as html:
 
         return html.read()
 
@@ -482,7 +490,7 @@ async def collaborator_requests(project_id):
     if not details:
         return "Project not found", 404
 
-    with open("..\\src\\requests.html") as html:
+    with open("..\\src\\requests.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details)
 
@@ -518,7 +526,7 @@ async def view_other_profile(user_id):
     if other["relationship"] == "self":
         return redirect("/profile")
 
-    with open("..\\src\\friend.html") as html:
+    with open("..\\src\\friend.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), user=other)
 
@@ -531,16 +539,15 @@ async def about_you():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         organization = request.form.get("organization", "").strip()
-        track = request.form.get("track", "")
-        if not username or not organization or track not in TRACKS:
+        if not username or not organization:
             return redirect("/aboutyou")
 
         conn = await asyncpg.connect(env.get("DATABASE_URL"))
         try:
             await conn.execute(
-                "UPDATE users SET display_name = $1, organization = $2, track = $3, about_you_completed = TRUE "
-                "WHERE auth0_sub = $4",
-                username, organization, track, user["sub"],
+                "UPDATE users SET display_name = $1, organization = $2, about_you_completed = TRUE "
+                "WHERE auth0_sub = $3",
+                username, organization, user["sub"],
             )
         finally:
             await conn.close()
@@ -550,7 +557,7 @@ async def about_you():
 
     # Pre-fill whatever they've answered before
     about_you = await get_about_you(user["sub"])
-    with open("..\\src\\about_you.html") as html:
+    with open("..\\src\\about_you.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -569,15 +576,129 @@ async def take_quiz():
         # Not ready for it yet (/aboutyou first), or already done
         return redirect(step or "/home")
 
-    if request.method == "POST":
-        if quiz.parse_answers(request.form) is None:
-            return redirect("/quiz")
-        await quiz.complete_quiz(user["sub"])
-        return redirect("/home")
+    # The setup "quiz" is now Chomp's Kanban Swamp quest; finishing it sets quiz_completed (see quests.py)
+    return redirect("/quest/gators")
 
-    with open("..\\src\\quiz.html") as html:
+@app.route("/quest")
+async def quest_start():
+    """Sends the student to their next unfinished quest, or the Tavern once both are done."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    progress = await quests.get_progress(user["sub"])
+    next_id = quests.next_quest(progress["completed"] if progress else [])
+    return redirect(f"/quest/{next_id}" if next_id else "/tavern")
 
-        return render_template_string(html.read(), questions=quiz.QUESTIONS)
+@app.route("/quest/<quest_id>")
+async def quest_page(quest_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    # Quests are part of setup, so only /aboutyou has to be done first
+    about_you = await get_about_you(user["sub"])
+    if not about_you or not about_you["about_you_completed"]:
+        return redirect("/aboutyou")
+    if quest_id not in quests.QUESTS:
+        return "Quest not found", 404
+
+    progress = await quests.get_progress(user["sub"])
+    if quest_id not in progress["unlocked"]:
+        # Turtle opens after Gators: send them to the quest they still need
+        return redirect(f"/quest/{quests.next_quest(progress['completed'])}")
+
+    with open("..\\src\\quest.html", encoding="utf-8") as html:
+
+        return render_template_string(
+            html.read(),
+            quest_id=quest_id,
+            quests_json=quests.quests_json(),
+            progress_json=quests.to_script_json(progress),
+        )
+
+@app.route("/quest/<quest_id>/finish", methods=["POST"])
+async def quest_finish(quest_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    body = request.get_json(silent=True) or {}
+    try:
+        progress = await quests.finish_quest(user["sub"], quest_id, body.get("answers") or {}, body.get("visibility") or {})
+    except quests.QuestError as e:
+        return jsonify({"error": str(e)}), 400
+    quest = quests.QUESTS[quest_id]
+    return jsonify({"progress": progress, "summary": quests.summarize(quest, progress["answers"])})
+
+@app.route("/quest-progress")
+async def quest_progress():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+    return jsonify(await quests.get_progress(user["sub"]))
+
+@app.route("/tavern")
+async def tavern():
+    """Top matches (rules pick them, Gemini words them) and a form to start a party."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
+    progress = await quests.get_progress(user["sub"])
+
+    me, matches = await matching.matches_for(user["sub"], n=4)
+    if not me:
+        return redirect("/quest")
+    matches = party.explain_matches(me["display_name"], matches)
+    for m in matches:
+        m["chips"] = party.chips(m["hero"])
+    with open("..\\src\\tavern.html", encoding="utf-8") as html:
+
+        return render_template_string(
+            html.read(),
+            matches=matches,
+            parties=await party.my_parties(user["sub"]),
+            both_done=all(q in progress["completed"] for q in quests.QUEST_ORDER),
+        )
+
+@app.route("/tavern/party", methods=["POST"])
+async def form_party():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        group_id = await party.create_party(user["sub"], body.get("teammates") or [], body.get("name"))
+    except party.PartyError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"id": group_id}), 201
+
+@app.route("/party/<uuid:group_id>")
+async def view_party(group_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    details = await party.get_party(user["sub"], group_id)
+    if not details:
+        return "Party not found", 404
+    with open("..\\src\\party.html", encoding="utf-8") as html:
+
+        return render_template_string(html.read(), party=details)
+
+async def quest_cards(auth0_sub):
+    """One card per quest for /home: done, open (next up) or locked."""
+    progress = await quests.get_progress(auth0_sub)
+    completed = progress["completed"] if progress else []
+    unlocked = quests.unlocked_quests(completed)
+    cards = []
+    for quest_id in quests.QUEST_ORDER:
+        q = quests.QUESTS[quest_id]
+        status = "done" if quest_id in completed else "open" if quest_id in unlocked else "locked"
+        cards.append({
+            "id": quest_id, "name": q["name"], "card": q["card"], "emoji": q["badge_emoji"],
+            "badge": q["badge"], "status": status,
+        })
+    return cards
 
 async def register_user(user):
     """Create a users row for this Auth0 account if there isn't one yet.

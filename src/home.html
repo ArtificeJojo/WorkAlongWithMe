@@ -40,7 +40,7 @@
     {% endfor %}
   </div>
   {% if quest_cards | selectattr("status", "equalto", "done") | list | length == quest_cards | length %}
-    <a class="quest-button tavern" href="tavern.html">Enter the Tavern: meet your matches</a>
+    <a class="quest-button tavern" href="/tavern">Enter the Tavern: meet your matches</a>
   {% endif %}
 </section>
 
