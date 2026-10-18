@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work Along With Me: The Tavern</title>
+<script src="/js/pixel.js"></script>
+<style>
+  :root { --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --focus: #1f5fd6; --chip: #eef5ea; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45;
+         background: linear-gradient(180deg, #5a3d2b 0%, #8a5a3b 45%, #c98b52 100%); }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  .panel { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); margin-bottom: 18px; }
+  h1 { margin: 0 0 6px; }
+  .hosts { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .hosts .bubble { flex: 1 1 260px; background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 12px 14px; }
+  .meter { display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 999px; border: 3px solid var(--ink); background: #f6d44a; font-weight: bold; }
+  .matches { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .hero { background: var(--chip); border: 3px solid var(--ink); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .hero.picked { background: #fff3c4; box-shadow: inset 0 0 0 3px #f6d44a; }
+  .hero header { display: flex; gap: 10px; align-items: center; }
+  .hero img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ink); background: #fff; }
+  .hero h3 { margin: 0; font-size: 1.15rem; }
+  .badges { font-size: .95rem; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+  .chips li { background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-size: .9rem; }
+  .why { margin: 0; }
+  .pick { display: flex; gap: 8px; align-items: center; min-height: 48px; font-weight: bold; cursor: pointer; }
+  .pick input { width: 22px; height: 22px; }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 12px; }
+  .form-row label { display: flex; flex-direction: column; gap: 4px; font-weight: bold; flex: 1 1 260px; }
+  input[type=text] { font: inherit; min-height: 48px; border: 3px solid var(--ink); border-radius: 12px; padding: 6px 10px; }
+  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: #fff; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  .btn.secondary { background: var(--panel); color: var(--ink); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  .error { color: #9b1c1c; font-weight: bold; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .parties { padding-left: 20px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel" aria-labelledby="title">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+      <h1 id="title">🍺 The Tavern</h1>
+      <a class="btn secondary" href="/home">Home</a>
+    </div>
+    <div class="hosts">
+      <div id="chomp"></div>
+      <div id="ponder"></div>
+      <p class="bubble" aria-live="polite">Pull up a stool! These heroes work a lot like you do. Pick up to 3 to form your party, and we'll write your Party Pact together.</p>
+    </div>
+    {% if both_done %}
+      <span class="meter">Great matches 🌳 (both quests done)</span>
+    {% else %}
+      <span class="meter">Good matches 🌱</span>
+      <a href="/quest/turtle">Finish Ping Pond for even better matches</a>
+    {% endif %}
+  </section>
+
+  <section class="panel" aria-labelledby="matchesTitle">
+    <h2 id="matchesTitle" style="margin-top:0">Your matches</h2>
+    {% if matches %}
+      <div class="matches">
+        {% for m in matches %}
+          <article class="hero" data-id="{{ m.hero.user_id }}">
+            <header>
+              <img src="/users/{{ m.hero.user_id }}/picture" alt="" />
+              <div>
+                <h3>{{ m.hero.display_name }}</h3>
+                <div class="badges">
+                  {% if "gators" in m.hero.completed_quests %}🐊 Swamp Launcher{% endif %}
+                  {% if "turtle" in m.hero.completed_quests %} · 🐢 Pond Keeper{% endif %}
+                </div>
+              </div>
+            </header>
+            <p class="why">{{ m.why }}</p>
+            {% if m.chips %}
+              <ul class="chips" aria-label="How {{ m.hero.display_name }} works">
+                {% for c in m.chips %}<li>{{ c }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <label class="pick"><input type="checkbox" value="{{ m.hero.user_id }}" /> Invite {{ m.hero.display_name }} to my party</label>
+          </article>
+        {% endfor %}
+      </div>
+
+      <form id="partyForm" class="form-row">
+        <label>Party name
+          <input type="text" id="partyName" maxlength="60" placeholder="The Swamp Squad" />
+        </label>
+        <button class="btn" type="submit" id="formParty" disabled>Form our party</button>
+      </form>
+      <p class="muted" id="pickCount" aria-live="polite">Pick 1 to 3 teammates.</p>
+      <p class="error" id="error" role="alert"></p>
+    {% else %}
+      <p>No other heroes yet. Check back soon!</p>
+    {% endif %}
+  </section>
+
+  {% if parties %}
+    <section class="panel" aria-labelledby="partiesTitle">
+      <h2 id="partiesTitle" style="margin-top:0">Your parties</h2>
+      <ul class="parties">
+        {% for p in parties %}<li><a href="/party/{{ p.id }}">{{ p.name }}</a></li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</main>
+
+<script>
+  const calm = (() => { try { return localStorage.getItem("wawm-calm") === "1"; } catch { return false; } })();
+  Pixel.mount(document.getElementById("chomp"), "chomp", { size: 120, still: calm });
+  Pixel.mount(document.getElementById("ponder"), "ponder", { size: 130, still: calm });
+
+  const form = document.getElementById("partyForm");
+  if (form) {
+    const boxes = [...document.querySelectorAll(".pick input")];
+    const button = document.getElementById("formParty");
+    const count = document.getElementById("pickCount");
+    const error = document.getElementById("error");
+    const update = () => {
+      const picked = boxes.filter(b => b.checked);
+      boxes.forEach(b => {
+        b.closest(".hero").classList.toggle("picked", b.checked);
+        b.disabled = !b.checked && picked.length >= 3;
+      });
+      button.disabled = picked.length === 0;
+      count.textContent = picked.length ? `${picked.length} of 3 picked.` : "Pick 1 to 3 teammates.";
+    };
+    boxes.forEach(b => b.addEventListener("change", update));
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      button.disabled = true; error.textContent = ""; button.textContent = "Writing your Party Pact...";
+      try {
+        const res = await fetch("/tavern/party", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teammates: boxes.filter(b => b.checked).map(b => b.value), name: document.getElementById("partyName").value }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || "Couldn't form the party. Try again?");
+        location.href = `/party/${body.id}`;
+      } catch (err) {
+        error.textContent = err.message; button.textContent = "Form our party"; update();
+      }
+    });
+  }
+</script>
+</body>
+</html>
