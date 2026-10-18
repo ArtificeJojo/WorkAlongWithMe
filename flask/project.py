@@ -415,7 +415,7 @@ async def get_project(auth0_sub, project_id):
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
                    p.skills, p.created_at, p.board_added_at IS NOT NULL AS on_board, {like_columns("project")},
-                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner,
+                   o.id AS owner_id, o.display_name AS owner_name, o.is_admin AS owner_is_admin, o.id = {ME} AS is_owner,
                    (SELECT c.status FROM project_contributors c
                     WHERE c.project_id = p.id AND c.user_id = {ME}) AS my_status,
                    (SELECT r.status FROM collaborator_requests r
@@ -431,7 +431,7 @@ async def get_project(auth0_sub, project_id):
             return None
         members = await conn.fetch(
             f"""
-            SELECT u.id, u.display_name,
+            SELECT u.id, u.display_name, u.is_admin,
                    NOT EXISTS (
                        SELECT 1 FROM blocks b
                        WHERE (b.blocker_id = u.id AND b.blocked_id = {ME})
@@ -463,8 +463,12 @@ async def get_project(auth0_sub, project_id):
         # Only shown to the owner (button to /requests/<id>)
         "pending_requests": row["pending_requests"] if row["is_owner"] else 0,
         # Visible project = owner not blocked either way, so the owner is always viewable
-        "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
-        "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],
+        # is_admin: red Admin tag next to their name (cosmetic)
+        "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True, "is_admin": row["owner_is_admin"]},
+        "members": [
+            {**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"], "is_admin": m["is_admin"]}
+            for m in members
+        ],
     }
 
 

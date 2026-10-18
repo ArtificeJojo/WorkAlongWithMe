@@ -96,11 +96,13 @@
       <a class="person" href="/friend/{{ user.id }}">
         <img src="{{ user.picture }}" alt="" />
         <span>{{ user.username }}</span>
+        {% if user.is_admin %}<span class="admin-tag">Admin</span>{% endif %}
       </a>
     {% else %}
       <span class="person">
         <img src="{{ user.picture }}" alt="" />
         <span>{{ user.username }}</span>
+        {% if user.is_admin %}<span class="admin-tag">Admin</span>{% endif %}
       </span>
     {% endif %}
   {% endmacro %}
@@ -497,6 +499,19 @@
 
   a.person:hover {
     background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Cosmetic red tag for admins, next to their name (same look as on profiles) */
+  .admin-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 16px;
+    background-color: #d62839;
+    color: white;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.6;
   }
 
   .person img {

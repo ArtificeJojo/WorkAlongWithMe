@@ -130,7 +130,7 @@ async def get_linkable_projects(auth0_sub):
 # Columns and joins for the home page post feeds (after CONNECTIONS_CTE, which defines `me`)
 FEED_COLUMNS = f"""
     p.id, p.body, p.image IS NOT NULL AS has_image, p.created_at,
-    u.id AS author_id, u.display_name AS author_name, p.author_id = me.id AS is_mine,
+    u.id AS author_id, u.display_name AS author_name, u.is_admin AS author_is_admin, p.author_id = me.id AS is_mine,
     -- Linked project, only if the viewer can see it (its owner isn't blocked either way)
     lp.id AS project_id, lp.title AS project_title,
     {like_columns("post")}
@@ -207,6 +207,7 @@ def _post_json(row):
             "id": str(row["author_id"]),
             "username": row["author_name"],
             "picture": f"/users/{row['author_id']}/picture",
+            "is_admin": row["author_is_admin"],  # red Admin tag (cosmetic)
         },
     }
 

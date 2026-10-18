@@ -72,14 +72,14 @@ async def search_users(auth0_sub, prefix, limit=4, exclude=()):
 
 
 async def get_user_profile(auth0_sub, user_id):
-    """Another user's profile as the logged-in user sees it: id, username, picture, skills and relationship.
+    """Another user's profile as the logged-in user sees it: id, username, picture, skills, admin tag and relationship.
     None if they don't exist, haven't finished /aboutyou, or either of you has blocked the other
     (indistinguishable on purpose, so a block isn't revealed)."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         row = await conn.fetchrow(
             f"""
-            SELECT u.id, u.display_name, u.skills, {RELATIONSHIP} AS relationship
+            SELECT u.id, u.display_name, u.skills, u.is_admin, {RELATIONSHIP} AS relationship
             FROM users u
             {FRIEND_REQUEST_JOIN}
             WHERE u.id = $2 AND u.about_you_completed AND NOT {BLOCKED_BY_U}
@@ -91,7 +91,7 @@ async def get_user_profile(auth0_sub, user_id):
 
     if not row or row["relationship"] == "blocked":
         return None
-    return {**_user_json(row), "skills": list(row["skills"]), "relationship": row["relationship"]}
+    return {**_user_json(row), "skills": list(row["skills"]), "is_admin": row["is_admin"], "relationship": row["relationship"]}
 
 
 async def send_friend_request(auth0_sub, user_id):

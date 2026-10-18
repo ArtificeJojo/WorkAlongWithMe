@@ -189,6 +189,7 @@ async def view_profile():
             username=about_you["display_name"],
             user_id=str(about_you["id"]),
             skills=about_you["skills"],
+            is_admin=about_you["is_admin"],
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
             has_invites=await project.has_pending_invites(user["sub"]),
             # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
@@ -809,7 +810,7 @@ async def get_about_you(auth0_sub):
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT id, display_name, organization, track, about_you_completed, skills "
+            "SELECT id, display_name, organization, track, about_you_completed, skills, is_admin "
             "FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:
