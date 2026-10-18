@@ -18,6 +18,7 @@
           <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
         {% endif %}
         <h3>{{ project.title }}</h3>
+        {% if project.skills %}<ul class="skill-tags" aria-label="Skills">{% for skill in project.skills %}<li>{{ skill }}</li>{% endfor %}</ul>{% endif %}
         {# Heart button (filled in by /js/likes.js) #}
         <button class="like-button" data-kind="project" data-id="{{ project.id }}" data-liked="{{ project.likes.liked|tojson }}" data-count="{{ project.likes.count }}"></button>
         <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
@@ -37,6 +38,7 @@
 </main>
 
 <script src="/js/likes.js"></script>
+<script src="/js/skills.js"></script>
 
 <style>
   body {

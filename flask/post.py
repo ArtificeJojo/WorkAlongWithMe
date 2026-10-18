@@ -127,6 +127,26 @@ async def get_linkable_projects(auth0_sub):
     ]
 
 
+# Columns and joins for the home page post feeds (after CONNECTIONS_CTE, which defines `me`)
+FEED_COLUMNS = f"""
+    p.id, p.body, p.image IS NOT NULL AS has_image, p.created_at,
+    u.id AS author_id, u.display_name AS author_name, p.author_id = me.id AS is_mine,
+    -- Linked project, only if the viewer can see it (its owner isn't blocked either way)
+    lp.id AS project_id, lp.title AS project_title,
+    {like_columns("post")}
+"""
+FEED_FROM = f"""
+    FROM posts p
+    JOIN users u ON u.id = p.author_id
+    LEFT JOIN projects lp ON lp.id = p.project_id AND NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id = lp.owner_id AND b.blocked_id = {ME})
+           OR (b.blocker_id = {ME} AND b.blocked_id = lp.owner_id)
+    ),
+    me
+"""
+
+
 async def get_feed(auth0_sub, limit=3):
     """The newest posts by the logged-in user, their friends or their teammates, newest first."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
@@ -134,19 +154,8 @@ async def get_feed(auth0_sub, limit=3):
         rows = await conn.fetch(
             f"""
             {CONNECTIONS_CTE}
-            SELECT p.id, p.body, p.image IS NOT NULL AS has_image, p.created_at,
-                   u.id AS author_id, u.display_name AS author_name, p.author_id = me.id AS is_mine,
-                   -- Linked project, only if the viewer can see it (its owner isn't blocked either way)
-                   lp.id AS project_id, lp.title AS project_title,
-                   {like_columns("post")}
-            FROM posts p
-            JOIN users u ON u.id = p.author_id
-            LEFT JOIN projects lp ON lp.id = p.project_id AND NOT EXISTS (
-                SELECT 1 FROM blocks b
-                WHERE (b.blocker_id = lp.owner_id AND b.blocked_id = {ME})
-                   OR (b.blocker_id = {ME} AND b.blocked_id = lp.owner_id)
-            ),
-            me
+            SELECT {FEED_COLUMNS}
+            {FEED_FROM}
             WHERE (p.author_id = me.id OR p.author_id IN (SELECT id FROM connected))
               AND {VISIBLE_TO_ME}
             ORDER BY p.created_at DESC, p.id
@@ -157,24 +166,49 @@ async def get_feed(auth0_sub, limit=3):
     finally:
         await conn.close()
 
-    return [
-        {
-            "id": str(row["id"]),
-            "body": row["body"],
-            "image": f"/posts/{row['id']}/image" if row["has_image"] else None,
-            "created_at": row["created_at"],
-            "likes": like_json(row),
-            # Only the author gets the delete button
-            "is_mine": row["is_mine"],
-            "project": {"id": str(row["project_id"]), "title": row["project_title"]} if row["project_id"] else None,
-            "author": {
-                "id": str(row["author_id"]),
-                "username": row["author_name"],
-                "picture": f"/users/{row['author_id']}/picture",
-            },
-        }
-        for row in rows
-    ]
+    return [_post_json(row) for row in rows]
+
+
+async def get_find_feed(auth0_sub, limit=10):
+    """The newest posts by people the logged-in user isn't connected to, for the Find tab on /home:
+    not their own, not their friends' or teammates' (anyone they share a project with as owner or
+    accepted member), and not anyone they've blocked or been blocked by. Newest first."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        rows = await conn.fetch(
+            f"""
+            {CONNECTIONS_CTE}
+            SELECT {FEED_COLUMNS}
+            {FEED_FROM}
+            WHERE p.author_id <> me.id AND p.author_id NOT IN (SELECT id FROM connected)
+              AND {VISIBLE_TO_ME}
+            ORDER BY p.created_at DESC, p.id
+            LIMIT $2
+            """,
+            auth0_sub, limit,
+        )
+    finally:
+        await conn.close()
+
+    return [_post_json(row) for row in rows]
+
+
+def _post_json(row):
+    return {
+        "id": str(row["id"]),
+        "body": row["body"],
+        "image": f"/posts/{row['id']}/image" if row["has_image"] else None,
+        "created_at": row["created_at"],
+        "likes": like_json(row),
+        # Only the author gets the delete button
+        "is_mine": row["is_mine"],
+        "project": {"id": str(row["project_id"]), "title": row["project_title"]} if row["project_id"] else None,
+        "author": {
+            "id": str(row["author_id"]),
+            "username": row["author_name"],
+            "picture": f"/users/{row['author_id']}/picture",
+        },
+    }
 
 
 async def delete_post(auth0_sub, post_id):

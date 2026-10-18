@@ -19,7 +19,11 @@
       {% for skill in skills %}<li>{{ skill }}</li>{% endfor %}
     </ul>
   </div>
-  <button id="resetPicture" {% if not has_custom_picture %}hidden{% endif %}>Reset to default</button>
+  {# Changing works from this button or by clicking the picture #}
+  <div id="pictureButtons">
+    <button id="changePicture">Change picture</button>
+    <button id="resetPicture" {% if not has_custom_picture %}hidden{% endif %}>Reset to default</button>
+  </div>
   <h1>Welcome, {{ username }}</h1>
 </div>
 <input id="pictureInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" hidden />
@@ -53,6 +57,7 @@
 </section>
 
 <script src="/js/likes.js"></script>
+<script src="/js/skills.js"></script>
 
 <script>
   // Projects this person created or joined, 6 per page, newest first
@@ -108,7 +113,9 @@
         people.append(extra);
       }
 
-      card.append(title, likeButton("project", project.id, project.likes), role, people);
+      card.append(title);
+      if (project.skills.length) card.append(skillTags(project.skills));
+      card.append(likeButton("project", project.id, project.likes), role, people);
       return card;
     };
 
@@ -141,6 +148,7 @@
   const refreshPicture = () => picture.src = "/profile-picture?t=" + Date.now();
 
   picture.onclick = () => pictureInput.click();
+  document.getElementById("changePicture").onclick = () => pictureInput.click();
 
   pictureInput.onchange = async () => {
     if (!pictureInput.files.length) return;
@@ -206,6 +214,14 @@
     border: 4px solid rgb(254, 254, 254);
     border-radius: 8px;
     order: 2;
+  }
+
+  /* Change / reset buttons, stacked beside the picture */
+  #pictureButtons {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   #profilePicture {
@@ -323,6 +339,11 @@
 
   .project-card .title {
     font-weight: bold;
+  }
+
+  /* Skill bubbles line up with the left-aligned title */
+  .project-card .skill-tags {
+    justify-content: flex-start;
   }
 
   .project-card .role {

@@ -48,6 +48,7 @@
   <button role="tab" data-tab="postFeed">Posts</button>
   <button role="tab" data-tab="projectFeed">Projects</button>
   <button role="tab" data-tab="boardFeed">Board</button>
+  <button role="tab" data-tab="findFeed">Find</button>
 </div>
 
 {# Heart button (filled in by /js/likes.js) #}
@@ -55,10 +56,8 @@
   <button class="like-button" data-kind="{{ kind }}" data-id="{{ item.id }}" data-liked="{{ item.likes.liked|tojson }}" data-count="{{ item.likes.count }}"></button>
 {% endmacro %}
 
-<section id="postFeed" class="feed" role="tabpanel">
-  <h2>Latest posts</h2>
-  <p id="postNotice" role="status" hidden></p>
-  {% for post in posts %}
+{# One post: author, image, text, heart, linked project; your own posts get a delete button #}
+{% macro post_card(post) %}
     <article class="post-card" data-post-id="{{ post.id }}">
       {% if post.is_mine %}
         <button class="delete-post" title="Delete this post">Delete</button>
@@ -79,7 +78,12 @@
         <a class="post-project" href="/project/{{ post.project.id }}">Project: {{ post.project.title }}</a>
       {% endif %}
     </article>
-  {% endfor %}
+{% endmacro %}
+
+<section id="postFeed" class="feed" role="tabpanel">
+  <h2>Latest posts</h2>
+  <p id="postNotice" role="status" hidden></p>
+  {% for post in posts %}{{ post_card(post) }}{% endfor %}
   <p id="noPosts" class="empty" {% if posts %}hidden{% endif %}>No posts from you, your friends or your teammates yet.</p>
 </section>
 
@@ -101,6 +105,7 @@
         <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
       {% endif %}
       <h3>{{ project.title }}</h3>
+      {% if project.skills %}<ul class="skill-tags" aria-label="Skills">{% for skill in project.skills %}<li>{{ skill }}</li>{% endfor %}</ul>{% endif %}
       {{ like_button("project", project) }}
       <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
     </article>
@@ -117,6 +122,7 @@
         <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
       {% endif %}
       <h3>{{ project.title }}</h3>
+      {% if project.skills %}<ul class="skill-tags" aria-label="Skills">{% for skill in project.skills %}<li>{{ skill }}</li>{% endfor %}</ul>{% endif %}
       {{ like_button("project", project) }}
       <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
     </article>
@@ -126,10 +132,20 @@
   <button onclick="location.href = '/board'">See more</button>
 </section>
 
+{# Posts from people you aren't friends or teammates with, and haven't blocked (or been blocked by) #}
+<section id="findFeed" class="feed" role="tabpanel" hidden>
+  <h2>Find new people</h2>
+  <p class="feed-intro">The latest posts from people you aren't connected with yet.</p>
+  {% for post in find_posts %}{{ post_card(post) }}{% else %}
+    <p class="empty">No posts from new people right now. Check back later.</p>
+  {% endfor %}
+</section>
+
 <script src="/js/likes.js"></script>
+<script src="/js/skills.js"></script>
 
 <script>
-  // Posts / Projects / Board tabs
+  // Posts / Projects / Board / Find tabs
   const feedTabs = document.querySelectorAll("#feedTabs [role=tab]");
   const showFeed = name => feedTabs.forEach(tab => {
     const selected = tab.dataset.tab === name;
@@ -167,7 +183,7 @@
     }
     postToDelete.remove();
     showPostNotice("Your post was deleted.", "success");
-    document.getElementById("noPosts").hidden = document.querySelector(".post-card") !== null;
+    document.getElementById("noPosts").hidden = document.querySelector("#postFeed .post-card") !== null;
   };
 </script>
 
@@ -415,6 +431,11 @@
 
   .empty {
     color: #555;
+  }
+
+  .feed-intro {
+    margin-top: 0;
+    color: #d8dcf0;
   }
 
   .screenframe{

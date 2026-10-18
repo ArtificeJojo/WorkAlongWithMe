@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS projects (
   summary      TEXT NOT NULL CHECK (btrim(summary) <> ''),
   description  TEXT,
   thumbnail    TEXT,   -- uploaded file in uploads/project_thumbnails/ (Flask); NULL = none
+  -- Up to 5 skills; the creator and accepted contributors can change them
+  skills       TEXT[] NOT NULL DEFAULT '{}',
   -- When the owner put it on the board (people can ask to collaborate); NULL = not on the board
   board_added_at  TIMESTAMPTZ,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()

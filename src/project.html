@@ -66,6 +66,25 @@
   <h1>{{ project.title }}</h1>
   <p id="summary">{{ project.summary }}</p>
 
+  {# Unlike the rest of the project, the whole team (creator and contributors) can change the skills #}
+  <section id="skillsSection" {% if not project.skills and not project.can_edit_skills %}hidden{% endif %}>
+    <h2>Skills</h2>
+    <ul id="projectSkills" class="skill-tags" aria-label="Skills">
+      {% for skill in project.skills %}<li>{{ skill }}</li>{% endfor %}
+    </ul>
+    <p id="noSkills" class="empty" {% if project.skills %}hidden{% endif %}>No skills listed yet.</p>
+    {% if project.can_edit_skills %}
+      <button id="editSkills">Edit skills</button>
+      <div id="skillEditor" hidden>
+        <div id="skillPickerBox"></div>
+        <div class="editor-buttons">
+          <button id="saveSkills">Save skills</button>
+          <button id="cancelSkills" class="secondary">Cancel</button>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
   {% if project.description %}
     <h2>About this project</h2>
     <p id="description">{{ project.description }}</p>
@@ -105,6 +124,72 @@
 </main>
 
 <script src="/js/likes.js"></script>
+<script src="/js/skills.js"></script>
+
+{% if project.can_edit_skills %}
+<script>
+  (() => {
+    const skillsUrl = `/projects/${ {{ project.id|tojson }} }/skills`;
+    const suggestions = {{ skill_suggestions|tojson }};
+    let saved = {{ project.skills|tojson }};
+
+    const tags = document.getElementById("projectSkills");
+    const noSkills = document.getElementById("noSkills");
+    const editButton = document.getElementById("editSkills");
+    const editor = document.getElementById("skillEditor");
+    const box = document.getElementById("skillPickerBox");
+    let picker = null;
+
+    const showSaved = () => {
+      tags.replaceChildren(...skillTags(saved).children);
+      tags.hidden = !saved.length;
+      noSkills.hidden = saved.length > 0;
+    };
+
+    // A fresh picker each time, starting from the saved skills
+    const closeEditor = () => {
+      editor.hidden = true;
+      editButton.hidden = false;
+      tags.hidden = !saved.length;
+    };
+
+    editButton.onclick = () => {
+      box.replaceChildren();
+      picker = skillPicker(box, {
+        suggestions, max: {{ max_skills|tojson }}, maxLength: {{ max_skill_length|tojson }}, initial: saved,
+      });
+      editor.hidden = false;
+      editButton.hidden = true;
+      tags.hidden = true;
+      noSkills.hidden = true;
+      picker.focus();
+    };
+
+    document.getElementById("cancelSkills").onclick = () => { closeEditor(); showSaved(); };
+
+    document.getElementById("saveSkills").onclick = async event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      const response = await fetch(skillsUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills: picker.commit() }),
+      }).catch(() => null);
+      button.disabled = false;
+
+      if (!response || !response.ok) {
+        picker.error(response && response.status === 404
+          ? "You're no longer on this project's team, so you can't change its skills."
+          : "Couldn't save the skills. Please try again.");
+        return;
+      }
+      saved = (await response.json()).skills;
+      closeEditor();
+      showSaved();
+    };
+  })();
+</script>
+{% endif %}
 
 {% if project.collaboration == "can_request" %}
 <script>
@@ -363,6 +448,29 @@
 
   #summary {
     font-size: 1.15em;
+  }
+
+  /* Skills sit left-aligned under the summary, a little bigger than on the cards */
+  #projectSkills {
+    justify-content: flex-start;
+    margin-bottom: 12px;
+  }
+
+  #projectSkills li {
+    font-size: 14px;
+    padding: 4px 12px;
+  }
+
+  #skillPickerBox {
+    padding: 10px 12px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+  }
+
+  .editor-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   /* Keep the line breaks the creator typed */
