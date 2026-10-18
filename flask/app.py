@@ -713,7 +713,7 @@ async def quest_cards(auth0_sub):
         q = quests.QUESTS[quest_id]
         status = "done" if quest_id in completed else "open" if quest_id in unlocked else "locked"
         cards.append({
-            "id": quest_id, "name": q["name"], "card": q["card"], "emoji": q["badge_emoji"],
+            "id": quest_id, "name": q["name"], "card": q["card"],
             "badge": q["badge"], "status": status,
         })
     return cards

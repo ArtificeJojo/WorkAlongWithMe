@@ -99,7 +99,7 @@ def test_every_choice_is_a_value_the_database_accepts():
             values = [c["value"] for c in scene["choices"]]
             assert sorted(values) == sorted(quests.ALLOWED[scene["field"]]), scene["id"]
             for c in scene["choices"]:
-                assert c["emoji"] and c["label"] and c["reaction"]
+                assert c["label"] and c["reaction"]
 
 
 def test_quests_cover_all_fields_once():

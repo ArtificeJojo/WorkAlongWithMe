@@ -21,7 +21,6 @@ GATORS = {
     "guide": "Chomp",
     "character": "chomp",
     "badge": "Swamp Launcher",
-    "badge_emoji": "🐊",
     "card": "Help Chomp launch SwampBook before sundown, and discover how you like to tackle work.",
     "intro": {
         "line": "Uh-oh. SwampBook launches at sundown, and the swamp is FLOODED with tangled code blocks. "
@@ -36,11 +35,11 @@ GATORS = {
             "multi": 2,
             "line": "First things first: every hero has powers. Which ones are yours? Pick up to two.",
             "choices": [
-                {"value": "builder", "emoji": "🔨", "label": "Builder", "reaction": "Your power glows a deep blue. Swamp-tastic!"},
-                {"value": "designer", "emoji": "🎨", "label": "Designer", "reaction": "Your power sparkles in every color!"},
-                {"value": "researcher", "emoji": "🔍", "label": "Researcher", "reaction": "A tiny magnifying glass appears. Ooh, clues!"},
-                {"value": "presenter", "emoji": "🎤", "label": "Presenter", "reaction": "Your power hums a little fanfare!"},
-                {"value": "leader", "emoji": "👑", "label": "Leader", "reaction": "Your power forms a tiny crown!"},
+                {"value": "builder", "label": "Builder", "reaction": "Your power glows a deep blue. Swamp-tastic!"},
+                {"value": "designer", "label": "Designer", "reaction": "Your power sparkles in every color!"},
+                {"value": "researcher", "label": "Researcher", "reaction": "A tiny magnifying glass appears. Ooh, clues!"},
+                {"value": "presenter", "label": "Presenter", "reaction": "Your power hums a little fanfare!"},
+                {"value": "leader", "label": "Leader", "reaction": "Your power forms a tiny crown!"},
             ],
         },
         {
@@ -49,9 +48,9 @@ GATORS = {
             "field": "task_format",
             "line": "Every hero needs a workbench. Which tool goes front and center?",
             "choices": [
-                {"value": "list", "emoji": "📜", "label": "A giant scroll with everything on it", "reaction": "The scroll unrolls across the whole bench. Chomp whistles."},
-                {"value": "cards", "emoji": "🧩", "label": "Sticky-note blocks I can move around", "reaction": "Colorful blocks snap onto the bench. Click-click-click!"},
-                {"value": "checklist", "emoji": "✅", "label": "A checklist, one step at a time", "reaction": "A shiny clipboard lands on the bench. Ding!"},
+                {"value": "list", "label": "A giant scroll with everything on it", "reaction": "The scroll unrolls across the whole bench. Chomp whistles."},
+                {"value": "cards", "label": "Sticky-note blocks I can move around", "reaction": "Colorful blocks snap onto the bench. Click-click-click!"},
+                {"value": "checklist", "label": "A checklist, one step at a time", "reaction": "A shiny clipboard lands on the bench. Ding!"},
             ],
         },
         {
@@ -60,8 +59,8 @@ GATORS = {
             "field": "task_size",
             "line": "WHOA! MEGA-BUG just rose out of the swamp, and it's eating the launch schedule! How do we beat it?",
             "choices": [
-                {"value": "large", "emoji": "⚔️", "label": "Take it on all at once", "reaction": "POWER ATTACK! MEGA-BUG launches into the sky like a firework. BIG MOVES!"},
-                {"value": "bite_sized", "emoji": "✂️", "label": "Slice it into tiny bugs", "reaction": "MEGA-BUG splits into five tiny bugs. They salute and waddle off. Way less scary in pieces!"},
+                {"value": "large", "label": "Take it on all at once", "reaction": "POWER ATTACK! MEGA-BUG launches into the sky like a firework. BIG MOVES!"},
+                {"value": "bite_sized", "label": "Slice it into tiny bugs", "reaction": "MEGA-BUG splits into five tiny bugs. They salute and waddle off. Way less scary in pieces!"},
             ],
         },
         {
@@ -70,9 +69,9 @@ GATORS = {
             "field": "pacing",
             "line": "The launch pad is across the swamp. How should we build the bridge?",
             "choices": [
-                {"value": "single_deadline", "emoji": "🌉", "label": "All at once, right before sundown", "reaction": "WHOOSH! The whole bridge appears just in time."},
-                {"value": "checkins", "emoji": "🪵", "label": "One plank at a time, checking in", "reaction": "Plank... plank... plank. A sturdy bridge, step by step."},
-                {"value": "flexible", "emoji": "🪢", "label": "Whenever it feels right", "reaction": "A bouncy rope bridge swings into place. Chomp does a little hop."},
+                {"value": "single_deadline", "label": "All at once, right before sundown", "reaction": "WHOOSH! The whole bridge appears just in time."},
+                {"value": "checkins", "label": "One plank at a time, checking in", "reaction": "Plank... plank... plank. A sturdy bridge, step by step."},
+                {"value": "flexible", "label": "Whenever it feels right", "reaction": "A bouncy rope bridge swings into place. Chomp does a little hop."},
             ],
         },
         {
@@ -82,10 +81,10 @@ GATORS = {
             "multi": 1,
             "line": "The server gate is locked by a tricky puzzle! Want a hint? Pick the kind that helps you most.",
             "choices": [
-                {"value": "written", "emoji": "✍️", "label": "A written clue", "reaction": "A note floats down. You read it, and the gate clicks open!"},
-                {"value": "visual", "emoji": "🖼️", "label": "A diagram", "reaction": "A glowing map appears. You trace it, and the gate clicks open!"},
-                {"value": "verbal", "emoji": "🗣️", "label": "Chomp explains it", "reaction": "Chomp talks it through. You nod, and the gate clicks open!"},
-                {"value": "demonstration", "emoji": "👀", "label": "Chomp shows me step by step", "reaction": "Chomp does the first step, you do the rest. The gate clicks open!"},
+                {"value": "written", "label": "A written clue", "reaction": "A note floats down. You read it, and the gate clicks open!"},
+                {"value": "visual", "label": "A diagram", "reaction": "A glowing map appears. You trace it, and the gate clicks open!"},
+                {"value": "verbal", "label": "Chomp explains it", "reaction": "Chomp talks it through. You nod, and the gate clicks open!"},
+                {"value": "demonstration", "label": "Chomp shows me step by step", "reaction": "Chomp does the first step, you do the rest. The gate clicks open!"},
             ],
         },
     ],
@@ -98,7 +97,6 @@ TURTLE = {
     "guide": "Ponder",
     "character": "ponder",
     "badge": "Pond Keeper",
-    "badge_emoji": "🐢",
     "card": "Help Ponder the Turtle calm the noisy Ping Pond, and set the rules for how your team talks.",
     "intro": {
         "line": "Hello... there... friend. No rush. The Ping Pond is a little noisy today, and the Pond Fair is tonight. "
@@ -112,10 +110,10 @@ TURTLE = {
             "field": "communication",
             "line": "The pond is flooded with bottles, croaks and splashes! How should the pond send word to you?",
             "choices": [
-                {"value": "text", "emoji": "📜", "label": "Message bottles (group chat)", "reaction": "The bottles line up neatly by the shore. So calm."},
-                {"value": "voice", "emoji": "📞", "label": "Croak calls (voice calls)", "reaction": "The frogs tune their croaks into tidy little calls."},
-                {"value": "in_person", "emoji": "🚶", "label": "Swim over and find me (in person)", "reaction": "Ponder paddles over for a friendly face-to-face."},
-                {"value": "mix", "emoji": "🔀", "label": "A mix of everything", "reaction": "Bottles, croaks and visits all find their place."},
+                {"value": "text", "label": "Message bottles (group chat)", "reaction": "The bottles line up neatly by the shore. So calm."},
+                {"value": "voice", "label": "Croak calls (voice calls)", "reaction": "The frogs tune their croaks into tidy little calls."},
+                {"value": "in_person", "label": "Swim over and find me (in person)", "reaction": "Ponder paddles over for a friendly face-to-face."},
+                {"value": "mix", "label": "A mix of everything", "reaction": "Bottles, croaks and visits all find their place."},
             ],
         },
         {
@@ -124,8 +122,8 @@ TURTLE = {
             "field": "processing_time",
             "line": "I have a riddle for you... Should the pond wait for your answer?",
             "choices": [
-                {"value": "instant", "emoji": "⚡", "label": "Keep it quick, I like fast replies", "reaction": "Zip! The riddle scroll snaps shut. Quick thinker!"},
-                {"value": "take_time", "emoji": "⏳", "label": "Give me time to think and finish", "reaction": "An hourglass appears and the whole pond waits patiently. Ponder approves."},
+                {"value": "instant", "label": "Keep it quick, I like fast replies", "reaction": "Zip! The riddle scroll snaps shut. Quick thinker!"},
+                {"value": "take_time", "label": "Give me time to think and finish", "reaction": "An hourglass appears and the whole pond waits patiently. Ponder approves."},
             ],
         },
         {
@@ -134,10 +132,10 @@ TURTLE = {
             "field": "feedback_style",
             "line": "Freddie the Frog found a bug in my lily-pad app. If there's a bug in your work, how should we tell you?",
             "choices": [
-                {"value": "direct", "emoji": "🎯", "label": "Tell me straight", "reaction": "Freddie hops up with a clear, honest note. Nice and simple."},
-                {"value": "gentle", "emoji": "🌸", "label": "Kindly, with a smile", "reaction": "Freddie brings the note with a little flower. Aww."},
-                {"value": "written", "emoji": "✍️", "label": "Write it down for me", "reaction": "Freddie leaves a neat note on a lily pad."},
-                {"value": "private", "emoji": "🤫", "label": "Just between us", "reaction": "Freddie whispers it quietly, just for you."},
+                {"value": "direct", "label": "Tell me straight", "reaction": "Freddie hops up with a clear, honest note. Nice and simple."},
+                {"value": "gentle", "label": "Kindly, with a smile", "reaction": "Freddie brings the note with a little flower. Aww."},
+                {"value": "written", "label": "Write it down for me", "reaction": "Freddie leaves a neat note on a lily pad."},
+                {"value": "private", "label": "Just between us", "reaction": "Freddie whispers it quietly, just for you."},
             ],
         },
         {
@@ -146,10 +144,10 @@ TURTLE = {
             "field": "cool_down",
             "line": "A storm rolls in: wind, rain, everyone talking at once! When things get too much, what should happen?",
             "choices": [
-                {"value": "break_signal", "emoji": "🚩", "label": "I raise my flag for a break", "reaction": "Up goes the flag, and the whole pond pauses. The storm passes."},
-                {"value": "step_away", "emoji": "🐚", "label": "I tuck into my shell for a bit", "reaction": "Shell time! The storm passes while you rest."},
-                {"value": "switch_to_text", "emoji": "📜", "label": "Switch to writing", "reaction": "Everyone switches to message bottles. Quiet again."},
-                {"value": "none", "emoji": "😎", "label": "I'm good, I can ride it out", "reaction": "You surf the waves like a pro. The storm passes."},
+                {"value": "break_signal", "label": "I raise my flag for a break", "reaction": "Up goes the flag, and the whole pond pauses. The storm passes."},
+                {"value": "step_away", "label": "I tuck into my shell for a bit", "reaction": "Shell time! The storm passes while you rest."},
+                {"value": "switch_to_text", "label": "Switch to writing", "reaction": "Everyone switches to message bottles. Quiet again."},
+                {"value": "none", "label": "I'm good, I can ride it out", "reaction": "You surf the waves like a pro. The storm passes."},
             ],
         },
         {
@@ -158,9 +156,9 @@ TURTLE = {
             "field": "presentation_role",
             "line": "The Pond Fair is starting! How do you want to be part of the big demo?",
             "choices": [
-                {"value": "lead", "emoji": "👑", "label": "Lead the presentation", "reaction": "Spotlight on you! The pond cheers."},
-                {"value": "short_part", "emoji": "🎤", "label": "A short part", "reaction": "A quick, shining moment. Perfect."},
-                {"value": "behind_scenes", "emoji": "🛠️", "label": "Run the demo behind the scenes", "reaction": "You pull the lever and the demo runs flawlessly. Backstage hero!"},
+                {"value": "lead", "label": "Lead the presentation", "reaction": "Spotlight on you! The pond cheers."},
+                {"value": "short_part", "label": "A short part", "reaction": "A quick, shining moment. Perfect."},
+                {"value": "behind_scenes", "label": "Run the demo behind the scenes", "reaction": "You pull the lever and the demo runs flawlessly. Backstage hero!"},
             ],
         },
     ],
@@ -232,7 +230,7 @@ def summarize(quest, answers):
     for scene in quest["scenes"]:
         value = answers.get(scene["field"])
         picked = value if isinstance(value, list) else ([value] if value else [])
-        labels = [f"{c['emoji']} {c['label']}" for p in picked for c in scene["choices"] if c["value"] == p]
+        labels = [c["label"] for p in picked for c in scene["choices"] if c["value"] == p]
         if labels:
             lines.append({"title": scene["title"], "field": scene["field"], "text": " + ".join(labels)})
     return lines

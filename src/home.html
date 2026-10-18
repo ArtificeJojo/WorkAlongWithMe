@@ -26,10 +26,10 @@
   <div class="quest-cards">
     {% for q in quest_cards %}
       <article class="quest-card quest-{{ q.status }}">
-        <h3><span aria-hidden="true">{{ q.emoji }}</span> {{ q.name }}</h3>
+        <h3>{{ q.name }}</h3>
         <p>{{ q.card }}</p>
         {% if q.status == "done" %}
-          <p class="quest-status">{{ q.badge }} badge earned ✓</p>
+          <p class="quest-status">{{ q.badge }} badge earned</p>
           <a class="quest-button secondary" href="/quest/{{ q.id }}">Replay</a>
         {% elif q.status == "open" %}
           <a class="quest-button" href="/quest/{{ q.id }}">Start quest</a>
@@ -477,18 +477,19 @@
     justify-content: center;
   }
 
+  /* Quest cards: slate-blue cards with white text, and the page's light-blue buttons */
   .quest-card {
     flex: 1 1 300px;
     padding: 14px 16px;
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 3px solid #1d2620;
-    border-radius: 16px;
+    background-color: #747695;
+    color: white;
+    border-radius: 12px;
     text-align: left;
   }
 
   .quest-card h3 {
     margin: 0 0 6px;
-    color: #1d2620;
+    color: white;
   }
 
   .quest-card p {
@@ -505,29 +506,28 @@
 
   .quest-button {
     display: inline-block;
-    min-height: 44px;
-    padding: 10px 18px;
-    border: 3px solid #1d2620;
+    padding: 6px 14px;
     border-radius: 16px;
-    background: #2f7d4f;
-    color: #ffffff;
-    font-weight: bold;
+    background-color: rgb(107, 204, 236);
+    color: #222;
     text-decoration: none;
   }
 
   .quest-button.secondary {
-    background: #fffdf6;
-    color: #1d2620;
+    background-color: #ddd;
+  }
+
+  .quest-button:hover {
+    animation: shake 0.4s;
   }
 
   .quest-button.tavern {
     margin-top: 16px;
-    background: #f6d44a;
-    color: #1d2620;
+    font-weight: bold;
   }
 
   .quest-button:focus-visible {
-    outline: 4px solid #1f5fd6;
+    outline: 3px solid #ffe066;
     outline-offset: 3px;
   }
 

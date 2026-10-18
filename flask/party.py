@@ -17,6 +17,16 @@ from matching import get_all_profiles, label, visibility_of
 from quests import FIELDS
 
 MAX_PARTY = 4
+
+# Emoji and pictographic symbols. The quest pages don't use emoji, so they're stripped from anything
+# Gemini writes (and from pacts saved before that).
+EMOJI = re.compile(
+    "[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2190-\u21FF\u25A0-\u25FF\u2300-\u23FF\uFE0F\u200D]"
+)
+
+
+def strip_emoji(text):
+    return re.sub(r"\s{2,}", " ", EMOJI.sub("", text)).strip()
 DEFAULT_MODEL = "gemini-3.6-flash"
 
 
@@ -147,7 +157,7 @@ def gemini_pact(members):
         "everyone work the way they do best and feel included.\n"
         "Rules: phrase each agreement for the whole team (\"We...\"), under 25 words, concrete and kind. "
         "You may name people only for roles they chose (like who presents). Never guess or mention health, "
-        "disability or diagnoses. Use only the information below.\n\n"
+        "disability or diagnoses. Use only the information below. Don't use emoji.\n\n"
         "Team members and how they like to work:\n"
         + "\n".join(f"- {describe(m)}" for m in members)
         + '\n\nReturn JSON: {"rules": ["...", "..."]}'
@@ -156,7 +166,8 @@ def gemini_pact(members):
     rules = data.get("rules") if isinstance(data, dict) else None
     if not isinstance(rules, list):
         return None
-    rules = [r.strip() for r in rules if isinstance(r, str) and 0 < len(r.strip()) <= 220]
+    rules = [strip_emoji(r) for r in rules if isinstance(r, str)]
+    rules = [r for r in rules if 0 < len(r) <= 220]
     return rules[:6] if len(rules) >= 3 else None
 
 
@@ -182,7 +193,7 @@ def explain_matches(me_name, matches):
     try:
         prompt = (
             f"Write one friendly sentence (under 30 words) per teammate match for {me_name}, saying why they'd work "
-            "well together. Use ONLY the reasons given; never guess anything else.\n"
+            "well together. Use ONLY the reasons given; never guess anything else. Don't use emoji.\n"
             + "\n".join(f'{i}. {m["hero"]["display_name"]}: {"; ".join(m["reasons"])}' for i, m in enumerate(matches))
             + '\nReturn JSON: {"sentences": ["...", ...]} in the same order.'
         )
@@ -190,8 +201,8 @@ def explain_matches(me_name, matches):
         sentences = data.get("sentences") if isinstance(data, dict) else None
         if isinstance(sentences, list) and len(sentences) == len(matches):
             for m, s in zip(matches, sentences):
-                if isinstance(s, str) and 0 < len(s) <= 240:
-                    m["why"] = s.strip()
+                if isinstance(s, str) and 0 < len(strip_emoji(s)) <= 240:
+                    m["why"] = strip_emoji(s)
     except Exception:
         pass
     return matches
@@ -253,6 +264,7 @@ async def get_party(auth0_sub, group_id):
     if not me or me["user_id"] not in member_ids:
         return None
     pact = json.loads(group["team_guide"]) if group["team_guide"] else {"rules": [], "source": "fallback"}
+    pact["rules"] = [strip_emoji(rule) for rule in pact.get("rules", [])]
     members = []
     for i in member_ids:
         p = profiles.get(i)
