@@ -7,8 +7,8 @@
 
 <link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
 
-<script src="/js/pixel.js"></script>
-<script src="/js/sfx.js"></script>
+<script src="/js/pixel.js?v=4"></script>
+<script src="/js/sfx.js?v=4"></script>
 <style>
   /* Same colours as the rest of the site; only the scenery behind is the quest's own */
   :root {
@@ -459,6 +459,7 @@
   const propEl = document.getElementById("prop");
   const actorSize = () => Math.round(Math.min(window.innerWidth * 0.32, POND ? 280 : 250));
   const actor = Pixel.mount(actorEl, QUEST.character, { size: actorSize(), mood: "idle", still: calmToggle.checked, label: "" });
+  if (!actor.setMouth) actor.setMouth = () => {};  // an old cached pixel.js has no lip-sync: keep the story working
   const calm = () => calmToggle.checked || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ------------------------------------------------------------- dialogue box
