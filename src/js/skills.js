@@ -34,8 +34,9 @@
   };
 
   // Builds the picker inside container. Options: suggestions, max, maxLength, initial, name (adds a
-  // hidden input per skill so a plain form submits them). Returns { skills(), commit(), error(text), focus() }.
-  window.skillPicker = (container, { suggestions = [], max = 5, maxLength = 50, initial = [], name = null } = {}) => {
+  // hidden input per skill so a plain form submits them), exclude (skills already held elsewhere, e.g.
+  // on the profile: not suggested and can't be added again). Returns { skills(), commit(), error(text), focus() }.
+  window.skillPicker = (container, { suggestions = [], max = 5, maxLength = 50, initial = [], name = null, exclude = [] } = {}) => {
     const id = `skillPicker${++pickers}`;
     const placeholder = "e.g. Python, then press Enter";
     let skills = [];
@@ -60,7 +61,7 @@
     container.classList.add("skill-picker");
     container.append(list, entry, hint, errorText);
 
-    const isAdded = skill => skills.some(s => s.toLowerCase() === skill.toLowerCase());
+    const isAdded = skill => [...skills, ...exclude].some(s => s.toLowerCase() === skill.toLowerCase());
     const error = text => { errorText.textContent = text; errorText.hidden = !text; };
 
     const highlight = () => {
@@ -112,7 +113,11 @@
       const typed = text.replace(/\s+/g, " ").trim();
       if (!typed) return;
       const skill = suggestions.find(s => s.toLowerCase() === typed.toLowerCase()) || typed;
-      if (isAdded(skill)) { error(`${skill} is already on the list.`); return; }
+      if (isAdded(skill)) {
+        const inPicker = skills.some(s => s.toLowerCase() === skill.toLowerCase());
+        error(`${skill} is already ${inPicker ? "on the list" : "one of your skills"}.`);
+        return;
+      }
       if (skills.length >= max) { error(`You can list up to ${max} skills.`); return; }
       input.value = "";
       render([...skills, skill]);

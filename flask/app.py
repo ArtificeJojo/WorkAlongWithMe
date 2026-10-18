@@ -190,6 +190,7 @@ async def view_profile():
             user_id=str(about_you["id"]),
             skills=about_you["skills"],
             is_admin=about_you["is_admin"],
+            **skill_picker_options(),  # "Add skills" pop-up
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
             has_invites=await project.has_pending_invites(user["sub"]),
             # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
@@ -209,6 +210,33 @@ async def connections():
     with open("..\\src\\connections.html", encoding="utf-8") as html:
 
         return html.read()
+
+@app.route("/profile/skills", methods=["PUT"])
+async def profile_skills():
+    """Replace the logged-in user's skills from /profile: JSON {"skills": [...]}, 1 to 5 after cleaning."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    submitted = (request.get_json(silent=True) or {}).get("skills")
+    if not isinstance(submitted, list) or not all(isinstance(skill, str) for skill in submitted):
+        return "Send a list of skills", 400
+    technical_skills = skills.clean(submitted)
+    # Same rule as /aboutyou: at least one skill (and clean() keeps at most 5)
+    if not technical_skills:
+        return "You need at least one skill", 400
+
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        saved = await conn.fetchval(
+            "UPDATE users SET skills = $1 WHERE auth0_sub = $2 RETURNING skills", technical_skills, user["sub"],
+        )
+    finally:
+        await conn.close()
+
+    if saved is None:
+        return "Not found", 404
+    return jsonify({"skills": list(saved)})
 
 @app.route("/profile-picture", methods=["GET", "POST", "DELETE"])
 async def profile_picture():

@@ -3,20 +3,22 @@
 <title>Work Along With Me</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 
+<header class="top">
+    <div id="profileBar">
+    <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
+    {# Yellow = a collaborator request was accepted, red = rejected; until they open /profile #}
+    <button id="viewProfile" {% if profile_highlight %}class="{{ profile_highlight }}"{% endif %} onclick="location.href = '/profile'">View profile</button>
+    <h1>{{ username }}</h1>
+  </div>
 
-<div id="profileBar">
-  <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
-  {# Yellow = a collaborator request was accepted, red = rejected; until they open /profile #}
-  <button id="viewProfile" {% if profile_highlight %}class="{{ profile_highlight }}"{% endif %} onclick="location.href = '/profile'">View profile</button>
-  <h1>{{ username }}</h1>
-</div>
+  <div id="underPB">
+    <h2>{{ organization }}</h2>
+    <button onclick="location.href = '/create_post'">Create post</button>
+    <button onclick="location.href = '/project_create'">Create project</button>
+    <button onclick="location.href = '/logout'">Logout</button>
+  </div>
+</header>
 
-<div id="underPB">
-  <h2>{{ organization }}</h2>
-  <button onclick="location.href = '/create_post'">Create post</button>
-  <button onclick="location.href = '/project_create'">Create project</button>
-  <button onclick="location.href = '/logout'">Logout</button>
-</div>
 
 <div class="screenframe"></div>
 
@@ -222,10 +224,21 @@
   }
 
   #underPB {
-    margin-top: 0px;
+    margin-top: 100px;
     gap: 16px;
+    margin-left: 75px;
+    display: flex;
+    align-items: center;
+  }
+
+  .top{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    /*flex-wrap: wrap;*/
     justify-content: center;
-    margin-left: 750px;
+    
   }
 
   body {

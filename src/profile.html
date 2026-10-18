@@ -15,10 +15,12 @@
   <div class="picture-column">
     <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="Click to change" />
     {% if is_admin %}<span class="admin-tag">Admin</span>{% endif %}
-    {# Technical skills from /aboutyou #}
-    <ul class="skills" aria-label="Skills">
-      {% for skill in skills %}<li>{{ skill }}</li>{% endfor %}
+    {# Technical skills: hover one for its remove button (not while it's the only one); add more up to the limit #}
+    <ul id="mySkills" class="skills" aria-label="Skills">
+      {% for skill in skills %}<li><span>{{ skill }}</span></li>{% endfor %}
     </ul>
+    <button id="addSkills" {% if skills|length >= max_skills %}hidden{% endif %}>Add skills</button>
+    <p id="skillsNotice" class="skills-notice" role="alert" hidden></p>
   </div>
   {# Changing works from this button or by clicking the picture #}
   <div id="pictureButtons">
@@ -30,6 +32,16 @@
 <input id="pictureInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" hidden />
 
 <div class="screen-frame"></div>
+
+<dialog id="addSkillsDialog" aria-labelledby="addSkillsTitle">
+  <h2 id="addSkillsTitle">Add skills</h2>
+  <p id="addSkillsRoom"></p>
+  <div id="addSkillsPicker"></div>
+  <div class="dialog-buttons">
+    <button id="addSkillsSave">Save</button>
+    <button id="addSkillsCancel" class="secondary">Cancel</button>
+  </div>
+</dialog>
 
 {# Projects you were on that their creator deleted since you last came here (each shown once) #}
 {% for title in deleted_projects %}
@@ -59,6 +71,100 @@
 
 <script src="/js/likes.js"></script>
 <script src="/js/skills.js"></script>
+
+<script>
+  // Your skills: remove with the X (always keeping at least one), add more in a pop-up (5 in total)
+  (() => {
+    const MAX = {{ max_skills|tojson }};
+    const list = document.getElementById("mySkills");
+    const addButton = document.getElementById("addSkills");
+    const notice = document.getElementById("skillsNotice");
+    const dialog = document.getElementById("addSkillsDialog");
+    const pickerBox = document.getElementById("addSkillsPicker");
+    let skills = {{ skills|list|tojson }};
+    let picker = null;
+
+    const showNotice = text => { notice.textContent = text; notice.hidden = !text; };
+
+    // Saves the whole list; the server keeps 1 to 5. Returns true if it worked.
+    const save = async next => {
+      const response = await fetch("/profile/skills", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skills: next }),
+      }).catch(() => null);
+      if (!response || !response.ok) return false;
+      skills = (await response.json()).skills;
+      render();
+      return true;
+    };
+
+    const render = () => {
+      list.replaceChildren(...skills.map(skill => {
+        const item = document.createElement("li");
+        const label = document.createElement("span");
+        label.textContent = skill;
+        item.append(label);
+        // The last skill can't be removed
+        if (skills.length > 1) {
+          const remove = document.createElement("button");
+          remove.className = "remove-skill";
+          remove.textContent = "×";
+          remove.setAttribute("aria-label", `Remove ${skill}`);
+          remove.onclick = async () => {
+            remove.disabled = true;
+            showNotice("");
+            if (!await save(skills.filter(s => s !== skill))) {
+              remove.disabled = false;
+              showNotice("Couldn't remove that skill. Please try again.");
+            }
+          };
+          item.append(remove);
+        }
+        return item;
+      }));
+      addButton.hidden = skills.length >= MAX;
+    };
+
+    addButton.onclick = () => {
+      showNotice("");
+      const room = MAX - skills.length;
+      document.getElementById("addSkillsRoom").textContent =
+        `You can add ${room} more skill${room === 1 ? "" : "s"} (${MAX} in total).`;
+      pickerBox.replaceChildren();
+      picker = skillPicker(pickerBox, {
+        suggestions: {{ skill_suggestions|tojson }},
+        max: room,
+        maxLength: {{ max_skill_length|tojson }},
+        exclude: skills,
+      });
+      dialog.showModal();
+      picker.focus();
+    };
+
+    document.getElementById("addSkillsCancel").onclick = () => dialog.close();
+
+    document.getElementById("addSkillsSave").onclick = async event => {
+      const added = picker.commit();
+      if (!added.length) {
+        picker.error("Type a skill to add, or press Cancel.");
+        picker.focus();
+        return;
+      }
+      const button = event.currentTarget;
+      button.disabled = true;
+      const saved = await save([...skills, ...added]);
+      button.disabled = false;
+      if (!saved) {
+        picker.error("Couldn't save your skills. Please try again.");
+        return;
+      }
+      dialog.close();
+    };
+
+    render();
+  })();
+</script>
 
 <script>
   // Projects this person created or joined, 6 per page, newest first
@@ -264,12 +370,85 @@
   }
 
   .skills li {
+    display: flex;
+    align-items: center;
+    gap: 2px;
     padding: 2px 8px;
     border-radius: 16px;
     background-color: rgb(107, 204, 236);
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 12px;
     overflow-wrap: anywhere;
+  }
+
+  /* The X only shows while the skill is hovered (or the X has keyboard focus) */
+  .skills .remove-skill {
+    display: none;
+    border: none;
+    background: none;
+    padding: 0 2px;
+    margin-right: -4px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    animation: none;
+  }
+
+  .skills li:hover .remove-skill,
+  .skills li:focus-within .remove-skill {
+    display: inline;
+  }
+
+  /* No hover on touch screens, so show it there all the time */
+  @media (hover: none) {
+    .skills .remove-skill { display: inline; }
+  }
+
+  #addSkills {
+    display: block;
+    margin: 8px auto 0;
+    font-size: 12px;
+  }
+
+  #addSkills[hidden] {
+    display: none;
+  }
+
+  .skills-notice {
+    margin: 6px 0 0;
+    color: #ffb3b3;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  #addSkillsDialog {
+    width: min(460px, 90vw);
+    border: none;
+    border-radius: 16px;
+    padding: 24px 28px;
+    overflow: visible;  /* the suggestions dropdown can hang below */
+  }
+
+  #addSkillsDialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* The page's white headings would be invisible on the white pop-up */
+  #addSkillsDialog h2,
+  #addSkillsDialog p:not(.hint):not(.error) {
+    color: #222;
+    margin-top: 0;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  button.secondary {
+    background-color: #ddd;
   }
 
   /* Invites button when there are pending project invites */
