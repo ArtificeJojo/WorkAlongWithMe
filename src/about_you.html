@@ -12,38 +12,26 @@
   <label for="organization">Organization</label>
   <input id="organization" name="organization" required value="{{ about_you.organization or '' }}" />
 
-  <label for="track">Track</label>
-  <select id="track" name="track" required>
-    <option value="" disabled {% if not about_you.track %}selected{% endif %}>Choose a track</option>
-    <option value="gators" {% if about_you.track == "gators" %}selected{% endif %}>The Gators</option>
-    <option value="turtle" {% if about_you.track == "turtle" %}selected{% endif %}>The Turtle</option>
-  </select>
-
   <button type="submit">Continue</button>
 </form>
 
-<p id="trackDescription"></p>
-
-<script>
-  // Placeholder descriptions for each track; replace with the real ones later
-  const GATORS_DESCRIPTION = "Hello World!";
-  const TURTLE_DESCRIPTION = "Goodbye World";
-
-  const trackDescriptions = { gators: GATORS_DESCRIPTION, turtle: TURTLE_DESCRIPTION };
-  const track = document.getElementById("track");
-  const showDescription = () => {
-    document.getElementById("trackDescription").textContent = trackDescriptions[track.value] || "";
-  };
-
-  track.onchange = showDescription;
-  showDescription();
-</script>
+{# Everyone plays both tracks in order; these cards just preview the journey #}
+<div id="trackPreview">
+  <div class="track-card">
+    <strong>🐊 Kanban Swamp</strong>
+    <span>Help Chomp the Gator launch SwampBook before sundown, and discover how you like to tackle work.</span>
+  </div>
+  <div class="track-card">
+    <strong>🐢 Ping Pond</strong>
+    <span>Help Ponder the Turtle calm the noisy Ping Pond, and set the rules for how your team talks. Unlocks after Kanban Swamp.</span>
+  </div>
+</div>
 
 {% if quiz_prompt %}
-  {# Shown once the form is submitted; the only way forward is the quiz #}
+  {# Shown once the form is submitted; the only way forward is the first quest (/quiz sends them there) #}
   <dialog id="quizPrompt">
     <h2>One more thing...</h2>
-    <p>Before you can continue, you must take a <strong>"very serious"</strong> quiz.</p>
+    <p>Before you can continue, you must complete a <strong>"very serious"</strong> quest with Chomp the Gator.</p>
     <button onclick="location.href = '/quiz'">I accept</button>
   </dialog>
 
@@ -76,9 +64,27 @@
     border-radius: 16px;
   }
 
-  #trackDescription {
-    text-align: center;
-    margin-top: 24px;
+  #trackPreview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    margin: 32px auto;
+    max-width: 760px;
+  }
+
+  .track-card {
+    flex: 1 1 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 12px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button:hover { animation: none; }
   }
 
   #quizPrompt {

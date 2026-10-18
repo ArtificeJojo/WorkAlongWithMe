@@ -10,3 +10,7 @@ next-env.d.ts
 
 # user uploads (profile pictures) served by Flask
 uploads/
+
+# compiled Python, regenerated on every run
+__pycache__/
+*.pyc

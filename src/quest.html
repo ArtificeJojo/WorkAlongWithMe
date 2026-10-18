@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work Along With Me: Quest</title>
+<script src="/js/pixel.js"></script>
+<style>
+  :root {
+    --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
+    --focus: #1f5fd6; --chip: #eef5ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink);
+    font-size: 18px; line-height: 1.45;
+    background: linear-gradient(180deg, #ffcf8a 0%, #f6a46b 35%, #4f9e8a 70%, #2f6f63 100%);
+  }
+  body.pond { background: linear-gradient(180deg, #bfe6ff 0%, #8fd0e8 40%, #5fb39a 75%, #3b8a73 100%); }
+  body.calm { background: #eef3ec; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 1.3rem; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); }
+  .toggles { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggles label { background: var(--panel); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; display: flex; gap: 6px; align-items: center; min-height: 48px; cursor: pointer; }
+  .toggles input { width: 20px; height: 20px; }
+  .progress { display: flex; gap: 8px; margin: 14px 0; justify-content: center; }
+  .progress span { width: 22px; height: 22px; border: 3px solid var(--ink); border-radius: 4px; background: var(--panel); }
+  .progress span.done { background: #f6d44a; }
+  .progress span.now { background: #ffffff; outline: 3px solid var(--focus); }
+  .stage { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); }
+  .scene-title { margin: 0 0 8px; font-size: 1.5rem; }
+  .row { display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap; margin-top: 18px; }
+  .guide { flex: 0 0 auto; }
+  .bubble { flex: 1 1 260px; position: relative; background: #ffffff; border: 3px solid var(--ink); border-radius: 16px; padding: 14px 16px; font-size: 1.15rem; min-height: 90px; }
+  .prop { display: flex; justify-content: center; align-items: flex-end; min-height: 40px; margin: 10px 0; }
+  .prop.fly .px-char { transform: translateY(-140%) scale(.3); opacity: 0; transition: transform .8s steps(6), opacity .8s steps(6); }
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+  .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--chip); cursor: pointer; color: var(--ink); }
+  .choice .emoji { font-size: 1.6rem; }
+  .choice[aria-pressed="true"] { background: #f6d44a; box-shadow: inset 0 0 0 3px var(--ink); }
+  .choice:disabled { opacity: .55; cursor: default; }
+  .choice:hover:not(:disabled) { transform: translateY(-2px); }
+  .actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
+  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  .btn.secondary { background: var(--panel); color: var(--ink); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  .mirror-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
+  .mirror-list li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--chip); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; }
+  .mirror-list select { font: inherit; min-height: 44px; border: 2px solid var(--ink); border-radius: 10px; padding: 4px 8px; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 1.3rem; font-weight: bold; background: #f6d44a; border: 3px solid var(--ink); border-radius: 999px; padding: 8px 18px; }
+  .error { color: #9b1c1c; font-weight: bold; }
+  fieldset { border: 3px solid var(--ink); border-radius: 14px; margin: 0 0 12px; padding: 10px 14px; }
+  legend { font-weight: bold; padding: 0 6px; }
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body.calm .px-bob, body.calm .px-jump, body.calm .px-wobble, body.calm .px-pop { animation: none !important; }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } .choice:hover { transform: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="questName">Quest</h1>
+    <div class="toggles">
+      <label><input type="checkbox" id="calmToggle" /> Calm mode</label>
+      <label><input type="checkbox" id="readToggle" /> Read aloud</label>
+      <a class="btn secondary" href="/home" style="display:flex;align-items:center;text-decoration:none">Home</a>
+    </div>
+  </header>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <p class="sr-only" id="progressText" aria-live="polite"></p>
+  <section class="stage" id="stage" aria-labelledby="sceneTitle"></section>
+</main>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+
+<script>
+  const DATA = {{ quests_json|safe }};
+  const PROGRESS = {{ progress_json|safe }};
+  const QUEST = DATA.quests["{{ quest_id }}"];
+
+  // ------------------------------------------------------------- settings (kept per browser)
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  const calmToggle = document.getElementById("calmToggle");
+  const readToggle = document.getElementById("readToggle");
+  calmToggle.checked = store.get("wawm-calm") === "1";
+  readToggle.checked = store.get("wawm-read") === "1";
+
+  document.body.classList.toggle("pond", QUEST.id === "turtle");
+  document.getElementById("questName").textContent = `${QUEST.badge_emoji} ${QUEST.name}`;
+
+  // ------------------------------------------------------------- state
+  const answers = {};
+  const fields = QUEST.scenes.map(s => s.field);
+  fields.forEach(f => { if (PROGRESS.answers && PROGRESS.answers[f] != null) answers[f] = PROGRESS.answers[f]; });
+  let step = -1;        // -1 intro, 0..n-1 scenes, n mirror, n+1 finale
+  let guide = null;     // animated character
+  let quick = false;
+
+  const stageEl = document.getElementById("stage");
+  // Wrapper so optional pieces (null) are skipped instead of printed as text.
+  const stage = { replaceChildren: (...nodes) => stageEl.replaceChildren(...nodes.flat().filter(n => n != null)), querySelector: s => stageEl.querySelector(s) };
+  const el = (tag, props = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v);
+    }
+    kids.flat().forEach(c => c != null && n.append(c));
+    return n;
+  };
+
+  function speak(text) {
+    if (!readToggle.checked || !("speechSynthesis" in window)) return;
+    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = QUEST.id === "turtle" ? 0.85 : 1; speechSynthesis.speak(u); } catch {}
+  }
+
+  function renderProgress() {
+    const p = document.getElementById("progress");
+    p.replaceChildren(...QUEST.scenes.map((_, i) => el("span", { class: i < step ? "done" : i === step ? "now" : "" })));
+    const t = step >= 0 && step < QUEST.scenes.length ? `Scene ${step + 1} of ${QUEST.scenes.length}` : "";
+    document.getElementById("progressText").textContent = t;
+  }
+
+  function guideRow(line) {
+    const holder = el("div", { class: "guide" });
+    const bubble = el("p", { class: "bubble", "aria-live": "polite" });
+    bubble.textContent = line;
+    guide = Pixel.mount(holder, QUEST.character, { size: window.innerWidth < 520 ? 150 : 210, mood: "talk", still: calmToggle.checked });
+    speak(line);
+    return { row: el("div", { class: "row" }, holder, bubble), bubble };
+  }
+
+  // ------------------------------------------------------------- screens
+  function intro() {
+    step = -1; renderProgress();
+    const { row } = guideRow(QUEST.intro.line);
+    stage.replaceChildren(
+      el("h2", { class: "scene-title", id: "sceneTitle", text: QUEST.name }),
+      row,
+      el("p", { class: "muted", text: "No timers, no wrong answers. Every choice is a win, and you can skip anything." }),
+      el("div", { class: "actions" },
+        el("button", { class: "btn secondary", onclick: quickMode, text: "Quick version (one page)" }),
+        el("button", { class: "btn", onclick: () => scene(0), text: QUEST.intro.button }),
+      ),
+    );
+    stage.querySelector(".btn:last-child").focus();
+  }
+
+  function scene(i) {
+    step = i; renderProgress();
+    const s = QUEST.scenes[i];
+    const { row, bubble } = guideRow(s.line);
+    const prop = el("div", { class: "prop" });
+    if (s.id === "mega_bug") Pixel.mount(prop, "megabug", { size: 170, still: calmToggle.checked });
+    const multi = s.multi || 0;
+    let picked = multi ? [...(answers[s.field] || [])] : answers[s.field] ?? null;
+    const next = el("button", { class: "btn", text: "Next", onclick: () => advance() });
+    next.disabled = multi ? false : picked == null;
+
+    const buttons = s.choices.map(c => {
+      const b = el("button", { class: "choice", "aria-pressed": "false" },
+        el("span", { class: "emoji", "aria-hidden": "true", text: c.emoji }),
+        el("span", { text: c.label }));
+      b.addEventListener("click", () => {
+        if (multi) {
+          picked = picked.includes(c.value) ? picked.filter(v => v !== c.value)
+            : (multi === 1 ? [c.value] : [...picked, c.value].slice(-multi));
+        } else picked = c.value;
+        answers[s.field] = picked;
+        sync();
+        bubble.textContent = c.reaction;
+        speak(c.reaction);
+        guide.setMood("celebrate");
+        if (s.id === "mega_bug") {
+          if (c.value === "bite_sized") Pixel.squad(prop, { still: calmToggle.checked });
+          else { prop.classList.add("fly"); }
+        }
+        next.disabled = false;
+      });
+      b.dataset.value = c.value;
+      return b;
+    });
+    function sync() {
+      buttons.forEach(b => {
+        const on = multi ? picked.includes(b.dataset.value) : picked === b.dataset.value;
+        b.setAttribute("aria-pressed", String(on));
+      });
+    }
+    sync();
+
+    const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { answers[s.field] = multi ? [] : null; advance(); } });
+    const back = el("button", { class: "btn secondary", text: "Back", onclick: () => (i === 0 ? intro() : scene(i - 1)) });
+    stage.replaceChildren(
+      el("h2", { class: "scene-title", id: "sceneTitle", text: s.title }),
+      row, prop,
+      multi > 1 ? el("p", { class: "muted", text: `Pick up to ${multi}.` }) : null,
+      el("div", { class: "choices", role: "group", "aria-label": s.title }, buttons),
+      el("div", { class: "actions" }, el("div", {}, back, " ", skip), next),
+    );
+    buttons[0].focus();
+    function advance() { i + 1 < QUEST.scenes.length ? scene(i + 1) : mirror(); }
+  }
+
+  function summary() {
+    return QUEST.scenes.flatMap(s => {
+      const v = answers[s.field];
+      const picked = Array.isArray(v) ? v : v ? [v] : [];
+      const labels = picked.map(p => s.choices.find(c => c.value === p)).filter(Boolean).map(c => `${c.emoji} ${c.label}`);
+      return labels.length ? [{ field: s.field, title: s.title, text: labels.join(" + ") }] : [];
+    });
+  }
+
+  function mirror() {
+    step = QUEST.scenes.length; renderProgress();
+    const lines = summary();
+    const { row } = guideRow(lines.length ? "Here's how you do your best work. Does this sound like you?" : "You skipped everything, and that's okay!");
+    guide.setMood("idle");
+    const saved = PROGRESS.visibility || {};
+    const list = el("ul", { class: "mirror-list" }, lines.map(l => {
+      const sel = el("select", { "aria-label": `Who can see: ${l.title}`, "data-field": l.field },
+        el("option", { value: "public", text: "Everyone" }),
+        el("option", { value: "after_match", text: "After we match" }),
+        el("option", { value: "private", text: "Only me" }));
+      sel.value = saved[l.field] || DATA.defaultVisibility[l.field] || "public";
+      return el("li", {}, el("span", {}, el("strong", { text: `${l.title.replace(/[!?.]$/, "")}: ` }), l.text), sel);
+    }));
+    const error = el("p", { class: "error", role: "alert" });
+    const yes = el("button", { class: "btn", text: "Yes, that's me!" });
+    yes.addEventListener("click", async () => {
+      yes.disabled = true; error.textContent = "";
+      const visibility = {};
+      list.querySelectorAll("select").forEach(s => { visibility[s.dataset.field] = s.value; });
+      try {
+        const res = await fetch(`/quest/${QUEST.id}/finish`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers, visibility }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || "Couldn't save your quest. Try again?");
+        finale(body.progress);
+      } catch (e) { error.textContent = e.message; yes.disabled = false; }
+    });
+    stage.replaceChildren(
+      el("h2", { class: "scene-title", id: "sceneTitle", text: "The Mirror" }),
+      row, list,
+      el("p", { class: "muted", text: "Choose who can see each answer. \"After we match\" answers help matching but stay hidden until your group forms. \"Only me\" answers are never used or shown." }),
+      error,
+      el("div", { class: "actions" }, el("button", { class: "btn secondary", text: "Not quite, let me change it", onclick: () => scene(0) }), yes),
+    );
+    yes.focus();
+  }
+
+  function finale(progress) {
+    step = QUEST.scenes.length + 1; renderProgress();
+    const { row } = guideRow(QUEST.finale);
+    guide.setMood("celebrate");
+    confetti();
+    const nextId = DATA.order.find(q => !progress.completed.includes(q));
+    const nextQuest = nextId && DATA.quests[nextId];
+    stage.replaceChildren(
+      el("h2", { class: "scene-title", id: "sceneTitle", text: "Quest complete!" }),
+      row,
+      el("p", {}, el("span", { class: "badge" }, el("span", { "aria-hidden": "true", text: QUEST.badge_emoji }), `${QUEST.badge} badge earned`)),
+      nextQuest
+        ? el("p", { text: `Unlocked: ${nextQuest.badge_emoji} ${nextQuest.name}. ${nextQuest.card}` })
+        : el("p", { text: "Both quests done! The Tavern now knows how you work best, so your matches will be great." }),
+      el("div", { class: "actions" },
+        el("a", { class: "btn secondary", href: "/home", style: "text-decoration:none;display:flex;align-items:center", text: "Back home" }),
+        nextQuest
+          ? el("a", { class: "btn", href: `/quest/${nextId}`, style: "text-decoration:none;display:flex;align-items:center", text: `Start ${nextQuest.name.split(":")[0]}` })
+          : el("a", { class: "btn", href: "/tavern", style: "text-decoration:none;display:flex;align-items:center", text: "Enter the Tavern" }),
+      ),
+    );
+    stage.querySelector(".actions .btn:last-child").focus();
+  }
+
+  // Quick version: every question on one page, same answers saved.
+  function quickMode() {
+    quick = true; step = -1; renderProgress();
+    const form = el("form", {});
+    QUEST.scenes.forEach(s => {
+      const multi = s.multi || 0;
+      const type = multi === 0 || multi === 1 ? "radio" : "checkbox";
+      const current = answers[s.field];
+      form.append(el("fieldset", {},
+        el("legend", { text: `${s.title}${multi > 1 ? ` (up to ${multi})` : ""}` }),
+        s.choices.map(c => {
+          const input = el("input", { type, name: s.field, value: c.value });
+          input.checked = Array.isArray(current) ? current.includes(c.value) : current === c.value;
+          return el("label", { style: "display:flex;gap:8px;align-items:center;min-height:40px" }, input, `${c.emoji} ${c.label}`);
+        })));
+    });
+    const go = el("button", { class: "btn", type: "submit", text: "See my mirror" });
+    form.append(el("div", { class: "actions" }, el("button", { class: "btn secondary", type: "button", text: "Back to the story", onclick: intro }), go));
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      QUEST.scenes.forEach(s => {
+        const vals = [...form.querySelectorAll(`input[name="${s.field}"]:checked`)].map(i => i.value);
+        answers[s.field] = s.multi ? vals.slice(0, s.multi) : (vals[0] ?? null);
+      });
+      mirror();
+    });
+    stage.replaceChildren(el("h2", { class: "scene-title", id: "sceneTitle", text: `${QUEST.name}: quick version` }), form);
+  }
+
+  function confetti() {
+    if (calmToggle.checked) return;
+    const box = document.getElementById("confetti");
+    const colors = ["#f6d44a", "#5cae4f", "#e8873a", "#3fe0e6", "#c94fb0", "#6cc3a8"];
+    box.replaceChildren(...Array.from({ length: 60 }, (_, i) => {
+      const p = document.createElement("i");
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.background = colors[i % colors.length];
+      p.style.animationDelay = `${Math.random() * 0.6}s`;
+      return p;
+    }));
+    setTimeout(() => box.replaceChildren(), 3000);
+  }
+
+  calmToggle.addEventListener("change", () => {
+    store.set("wawm-calm", calmToggle.checked ? "1" : "0");
+    document.body.classList.toggle("calm", calmToggle.checked);
+    if (guide) guide.setStill(calmToggle.checked);
+  });
+  readToggle.addEventListener("change", () => {
+    store.set("wawm-read", readToggle.checked ? "1" : "0");
+    if (!readToggle.checked && "speechSynthesis" in window) speechSynthesis.cancel();
+  });
+  document.body.classList.toggle("calm", calmToggle.checked);
+  intro();
+</script>
+</body>
+</html>
