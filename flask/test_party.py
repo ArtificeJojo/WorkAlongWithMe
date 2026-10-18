@@ -165,7 +165,10 @@ def test_cannot_add_yourself(client, no_gemini):
 def test_only_members_can_see_a_party(client, monkeypatch, no_gemini):
     play_both(client)
     group_id = form(client, [MAYA]).get_json()["id"]
-    run(_sql("INSERT INTO users (display_name, auth0_sub, about_you_completed) VALUES ('__test__', $1, TRUE)", OTHER_SUB))
+    run(_sql(
+        "INSERT INTO users (display_name, auth0_sub, about_you_completed, skills) VALUES ('__test__', $1, TRUE, ARRAY['Python'])",
+        OTHER_SUB,
+    ))
     monkeypatch.setattr(app_module, "auth0", lambda: FakeAuth0(OTHER_SUB))
     assert client.get(f"/party/{group_id}").status_code == 404
 

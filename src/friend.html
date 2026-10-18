@@ -1,11 +1,17 @@
 <!doctype html>
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 
-<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
 
 <div id="profileBar">
-  <img id="profilePicture" src="{{ user.picture }}" alt="Profile picture" />
+  <div class="picture-column">
+    <img id="profilePicture" src="{{ user.picture }}" alt="Profile picture" />
+    {# Technical skills from /aboutyou #}
+    <ul class="skills" aria-label="Skills">
+      {% for skill in user.skills %}<li>{{ skill }}</li>{% endfor %}
+    </ul>
+  </div>
   <h1>{{ user.username }}</h1>
 </div>
 
@@ -195,6 +201,30 @@
     height: 150px;
     object-fit: cover;
     border-radius: 50%;
+  }
+
+  /* Picture with the skills underneath, kept to the picture's width */
+  .picture-column {
+    width: 150px;
+  }
+
+  .skills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+  }
+
+  .skills li {
+    padding: 2px 8px;
+    border-radius: 16px;
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    overflow-wrap: anywhere;
   }
 
   #profileButtons {

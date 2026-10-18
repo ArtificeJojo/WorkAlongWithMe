@@ -1,8 +1,8 @@
 <!doctype html>
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
 
-<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
 
 <h1>Tell us more about yourself!</h1>
 
@@ -14,20 +14,142 @@
   <label for="organization">Organization</label>
   <input id="organization" name="organization" required value="{{ about_you.organization or '' }}" />
 
+  {# Any skill can be typed; skills.txt only feeds the dropdown. Each added skill is a hidden "skills" input #}
+  <fieldset id="skillsField">
+    <legend>Technical skills: list 1 to {{ max_skills }}</legend>
+    <ul id="skillList"></ul>
+    <div class="skill-entry">
+      <input id="skillInput" type="text" autocomplete="off" maxlength="{{ max_skill_length }}"
+             placeholder="e.g. Python, then press Enter"
+             role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="skillSuggestions"
+             aria-describedby="skillHint skillError" />
+      <ul id="skillSuggestions" role="listbox" hidden></ul>
+      <button type="button" id="addSkill">Add</button>
+    </div>
+    <p id="skillHint" class="hint">Press Tab to complete to the first suggestion, Enter to add.</p>
+    <p id="skillError" class="error" role="alert" hidden></p>
+  </fieldset>
+
   <button type="submit">Continue</button>
 </form>
 
-{# Everyone plays both tracks in order; these cards just preview the journey #}
-<div id="trackPreview">
-  <div class="track-card">
-    <strong>🐊 Kanban Swamp</strong>
-    <span>Help Chomp the Gator launch SwampBook before sundown, and discover how you like to tackle work.</span>
-  </div>
-  <div class="track-card">
-    <strong>🐢 Ping Pond</strong>
-    <span>Help Ponder the Turtle calm the noisy Ping Pond, and set the rules for how your team talks. Unlocks after Kanban Swamp.</span>
-  </div>
-</div>
+<script>
+  const SUGGESTIONS = {{ skill_suggestions|tojson }};
+  const MAX_SKILLS = {{ max_skills|tojson }};
+  const MAX_SHOWN = 8;
+  const form = document.querySelector("form");
+  const input = document.getElementById("skillInput");
+  const list = document.getElementById("skillList");
+  const dropdown = document.getElementById("skillSuggestions");
+  const error = document.getElementById("skillError");
+  let matches = [];
+  let active = 0;
+
+  const added = () => [...list.querySelectorAll("input")].map(hidden => hidden.value);
+  const isAdded = skill => added().some(s => s.toLowerCase() === skill.toLowerCase());
+  const showError = text => { error.textContent = text; error.hidden = !text; };
+
+  // Suggest listed skills that start with what's been typed so far, ignoring case
+  const refresh = () => {
+    const typed = input.value.trim().toLowerCase();
+    matches = typed ? SUGGESTIONS.filter(s => s.toLowerCase().startsWith(typed) && !isAdded(s)).slice(0, MAX_SHOWN) : [];
+    active = 0;
+    dropdown.replaceChildren(...matches.map((skill, i) => {
+      const option = document.createElement("li");
+      option.id = `skillOption${i}`;
+      option.setAttribute("role", "option");
+      option.textContent = skill;
+      // mousedown, so the input doesn't lose focus first
+      option.onmousedown = event => { event.preventDefault(); addSkill(skill); };
+      return option;
+    }));
+    dropdown.hidden = !matches.length;
+    input.setAttribute("aria-expanded", String(matches.length > 0));
+    highlight();
+  };
+
+  const highlight = () => {
+    dropdown.querySelectorAll("li").forEach((option, i) => option.setAttribute("aria-selected", String(i === active)));
+    if (matches.length) input.setAttribute("aria-activedescendant", `skillOption${active}`);
+    else input.removeAttribute("aria-activedescendant");
+  };
+
+  const render = skills => {
+    list.replaceChildren(...skills.map(skill => {
+      const item = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = skill;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${skill}`);
+      remove.onclick = () => { render(added().filter(s => s !== skill)); input.focus(); };
+      const hidden = document.createElement("input");
+      hidden.type = "hidden";
+      hidden.name = "skills";
+      hidden.value = skill;
+      item.append(label, remove, hidden);
+      return item;
+    }));
+    const full = skills.length >= MAX_SKILLS;
+    input.disabled = full;
+    document.getElementById("addSkill").disabled = full;
+    input.placeholder = full ? `That's ${MAX_SKILLS} skills` : "e.g. Python, then press Enter";
+    showError("");
+    refresh();
+  };
+
+  // Typed skills that match a listed one take its spelling, e.g. "python" -> "Python"
+  const addSkill = text => {
+    const typed = text.replace(/\s+/g, " ").trim();
+    if (!typed) return;
+    const skill = SUGGESTIONS.find(s => s.toLowerCase() === typed.toLowerCase()) || typed;
+    if (isAdded(skill)) { showError(`${skill} is already on your list.`); return; }
+    if (added().length >= MAX_SKILLS) { showError(`You can list up to ${MAX_SKILLS} skills.`); return; }
+    input.value = "";
+    render([...added(), skill]);
+  };
+
+  input.addEventListener("input", () => { showError(""); refresh(); });
+  input.addEventListener("blur", () => { dropdown.hidden = true; input.setAttribute("aria-expanded", "false"); });
+  input.addEventListener("focus", refresh);
+  input.addEventListener("keydown", event => {
+    if (event.key === "Tab" && !event.shiftKey && matches.length && input.value !== matches[active]) {
+      // Complete to the first suggestion (or the one picked with the arrow keys); a second Tab moves on as usual
+      event.preventDefault();
+      input.value = matches[active];
+      refresh();
+    } else if (event.key === "ArrowDown" && matches.length) {
+      event.preventDefault();
+      active = (active + 1) % matches.length;
+      highlight();
+    } else if (event.key === "ArrowUp" && matches.length) {
+      event.preventDefault();
+      active = (active - 1 + matches.length) % matches.length;
+      highlight();
+    } else if (event.key === "Enter" && input.value.trim()) {
+      // Add the skill instead of submitting the form
+      event.preventDefault();
+      addSkill(input.value);
+    } else if (event.key === "Escape") {
+      dropdown.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.getElementById("addSkill").onclick = () => { addSkill(input.value); input.focus(); };
+
+  // Anything still in the box counts too; at least one skill is needed to continue
+  form.addEventListener("submit", event => {
+    if (input.value.trim()) addSkill(input.value);
+    if (!added().length) {
+      event.preventDefault();
+      showError("Add at least one technical skill to continue.");
+      input.focus();
+    }
+  });
+
+  render({{ (about_you.skills or [])|list|tojson }});
+</script>
 
 <style>
   body{
@@ -46,32 +168,105 @@
     gap: 16px;
     margin-top: 100px;
     justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Skills get their own row under username and organization */
+  #skillsField {
+    flex: 1 1 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+
+  #skillsField legend {
+    padding: 0;
+    font-weight: bold;
+    float: left;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  #skillList {
+    clear: both;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+  }
+
+  #skillList li {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px 2px 10px;
+    border-radius: 16px;
+    background-color: rgb(107, 204, 236);
+  }
+
+  #skillList button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+    padding: 2px 6px;
+  }
+
+  .skill-entry {
+    position: relative;
+    display: flex;
+    gap: 8px;
+  }
+
+  #skillInput {
+    flex: 1;
+  }
+
+  #skillSuggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 4px 0;
+    background-color: white;
+    border: 1px solid rgb(35, 105, 246);
+    border-radius: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  #skillSuggestions li {
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  #skillSuggestions li[aria-selected="true"],
+  #skillSuggestions li:hover {
+    background-color: rgb(107, 204, 236);
+  }
+
+  .hint {
+    margin: 6px 0 0;
+    font-size: 0.85em;
+    color: #555;
+  }
+
+  .error {
+    margin: 6px 0 0;
+    color: #b00020;
+    font-weight: bold;
   }
   button{
     border-radius: 16px;
-  }
-
-  label{
-    color: white;
-  }
-
-  #trackPreview {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: center;
-    margin: 32px auto;
-    max-width: 760px;
-  }
-
-  .track-card {
-    flex: 1 1 280px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 14px 16px;
-    background-color: rgba(255, 255, 255, 0.85);
-    border-radius: 12px;
   }
 
   @media (prefers-reduced-motion: reduce) {
