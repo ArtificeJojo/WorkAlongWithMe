@@ -8,14 +8,22 @@
 
 {# Fields are pre-filled with anything the user has answered before #}
 <form method="post" action="/aboutyou">
-  <label for="username">Username</label>
-  <input id="username" name="username" required value="{{ about_you.display_name or '' }}" />
+  <fieldset id="aboutField" class="card">
+    <legend>About you</legend>
 
-  <label for="organization">Organization</label>
-  <input id="organization" name="organization" required value="{{ about_you.organization or '' }}" />
+    <div class="field-row">
+      <label for="username">Username</label>
+      <input id="username" name="username" required value="{{ about_you.display_name or '' }}" />
+    </div>
+
+    <div class="field-row">
+      <label for="organization">Organization</label>
+      <input id="organization" name="organization" required value="{{ about_you.organization or '' }}" />
+    </div>
+  </fieldset>
 
   {# Any skill can be typed; skills.txt only feeds the dropdown. Each added skill is a hidden "skills" input #}
-  <fieldset id="skillsField">
+  <fieldset id="skillsField" class="card">
     <legend>Technical skills: list 1 to {{ max_skills }}</legend>
     <ul id="skillList"></ul>
     <div class="skill-entry">
@@ -171,8 +179,12 @@
     flex-wrap: wrap;
   }
 
-  /* Skills get their own row under username and organization */
-  #skillsField {
+  label{
+    color: white;
+  }
+
+  /* Shared card style for the About you and Technical skills boxes */
+  .card {
     flex: 1 1 100%;
     max-width: 520px;
     margin: 0 auto;
@@ -182,12 +194,43 @@
     background-color: rgba(255, 255, 255, 0.85);
   }
 
-  #skillsField legend {
+  .card legend {
     padding: 0;
     font-weight: bold;
     float: left;
     width: 100%;
     margin-bottom: 8px;
+  }
+
+  /* Username / organization rows */
+  .field-row {
+    clear: both;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .field-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-row label {
+    width: 110px;          /* keeps both inputs lined up */
+    flex-shrink: 0;
+  }
+
+  .field-row input {
+    flex: 1;
+  }
+
+  /* Make all text inputs look the same, including the skill box */
+  .card input[type="text"],
+  .field-row input {
+    padding: 4px 8px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    font-family: inherit;
   }
 
   #skillList {
