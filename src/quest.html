@@ -4,44 +4,46 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Work Along With Me: Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="/js/pixel.js"></script>
 <script src="/js/sfx.js"></script>
 <style>
   :root {
-    --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
+    --ink: #1b1b2f; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
     --focus: #1f5fd6; --chip: #eef5ea; --tag: #2f7d4f; --sun-y: 0px;
   }
   body.pond { --tag: #2c7f86; }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
-  body { font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45; background: #1f1a3d; }
+  body { font-family: "Fredoka", "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45; background: #1f1a3d; }
   body.pond { background: #7ec8f0; }
 
   /* ---------- the scenic world (decorative, behind everything) ---------- */
   #world { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
   #world svg { width: 100%; height: 100%; display: block; }
-  #sun { transform: translateY(var(--sun-y)); transition: transform 1.6s steps(12); }
-  .shimmer { animation: shimmer 2.4s steps(4) infinite; }
+  #sun { transform: translateY(var(--sun-y)); transition: transform 1.8s cubic-bezier(.45,0,.3,1); }
+  .shimmer { animation: shimmer 2.4s ease-in-out infinite; }
   .shimmer.d2 { animation-delay: .6s; } .shimmer.d3 { animation-delay: 1.2s; }
   @keyframes shimmer { 0%,100% { opacity: .9 } 50% { opacity: .25 } }
-  .firefly { animation: firefly 4s steps(8) infinite; }
+  .firefly { animation: firefly 4s ease-in-out infinite; }
   @keyframes firefly { 0%,100% { transform: translate(0,0); opacity: .2 } 25% { opacity: 1 } 50% { transform: translate(6px,-5px); opacity: .5 } 75% { opacity: 1; transform: translate(-4px,-8px) } }
   .cloud { animation: drift 60s linear infinite; }
   .cloud.slow { animation-duration: 90s; }
   @keyframes drift { from { transform: translateX(-60px) } to { transform: translateX(380px) } }
-  .fly { animation: flit 5s steps(10) infinite; }
+  .fly { animation: flit 5s ease-in-out infinite; }
   /* Floating code blocks (swamp) and message bottles (pond): they sink away as the journey goes on */
-  .float { animation: bob 2.4s steps(4) infinite; transition: opacity 1.2s steps(6); }
+  .float { animation: bob 2.4s ease-in-out infinite; transition: opacity 1.2s ease, transform 1.2s ease; }
   .float:nth-child(2n) { animation-duration: 3s; animation-delay: .4s; }
   .float:nth-child(3n) { animation-duration: 2.7s; animation-delay: .9s; }
-  .float.sunk { opacity: 0; }
-  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(1.5px) } }
+  .float.sunk { opacity: 0; animation: none; transform: translateY(8px); }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(0) } 30% { transform: translateY(1.4px) rotate(1.5deg) } 70% { transform: translateY(-.6px) rotate(-1.5deg) } }
   @keyframes flit { 0%,100% { transform: translate(0,0) } 30% { transform: translate(18px,-8px) } 60% { transform: translate(-10px,-14px) } }
 
   /* ---------- layout ---------- */
   #ui { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; max-width: 980px; margin: 0 auto; padding: 12px 16px 16px; }
   header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-  header h1 { margin: 0; font-size: 1.15rem; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
+  header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
   .toggles { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill { font: inherit; font-size: 1rem; background: var(--panel); color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; display: inline-flex; gap: 6px; align-items: center; min-height: 48px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 0 var(--ink); }
   .pill input { width: 20px; height: 20px; }
@@ -54,37 +56,50 @@
   .map .stop { width: 44px; height: 44px; border-radius: 12px; border: 3px solid var(--ink); background: var(--panel); display: grid; place-items: center; font-size: 1.3rem; box-shadow: 0 3px 0 var(--ink); }
   .map .stop.done { background: #f6d44a; }
   .map .stop.now { outline: 4px solid #fff; outline-offset: 2px; }
-  .map .traveler { position: absolute; top: -4px; width: 44px; transform: translateX(-50%); transition: left .9s steps(9); }
+  .map .traveler { position: absolute; top: -4px; width: 44px; transform: translateX(-50%); transition: left 1s cubic-bezier(.4,1.4,.5,1); }
 
   /* stage: the character lives here, standing in the world */
   .stage { position: relative; flex: 1 1 auto; min-height: clamp(190px, 34vh, 340px); }
   #actor { position: absolute; left: 3%; bottom: -6px; transform-origin: 50% 100%; }
   #actor.submerged { transform: translateY(115%); }
-  #actor.leap { animation: leap 1.1s steps(11) forwards; }
-  @keyframes leap { 0% { transform: translateY(115%) } 45% { transform: translateY(-28%) rotate(-4deg) } 70% { transform: translateY(6%) rotate(2deg) } 100% { transform: translateY(0) } }
+  #actor.leap { animation: leap 1.2s cubic-bezier(.25,.7,.35,1) forwards; }
+  /* squash and stretch: stretched tall on the way up, squashed flat on landing */
+  @keyframes leap { 0% { transform: translateY(115%) scale(.85,1.2) } 38% { transform: translateY(-30%) scale(.9,1.14) rotate(-6deg) } 55% { transform: translateY(-36%) scale(1,1) rotate(2deg) } 76% { transform: translateY(0) scale(1.18,.82) rotate(0) } 88% { transform: translateY(-5%) scale(.95,1.06) } 100% { transform: translateY(0) scale(1,1) } }
   #actor.offstage { transform: translateX(160%); }
-  #actor.swimin { animation: swimin 2.6s steps(16) forwards; }
-  @keyframes swimin { 0% { transform: translateX(160%) translateY(0) } 25% { transform: translateX(110%) translateY(-3%) } 50% { transform: translateX(60%) translateY(0) } 75% { transform: translateX(20%) translateY(-3%) } 100% { transform: translateX(0) translateY(0) } }
+  #actor.swimin { animation: swimin 2.6s cubic-bezier(.3,.6,.4,1) forwards; }
+  @keyframes swimin { 0% { transform: translateX(160%) translateY(0) rotate(0) } 20% { transform: translateX(118%) translateY(-4%) rotate(-3deg) } 40% { transform: translateX(76%) translateY(0) rotate(2deg) } 60% { transform: translateX(38%) translateY(-4%) rotate(-3deg) } 80% { transform: translateX(10%) translateY(0) rotate(1deg) } 92% { transform: translateX(-2%) scale(1.04,.96) } 100% { transform: translateX(0) translateY(0) scale(1,1) } }
   #prop { position: absolute; right: 5%; bottom: 0; display: flex; align-items: flex-end; }
-  #prop.fly .px-char, #prop.liftoff > * { transform: translateY(-160%) scale(.4); opacity: 0; transition: transform 1s steps(8), opacity 1s steps(8); }
-  .bubble-dot { position: absolute; width: 10px; height: 10px; border: 2px solid rgba(255,255,255,.9); border-radius: 50%; animation: rise 1.4s steps(7) forwards; }
-  @keyframes rise { from { transform: translateY(0); opacity: 1 } to { transform: translateY(-90px); opacity: 0 } }
-  .drop { position: absolute; width: 10px; height: 10px; background: #bfe6ff; box-shadow: 0 0 0 2px #2c3c53; animation: splash .8s steps(8) forwards; }
-  @keyframes splash { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
+  #prop.fly .px-char, #prop.liftoff > * { transform: translateY(-160%) scale(.4); opacity: 0; transition: transform 1s cubic-bezier(.5,-.4,.7,.6), opacity 1s ease-in; }
+  .bubble-dot { position: absolute; width: 14px; height: 14px; border: 3px solid var(--ink); background: radial-gradient(circle at 35% 35%, #fff 0 25%, #bfefff 30%); border-radius: 50%; animation: rise 1.4s ease-out forwards; }
+  @keyframes rise { 0% { transform: translateY(0) scale(.6); opacity: 1 } 50% { transform: translate(6px,-45px) scale(1) } 100% { transform: translate(-4px,-95px) scale(1.2); opacity: 0 } }
+  .drop { position: absolute; width: 14px; height: 18px; background: #9fe2ff; border: 3px solid var(--ink); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: splash .9s cubic-bezier(.2,.6,.5,1) forwards; }
+  @keyframes splash { 0% { transform: translate(0,0) scale(.4) } 50% { transform: translate(calc(var(--dx) * .6), var(--dy)) scale(1) } 100% { transform: translate(var(--dx), 40px) scale(.6); opacity: 0 } }
+  .ring { position: absolute; width: 60px; height: 16px; border: 4px solid #e8fbff; border-radius: 50%; transform: translateX(-50%) scale(.3); animation: ring 1s ease-out forwards; }
+  @keyframes ring { to { transform: translateX(-50%) scale(4); opacity: 0 } }
+  #prop .px-char { animation-name: px-pop, px-wobble; animation-duration: .6s, 1.1s; animation-iteration-count: 1, infinite; animation-delay: 0s, .6s; }
 
   /* dialogue box, like a story game */
-  .dialog { position: relative; background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 22px 18px 16px; box-shadow: 0 6px 0 var(--ink); max-height: 62vh; overflow: auto; }
-  .name-tag { position: absolute; z-index: 2; top: -18px; left: 18px; background: var(--tag); color: #fff; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 10px; font-size: .95rem; }
+  .dialog { position: relative; background: var(--panel); border: 5px solid var(--ink); border-radius: 26px; padding: 24px 20px 18px; box-shadow: 0 7px 0 var(--ink); max-height: 62vh; overflow: auto; }
+  .name-tag { position: absolute; z-index: 2; top: -20px; left: 22px; transform: rotate(-3deg); font-size: 1.05rem !important; background: var(--tag); color: #fff; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 10px; font-size: .95rem; }
   .dialog-wrap { position: relative; margin-top: 18px; }
   .scene-title { margin: 0 0 6px; font-size: 1.05rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .line { margin: 0; font-size: 1.25rem; min-height: 2.6em; }
+  .line { margin: 0; font-size: 1.3rem; font-weight: 500; min-height: 2.6em; }
+  .dialog.pop { animation: dpop .35s cubic-bezier(.3,.7,.4,1.4); }
+  @keyframes dpop { 0% { transform: scale(.96) translateY(6px) } 100% { transform: none } }
   .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
   .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--chip); cursor: pointer; color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
   .choice .emoji { font-size: 1.6rem; }
   .choice[aria-pressed="true"] { background: #f6d44a; }
-  .choice:hover { transform: translateY(-2px); }
+  .choice { transition: transform .15s cubic-bezier(.3,.7,.4,1.6), box-shadow .15s; font-weight: 500; }
+  .choice:hover { transform: translateY(-3px) rotate(-.6deg); box-shadow: 0 6px 0 var(--ink); }
+  .choice:active { transform: translateY(2px) scale(.98); box-shadow: 0 1px 0 var(--ink); }
+  .choice[aria-pressed="true"] .emoji { display: inline-block; animation: hop .4s cubic-bezier(.3,.7,.4,1.6); }
+  @keyframes hop { 0% { transform: scale(.6) } 60% { transform: scale(1.3) rotate(-10deg) } 100% { transform: none } }
   .actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; box-shadow: 0 4px 0 var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
+  .btn { transition: transform .15s cubic-bezier(.3,.7,.4,1.6); }
+  .btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.03); }
+  .btn:active:not(:disabled) { transform: translateY(2px); }
+  .btn { font: inherit; font-weight: 600; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; box-shadow: 0 4px 0 var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
   .btn.secondary { background: var(--panel); color: var(--ink); }
   .btn.big { font-size: 1.3rem; padding: 14px 28px; background: #f6d44a; color: var(--ink); }
   .btn:disabled { opacity: .5; cursor: default; }
@@ -101,8 +116,11 @@
   fieldset { border: 3px solid var(--ink); border-radius: 14px; margin: 0 0 12px; padding: 10px 14px; }
   legend { font-weight: bold; padding: 0 6px; }
   .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
-  .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
-  @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+  .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; border: 2px solid var(--ink); border-radius: 3px; animation: fall 2s cubic-bezier(.3,.2,.6,1) forwards; }
+  @keyframes fall { 0% { transform: translateY(0) rotate(0) } 50% { transform: translate(30px, 55vh) rotate(300deg) } 100% { transform: translate(-20px, 110vh) rotate(720deg) } }
+  #prop.fly .px-char { animation: none; }
+  .flame { transform-box: fill-box; transform-origin: 50% 0; animation: flick .12s ease-in-out infinite alternate; }
+  @keyframes flick { from { transform: scaleY(.8) } to { transform: scaleY(1.15) } }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
   /* calm mode and reduced motion: everything holds still */
@@ -211,65 +229,114 @@
   }
 
   // ------------------------------------------------------------- the world
+  // Smooth cartoon scenery: thick ink outlines, round candy hills, flat bright colors.
   function drawWorld() {
-    const R = (x, y, w, h, c, cls = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"${cls ? ` class="${cls}"` : ""}/>`;
-    const disc = (cx, cy, r, c) => { let s = ""; for (let dy = -r; dy <= r; dy += 2) { const w = 2 * Math.floor(Math.sqrt(r * r - dy * dy)); s += R(cx - w / 2, cy + dy, w, 2, c); } return s; };
-    const tree = (x, base, h, w, c) => { let s = R(x + w / 2 - 2, base - h * 0.35, 4, h * 0.35, c); for (let i = 0; i < h * 0.75; i += 4) { const ww = Math.max(4, w * (1 - i / (h * 0.75))); s += R(x + (w - ww) / 2, base - h * 0.3 - i, ww, 4, c); } return s; };
+    const INK = "#1b1b2f";
+    const o = (w = 1.3) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+    // Overlapping circles melted into one outlined blob (clouds, tree tops, bushes).
+    const blob = (circles, fill, w = 1.3, cls = "") =>
+      `<g${cls ? ` class="${cls}"` : ""}>${circles.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + w}" fill="${INK}"/>`).join("")}` +
+      `${circles.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join("")}</g>`;
+    const wave = (y0, amp, step = 20) => { let d = `M-10 ${y0}`; for (let x = -10; x < 330; x += step) d += ` q${step / 4} ${-amp} ${step / 2} 0 t${step / 2} 0`; return d; };
+    const lily = (x, y, s = 1, flower = true) =>
+      `<path d="M${x} ${y} L${x + 9 * s} ${y - 1.74 * s} A${10 * s} ${4 * s} 0 1 0 ${x + 9 * s} ${y + 1.74 * s} Z" fill="#5cc46a" ${o(1)}/>` +
+      `<path d="M${x - 6 * s} ${y - 1 * s} Q${x - 2 * s} ${y - 2.5 * s} ${x + 3 * s} ${y - 2 * s}" fill="none" stroke="#3d9a4c" stroke-width=".8" stroke-linecap="round"/>` +
+      (flower ? `<circle cx="${x - 3 * s}" cy="${y - 3 * s}" r="${2 * s}" fill="#ff9ecf" ${o(.9)}/><circle cx="${x - 3 * s}" cy="${y - 3 * s}" r="${.8 * s}" fill="#fff6a8"/>` : "");
+    const cattail = (x, base, h, lean = 0) =>
+      `<path d="M${x} ${base} Q${x + lean / 2} ${base - h / 2} ${x + lean} ${base - h}" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>` +
+      `<path d="M${x} ${base} Q${x + lean / 2} ${base - h / 2} ${x + lean} ${base - h}" fill="none" stroke="#4f8a47" stroke-width="1.3" stroke-linecap="round"/>` +
+      `<rect x="${x + lean - 1.8}" y="${base - h - 2}" width="3.6" height="9" rx="1.8" fill="#8a5a3a" ${o(.9)}/>`;
     let svg = "";
+    let defs = "";
+
     if (!POND) {
-      const sky = ["#1f1a3d", "#2e2050", "#4a2a5e", "#6e3466", "#9a4466", "#c75a5f", "#e47a5a", "#f39b5e", "#f8bd6e", "#f9d27f"];
-      sky.forEach((c, i) => { svg += R(0, i * 12, 320, 12, c); });
-      svg += `<g id="sun">${disc(236, 64, 16, "#ffe08a")}${disc(232, 60, 6, "#fff4c4")}</g>`;
-      [[10, 40, 18], [40, 52, 22], [78, 36, 16], [120, 46, 20], [170, 38, 18], [262, 50, 22], [296, 40, 18]].forEach(([x, h, w]) => { svg += tree(x, 120, h, w, "#4b2b55"); });
-      svg += R(0, 116, 320, 6, "#3b2347");
-      const water = ["#3d4f6b", "#34465f", "#2c3c53", "#253447", "#1f2d3e"];
-      water.forEach((c, i) => { svg += R(0, 120 + i * 12, 320, 12, c); });
-      [[228, 124, 18], [232, 130, 12, "d2"], [226, 137, 22, "d3"], [234, 145, 10], [230, 153, 14, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#f6b26b", `shimmer ${d || ""}`); });
-      [[52, 150], [140, 160], [196, 142], [286, 166]].forEach(([x, y]) => { svg += R(x, y, 18, 4, "#3f7a45") + R(x + 3, y - 2, 12, 2, "#3f7a45") + R(x + 8, y - 4, 3, 3, "#f39ac1"); });
-      [[0, 60, 30], [290, 70, 30]].forEach(([x, h, w]) => { svg += tree(x, 180, h * 1.6, w * 1.4, "#2a1b33"); });
-      for (let i = 0; i < 7; i++) svg += R(8 + i * 5, 150 - (i % 3) * 6, 1, 30 + (i % 3) * 6, "#4f6b45");
-      for (let i = 0; i < 10; i++) { const x = (i * 37) % 320, h = 16 + (i % 4) * 5; svg += R(x, 180 - h, 2, h, "#1e2a22") + R(x - 1, 180 - h - 6, 4, 6, "#5a3a2a"); }
-      for (let i = 0; i < 12; i++) svg += `<rect x="${(i * 53 + 17) % 310}" y="${80 + (i * 29) % 70}" width="2" height="2" fill="#fff3a0" class="firefly" style="animation-delay:${(i % 6) * 0.6}s"/>`;
-      // Tangled code blocks floating in the swamp (story: "the swamp is FLOODED with tangled code blocks")
-      const blockColors = [["#5c7cfa", "#3b5bdb"], ["#f59f00", "#d9480f"], ["#e64980", "#a61e4d"], ["#20c997", "#087f5b"], ["#fab005", "#e67700"], ["#7950f2", "#5f3dc4"], ["#4dabf7", "#1864ab"], ["#ff8787", "#c92a2a"]];
-      let blocks = "";
-      [[100, 124], [152, 129], [204, 123], [126, 136], [180, 139], [238, 131], [92, 146], [216, 147]].forEach(([x, y], i) => {
-        const [fill, edge] = blockColors[i];
-        blocks += `<g class="float">${R(x - 1, y - 1, 20, 12, edge)}${R(x, y, 18, 10, fill)}` +
-          R(x + 2, y + 2, 1, 6, "#ffffff") + R(x + 3, y + 2, 1, 1, "#ffffff") + R(x + 3, y + 7, 1, 1, "#ffffff") +
-          R(x + 6, y + 3, 8 - (i % 3) * 2, 1, "#ffffffb0") + R(x + 6, y + 6, 5 + (i % 2) * 4, 1, "#ffffffb0") + `</g>`;
+      // ---- Kanban Swamp at sunset
+      defs = `<linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1f5c"/><stop offset=".38" stop-color="#7b3f8c"/><stop offset=".64" stop-color="#e2667a"/><stop offset=".84" stop-color="#ffa268"/><stop offset="1" stop-color="#ffd98a"/></linearGradient>` +
+        `<linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5d8e"/><stop offset=".45" stop-color="#2d3b63"/><stop offset="1" stop-color="#161d33"/></linearGradient>`;
+      svg += `<rect x="-10" y="0" width="340" height="128" fill="url(#skyG)"/>`;
+      for (let i = 0; i < 14; i++) svg += `<circle cx="${(i * 67 + 11) % 320}" cy="${6 + (i * 23) % 40}" r="${i % 3 ? .6 : 1}" fill="#fff" class="shimmer ${["", "d2", "d3"][i % 3]}"/>`;
+      svg += `<g id="sun"><circle cx="236" cy="72" r="30" fill="#ffe7a1" opacity=".25"/><circle cx="236" cy="72" r="19" fill="#ffe9a8" ${o(1.4)}/><circle cx="230" cy="66" r="5" fill="#fff8d8"/></g>`;
+      svg += `<g class="cloud slow">${blob([[30, 40, 6], [38, 37, 8], [47, 40, 6]], "#f7a6b8", 1)}</g><g class="cloud">${blob([[150, 28, 5], [157, 25, 7], [165, 28, 5]], "#f9b9a8", 1)}</g>`;
+      // far bumpy hills, then swamp trees with hanging moss
+      svg += `<path d="M-10 110 Q14 88 40 102 Q66 82 96 100 Q128 78 160 98 Q190 84 216 102 Q246 86 272 100 Q298 88 330 102 L330 128 L-10 128Z" fill="#9b5592" ${o(1.1)}/>`;
+      const tree = (x, base, h, r, c = "#4a2b63") =>
+        `<path d="M${x - 4} ${base} Q${x - 1} ${base - h * .5} ${x - 2} ${base - h} L${x + 2} ${base - h} Q${x + 1} ${base - h * .5} ${x + 4} ${base} Z" fill="#3a2150" ${o(1.1)}/>` +
+        blob([[x - r * .8, base - h, r * .75], [x, base - h - r * .45, r], [x + r * .85, base - h, r * .7]], c, 1.1) +
+        [-.7, -.1, .6].map(k => `<path d="M${x + r * k} ${base - h + r * .4} q1 6 -1 ${9 + Math.abs(k) * 6}" fill="none" stroke="#7fa86a" stroke-width="1.2" stroke-linecap="round"/>`).join("");
+      [[18, 118, 34, 11], [70, 118, 26, 9], [122, 118, 38, 12], [176, 118, 24, 8], [278, 118, 36, 12], [314, 118, 28, 10]].forEach(([x, b, h, r]) => { svg += tree(x, b, h, r); });
+      svg += `<path d="M-10 118 Q60 112 140 117 Q220 121 330 115 L330 126 L-10 126Z" fill="#3b2450" ${o(1.1)}/>`;
+      // the water
+      svg += `<path d="${wave(122, 1.6)} L330 230 L-10 230Z" fill="url(#waterG)" ${o(1.3)}/>`;
+      [[220, 130, 22], [226, 137, 14, "d2"], [218, 145, 26, "d3"], [228, 154, 12], [222, 163, 18, "d2"]].forEach(([x, y, w, d]) => {
+        svg += `<path d="M${x} ${y} h${w}" stroke="#ffb27a" stroke-width="1.6" stroke-linecap="round" class="shimmer ${d || ""}"/>`;
       });
-      svg += `<g id="floaters">${blocks}</g>`;
+      [[30, 140], [70, 166], [262, 172], [150, 176]].forEach(([x, y]) => { svg += `<path d="M${x} ${y} q3 -2 6 0 t6 0" fill="none" stroke="#8fa3d6" stroke-width=".9" stroke-linecap="round"/>`; });
+      [[52, 152, 1.1], [140, 166, 1], [196, 148, .9, false], [286, 160, 1.2]].forEach(([x, y, s, f]) => { svg += lily(x, y, s, f !== false); });
+      // Tangled code blocks floating in the swamp (story: "the swamp is FLOODED with tangled code blocks")
+      const blocks = [["#5c7cfa", "{ }"], ["#ff922b", "</>"], ["#f06595", "if"], ["#20c997", "fn()"], ["#fcc419", "[ ]"], ["#845ef7", "=>"], ["#4dabf7", "++"], ["#ff6b6b", "01"]];
+      let floats = "";
+      [[100, 126, -8], [152, 131, 6], [204, 125, -4], [126, 139, 10], [180, 142, -6], [240, 134, 5], [92, 150, 4], [214, 151, -10]].forEach(([x, y, rot], i) => {
+        const [fill, txt] = blocks[i];
+        floats += `<g class="float"><g transform="rotate(${rot} ${x + 10} ${y + 6})">` +
+          `<rect x="${x}" y="${y}" width="20" height="12" rx="3" fill="${fill}" ${o(1.2)}/>` +
+          `<rect x="${x + 2.5}" y="${y + 1.8}" width="10" height="1.6" rx=".8" fill="#ffffff" opacity=".45"/>` +
+          `<text x="${x + 10}" y="${y + 9.2}" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-weight="bold" font-size="6.2" fill="#fff" stroke="${INK}" stroke-width=".5" paint-order="stroke">${txt.replace("<", "&lt;").replace(">", "&gt;")}</text></g>` +
+          `<path d="M${x - 3} ${y + 12.5} q3 -1.6 6 0 t6 0 t6 0 t6 0" fill="none" stroke="#9fb4e8" stroke-width=".9" stroke-linecap="round"/></g>`;
+      });
+      svg += `<g id="floaters">${floats}</g>`;
+      for (let i = 0; i < 12; i++) svg += `<g class="firefly" style="animation-delay:${(i % 6) * 0.6}s"><circle cx="${(i * 53 + 17) % 310}" cy="${84 + (i * 29) % 60}" r="2.6" fill="#fff6a0" opacity=".25"/><circle cx="${(i * 53 + 17) % 310}" cy="${84 + (i * 29) % 60}" r="1" fill="#fffbd0"/></g>`;
+      // foreground banks and cattails
+      svg += blob([[-6, 214, 30], [24, 220, 22]], "#2a1c3d", 1.4) + blob([[326, 212, 30], [296, 222, 20]], "#2a1c3d", 1.4);
+      [[6, 196, 34, -3], [12, 198, 26, 2], [18, 200, 30, 4], [300, 198, 30, -4], [308, 196, 36, 2], [314, 200, 24, 5]].forEach(([x, b, h, l]) => { svg += cattail(x, b, h, l); });
     } else {
-      const sky = ["#6fbfee", "#7ec8f0", "#8fd0f2", "#a2d8f3", "#b6e0f4", "#c9e8f5", "#dcf0f6", "#eaf6f2", "#f4f8e6", "#f7f4d6"];
-      sky.forEach((c, i) => { svg += R(0, i * 11, 320, 11, c); });
-      svg += `<g id="sun">${disc(256, 34, 12, "#fff6c2")}${disc(254, 32, 5, "#ffffff")}</g>`;
-      const cloud = (x, y, s) => R(x, y, 26 * s, 6 * s, "#ffffff") + R(x + 5 * s, y - 5 * s, 14 * s, 6 * s, "#ffffff") + R(x + 2 * s, y + 5 * s, 22 * s, 3 * s, "#e6f2fb");
-      svg += `<g class="cloud">${cloud(20, 26, 1)}</g><g class="cloud slow">${cloud(140, 16, 1.3)}</g><g class="cloud">${cloud(230, 44, .8)}</g>`;
-      svg += R(0, 96, 320, 14, "#9fd49a") + R(30, 90, 90, 8, "#9fd49a") + R(190, 92, 110, 6, "#9fd49a");
-      svg += R(0, 106, 320, 14, "#7cc28a") + R(60, 102, 80, 6, "#7cc28a");
-      const water = ["#5cbcbc", "#4fb0b0", "#45a2a6", "#3b9398", "#33848a"];
-      water.forEach((c, i) => { svg += R(0, 118 + i * 13, 320, 13, c); });
-      [[40, 128, 26], [120, 140, 18, "d2"], [210, 132, 30, "d3"], [270, 150, 20], [80, 162, 24, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#e8fbff", `shimmer ${d || ""}`); });
-      [[60, 152], [150, 164], [238, 146], [300, 168]].forEach(([x, y]) => { svg += R(x, y, 18, 4, "#4fae5c") + R(x + 3, y - 2, 12, 2, "#4fae5c") + R(x + 8, y - 4, 3, 3, "#f39ac1"); });
-      // Willow tree, kept inside the area every screen shape shows
-      svg += R(68, 60, 6, 60, "#6b4a33");
-      for (let i = 0; i < 9; i++) svg += R(50 + i * 5, 52 + (i % 2) * 4, 4, 34 + (i % 3) * 8, "#4f9b5a");
-      svg += R(48, 46, 50, 10, "#5fae6a") + R(54, 40, 38, 6, "#5fae6a");
-      for (let i = 0; i < 9; i++) { const x = (i * 41 + 9) % 320, h = 14 + (i % 3) * 6; svg += R(x, 180 - h, 2, h, "#2f6b45") + R(x - 1, 180 - h - 5, 4, 5, "#7a5a3a"); }
-      for (let i = 0; i < 4; i++) svg += `<g class="fly" style="animation-delay:${i}s">${R(70 + i * 60, 100 + (i % 2) * 14, 4, 1, "#2c6f8a")}${R(71 + i * 60, 99 + (i % 2) * 14, 2, 1, "#9ff0f4")}</g>`;
+      // ---- Ping Pond on a bright day
+      defs = `<linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ccfff"/><stop offset=".6" stop-color="#bfeeff"/><stop offset="1" stop-color="#fff6cf"/></linearGradient>` +
+        `<linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6d2"/><stop offset=".5" stop-color="#3fa9ad"/><stop offset="1" stop-color="#226f79"/></linearGradient>`;
+      svg += `<rect x="-10" y="0" width="340" height="128" fill="url(#skyG)"/>`;
+      svg += `<g id="sun"><circle cx="262" cy="34" r="22" fill="#fff3a6" opacity=".45"/><circle cx="262" cy="34" r="13" fill="#ffe66d" ${o(1.3)}/><circle cx="258" cy="30" r="3.5" fill="#fff9cf"/></g>`;
+      const cloud = (x, y, s) => blob([[x, y, 6 * s], [x + 8 * s, y - 4 * s, 8 * s], [x + 17 * s, y - 1 * s, 7 * s], [x + 24 * s, y + 1 * s, 5 * s]], "#ffffff", 1.2);
+      svg += `<g class="cloud">${cloud(20, 30, 1)}</g><g class="cloud slow">${cloud(140, 20, 1.2)}</g><g class="cloud">${cloud(222, 48, .8)}</g>`;
+      // big round candy hills with lollipop trees
+      svg += blob([[30, 128, 34], [100, 134, 40], [190, 132, 38], [270, 126, 40], [330, 132, 30]], "#a6e89a", 1.3);
+      const lolly = (x, y, h, c) => `<path d="M${x} ${y} v${-h}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M${x} ${y} v${-h}" stroke="#a0714a" stroke-width="1" stroke-linecap="round"/><circle cx="${x}" cy="${y - h - 4}" r="5" fill="${c}" ${o(1.1)}/><path d="M${x - 2.5} ${y - h - 6} q2 -2 4 0" fill="none" stroke="#fff" stroke-width=".9" stroke-linecap="round" opacity=".7"/>`;
+      svg += lolly(150, 100, 8, "#ff9ecf") + lolly(166, 102, 6, "#ffd94a") + lolly(236, 92, 9, "#7fd8ff") + lolly(290, 92, 7, "#ff9ecf");
+      svg += blob([[60, 140, 30], [150, 146, 34], [240, 142, 32], [320, 146, 26]], "#79cf86", 1.3);
+      // willow tree (kept inside the area every screen shape shows)
+      svg += `<path d="M66 122 Q70 96 66 72 L76 72 Q74 98 82 122 Z" fill="#8a5a3a" ${o(1.3)}/>`;
+      svg += blob([[56, 62, 14], [72, 54, 17], [90, 62, 13], [64, 70, 12], [84, 72, 11]], "#5fbf6e", 1.3);
+      for (let i = 0; i < 9; i++) {
+        const x = 50 + i * 5.2, len = 20 + (i % 3) * 9;
+        svg += `<path d="M${x} 70 q${i % 2 ? 2 : -2} ${len / 2} 0 ${len}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/><path d="M${x} 70 q${i % 2 ? 2 : -2} ${len / 2} 0 ${len}" fill="none" stroke="#4fae5c" stroke-width="1.6" stroke-linecap="round"/>`;
+      }
+      // the water
+      svg += `<path d="${wave(122, 1.6)} L330 230 L-10 230Z" fill="url(#waterG)" ${o(1.3)}/>`;
+      [[40, 130, 24], [120, 142, 16, "d2"], [210, 134, 28, "d3"], [270, 152, 18], [80, 164, 22, "d2"]].forEach(([x, y, w, d]) => {
+        svg += `<path d="M${x} ${y} h${w}" stroke="#effdff" stroke-width="1.5" stroke-linecap="round" class="shimmer ${d || ""}"/>`;
+      });
+      [[60, 154, 1.1], [150, 168, 1], [238, 148, .9, false], [300, 166, 1.2]].forEach(([x, y, s, f]) => { svg += lily(x, y, s, f !== false); });
+      for (let i = 0; i < 4; i++) {
+        const x = 70 + i * 60, y = 100 + (i % 2) * 14;
+        svg += `<g class="fly" style="animation-delay:${i}s"><ellipse cx="${x - 1}" cy="${y - 2.4}" rx="3.2" ry="1.6" fill="#e8fbff" ${o(.7)}/><ellipse cx="${x + 2}" cy="${y - 2.4}" rx="3.2" ry="1.6" fill="#e8fbff" ${o(.7)}/>` +
+          `<path d="M${x - 4} ${y} h9" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M${x - 4} ${y} h9" stroke="#2c9bc8" stroke-width="1.2" stroke-linecap="round"/></g>`;
+      }
       // Message bottles crowding the pond (story: "the pond is flooded with bottles, croaks and splashes")
       let bottles = "";
-      [[108, 126], [148, 133], [196, 124], [232, 137], [128, 145], [178, 147], [254, 129]].forEach(([x, y]) => {
-        bottles += `<g class="float">${R(x - 1, y - 1, 8, 12, "#2f6f73")}${R(x, y, 6, 10, "#bfe8e0")}${R(x + 2, y - 4, 2, 4, "#bfe8e0")}${R(x + 2, y - 5, 2, 1, "#8a5a3a")}${R(x + 2, y + 2, 2, 5, "#fffdf6")}</g>`;
+      [[108, 126, -12], [148, 133, 14], [196, 124, -6], [232, 137, 10], [128, 145, -16], [178, 147, 8], [254, 129, -10]].forEach(([x, y, rot]) => {
+        bottles += `<g class="float"><g transform="rotate(${rot} ${x + 4} ${y + 6})">` +
+          `<rect x="${x + 2.2}" y="${y - 4}" width="3.6" height="5" rx="1" fill="#c8f3ea" ${o(1)}/>` +
+          `<rect x="${x + 1.8}" y="${y - 6}" width="4.4" height="2.4" rx="1" fill="#b07a4a" ${o(.9)}/>` +
+          `<rect x="${x}" y="${y}" width="8" height="12" rx="3" fill="#c8f3ea" ${o(1.1)}/>` +
+          `<rect x="${x + 2}" y="${y + 2.5}" width="4" height="6" rx=".8" fill="#fffbea" stroke="#d29a44" stroke-width=".5"/>` +
+          `<path d="M${x + 1.4} ${y + 2} v6" stroke="#fff" stroke-width=".9" stroke-linecap="round" opacity=".8"/></g>` +
+          `<path d="M${x - 3} ${y + 12.5} q2.5 -1.4 5 0 t5 0 t5 0" fill="none" stroke="#e8fbff" stroke-width=".9" stroke-linecap="round"/></g>`;
       });
       svg += `<g id="floaters">${bottles}</g>`;
+      svg += blob([[-6, 214, 28], [22, 222, 20]], "#3f9a52", 1.4) + blob([[326, 212, 28], [298, 222, 18]], "#3f9a52", 1.4);
+      [[6, 196, 32, -3], [13, 198, 24, 2], [304, 198, 30, -4], [312, 196, 34, 3]].forEach(([x, b, h, l]) => { svg += cattail(x, b, h, l); });
     }
-    const deep = POND ? ["#2d7a80", "#286f75", "#23646a"] : ["#1b2837", "#172230", "#131c28"];
-    deep.forEach((c, i) => { svg += R(0, 180 + i * 12, 320, 12, c); });
     // Raised by 30 so the water, the floating blocks and the characters sit above the dialogue box.
     document.getElementById("world").innerHTML =
-      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,-30)">${svg}</g></svg>`;
+      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs><g transform="translate(0,-30)">${svg}</g></svg>`;
   }
 
   // ------------------------------------------------------------- journey map
@@ -317,7 +384,10 @@
     kids.flat().forEach(c => c != null && n.append(c));
     return n;
   };
-  const show = (...nodes) => dialog.replaceChildren(...nodes.flat().filter(n => n != null));
+  const show = (...nodes) => {
+    dialog.replaceChildren(...nodes.flat().filter(n => n != null));
+    dialog.classList.remove("pop"); void dialog.offsetWidth; dialog.classList.add("pop");
+  };
   function say(text, mood = "talk") {
     const p = el("p", { class: "line", "aria-live": "polite", text });
     actor.setMood(mood);
@@ -380,6 +450,9 @@
       d.style.setProperty("--dy", `${-60 - Math.random() * 120}px`);
       stage.append(d); setTimeout(() => d.remove(), 1000);
     }
+    const ring = el("span", { class: "ring" });
+    ring.style.left = `calc(3% + ${actorSize() / 2}px)`; ring.style.bottom = "4px";
+    stage.append(ring); setTimeout(() => ring.remove(), 1100);
   }
   function hello() {
     actorEl.className = "";
@@ -486,9 +559,15 @@
   }
 
   function rocket() {
-    // A tiny pixel rocket for SwampBook's launch.
-    const layers = [[3,0,2,1,"#e2474b"],[2,1,4,2,"#e2474b"],[2,3,4,6,"#f4f1ea"],[3,4,2,2,"#3f7fd1"],[0,7,2,3,"#e2474b"],[6,7,2,3,"#e2474b"],[2,9,4,1,"#9aa3ad"],[3,10,2,2,"#f6a23a"],[3,12,2,1,"#f6d44a"]];
-    return Pixel.svgFor({ width: 8, height: 13, label: "", layers }, 90, "");
+    // A chunky cartoon rocket for SwampBook's launch.
+    const I = 'stroke="#1b1b2f" stroke-width="4" stroke-linejoin="round"';
+    return Pixel.svgFor({ width: 70, height: 120, label: "", svg:
+      `<path d="M22 84 L8 104 L26 98 Z" fill="#ff5d6c" ${I}/><path d="M48 84 L62 104 L44 98 Z" fill="#ff5d6c" ${I}/>` +
+      `<path class="flame" d="M26 98 Q35 128 44 98 Z" fill="#ffb03a" ${I}/>` +
+      `<path d="M35 4 C56 22 54 66 48 98 L22 98 C16 66 14 22 35 4 Z" fill="#f7f4ec" ${I}/>` +
+      `<path d="M35 4 C44 12 48 22 49 30 L21 30 C22 22 26 12 35 4 Z" fill="#ff5d6c" ${I}/>` +
+      `<circle cx="35" cy="54" r="10" fill="#7fd8ff" ${I}/><circle cx="32" cy="51" r="3" fill="#fff"/>` +
+      `<path d="M28 98 v-8 M42 98 v-8" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round"/>` }, 90, "");
   }
 
   function finale(progress) {
@@ -543,7 +622,7 @@
   function confetti() {
     if (calm()) return;
     const box = document.getElementById("confetti");
-    const colors = ["#f6d44a", "#5cae4f", "#e8873a", "#3fe0e6", "#c94fb0", "#6cc3a8"];
+    const colors = ["#ffd94a", "#6cc24a", "#ff8a3d", "#3ff0f0", "#c856d6", "#ff9ecf", "#7fd8ff"];
     box.replaceChildren(...Array.from({ length: 60 }, (_, i) => {
       const p = document.createElement("i");
       p.style.left = `${Math.random() * 100}%`; p.style.background = colors[i % colors.length]; p.style.animationDelay = `${Math.random() * 0.6}s`;
