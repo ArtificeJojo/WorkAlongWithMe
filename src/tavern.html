@@ -13,7 +13,6 @@
   :root { --button: rgb(107, 204, 236); --frame: rgb(35, 105, 246); --card: rgba(255, 255, 255, 0.85); --ink: #222; --muted: #555; --highlight: #ffe066; }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background-image: url('/Images/bg.png'); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: white; line-height: 1.45; }
-  .screenframe { position: fixed; inset: 6px; border: 4px solid var(--frame); border-radius: 16px; pointer-events: none; }
   main { max-width: 900px; margin: 0 auto; padding: 60px 40px 40px; }
   .panel { margin-bottom: 32px; }
   h1, h2 { color: white; margin: 0 0 12px; }
@@ -61,7 +60,6 @@
 </style>
 </head>
 <body>
-<div class="screenframe"></div>
 <a id="homeButton" class="btn" href="/home">Home</a>
 <main>
   <section class="panel" aria-labelledby="title">
