@@ -86,7 +86,12 @@
   {% endif %}
 
   <p class="created">Created {{ project.created_at.strftime("%B %d, %Y") }}</p>
+
+  {# Heart button at the bottom of the project page (filled in by /js/likes.js) #}
+  <button id="projectLike" class="like-button" data-kind="project" data-id="{{ project.id }}" data-liked="{{ project.likes.liked|tojson }}" data-count="{{ project.likes.count }}"></button>
 </main>
+
+<script src="/js/likes.js"></script>
 
 {% if project.collaboration == "can_request" %}
 <script>
@@ -255,7 +260,7 @@
 
   main {
     max-width: 720px;
-    margin: 60px auto 0;
+    margin: 60px auto 40px;
   }
 
   #thumbnail {

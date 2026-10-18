@@ -10,6 +10,7 @@ import profile
 from connection import ME
 import project
 from project import CONNECTIONS_CTE
+from likes import like_columns, like_json
 
 IMAGE_DIR = profile.ROOT / "uploads" / "post_images"
 MAX_CHARACTERS = 250
@@ -136,7 +137,8 @@ async def get_feed(auth0_sub, limit=3):
             SELECT p.id, p.body, p.image IS NOT NULL AS has_image, p.created_at,
                    u.id AS author_id, u.display_name AS author_name,
                    -- Linked project, only if the viewer can see it (its owner isn't blocked either way)
-                   lp.id AS project_id, lp.title AS project_title
+                   lp.id AS project_id, lp.title AS project_title,
+                   {like_columns("post")}
             FROM posts p
             JOIN users u ON u.id = p.author_id
             LEFT JOIN projects lp ON lp.id = p.project_id AND NOT EXISTS (
@@ -161,6 +163,7 @@ async def get_feed(auth0_sub, limit=3):
             "body": row["body"],
             "image": f"/posts/{row['id']}/image" if row["has_image"] else None,
             "created_at": row["created_at"],
+            "likes": like_json(row),
             "project": {"id": str(row["project_id"]), "title": row["project_title"]} if row["project_id"] else None,
             "author": {
                 "id": str(row["author_id"]),

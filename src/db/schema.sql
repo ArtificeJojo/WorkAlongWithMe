@@ -12,8 +12,6 @@ CREATE TABLE IF NOT EXISTS users (
   organization         TEXT,
   track                TEXT CHECK (track IN ('gators', 'turtle')),
   about_you_completed  BOOLEAN NOT NULL DEFAULT FALSE,
-  -- /quiz comes right after /aboutyou; /home stays locked until it's TRUE too
-  quiz_completed       BOOLEAN NOT NULL DEFAULT FALSE,
   -- Uploaded file in uploads/profile_pictures/ (Flask); NULL = default assets/donkey.jpg.
   -- Separate from avatar, which is the quest hero's animal (e.g. 'fox').
   profile_picture      TEXT,
@@ -139,6 +137,20 @@ CREATE TABLE IF NOT EXISTS posts (
   CHECK (btrim(coalesce(body, '')) <> '' OR image IS NOT NULL)
 );
 CREATE INDEX IF NOT EXISTS posts_author_created ON posts (author_id, created_at DESC);
+
+-- Hearts on posts and projects: one per user per item, removed when they unlike it
+CREATE TABLE IF NOT EXISTS post_likes (
+  post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (post_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS project_likes (
+  project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (project_id, user_id)
+);
 
 -- Groups formed in the Party Camp, plus the Gemini-written team guide.
 CREATE TABLE IF NOT EXISTS groups (

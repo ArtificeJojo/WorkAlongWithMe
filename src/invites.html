@@ -11,6 +11,8 @@
 <ul id="inviteList"></ul>
 <p id="noInvites" class="empty" hidden>You don't have any project invites.</p>
 
+<script src="/js/likes.js"></script>
+
 <script>
   const notice = document.getElementById("notice");
 
@@ -75,7 +77,7 @@
       button("Reject", () => respond(invite, "reject")),
     );
 
-    details.append(title, owner, members, actions);
+    details.append(title, likeButton("project", invite.id, invite.likes), owner, members, actions);
     item.append(details);
     return item;
   };

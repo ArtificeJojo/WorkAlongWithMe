@@ -39,6 +39,8 @@
   </div>
 </section>
 
+<script src="/js/likes.js"></script>
+
 <script>
   // Projects this person created or joined, 6 per page, newest first
   (() => {
@@ -93,7 +95,7 @@
         people.append(extra);
       }
 
-      card.append(title, role, people);
+      card.append(title, likeButton("project", project.id, project.likes), role, people);
       return card;
     };
 

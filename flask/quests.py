@@ -338,9 +338,6 @@ async def finish_quest(auth0_sub, quest_id, answers, visibility):
                 f"ON CONFLICT (user_id) DO UPDATE SET {', '.join(updates)}",
                 *values,
             )
-            if quest_id == QUEST_ORDER[0]:
-                # Kanban Swamp is the setup "quiz": finishing it unlocks /home and the rest of the app
-                await conn.execute("UPDATE users SET quiz_completed = TRUE WHERE id = $1::uuid", progress["user_id"])
     finally:
         await conn.close()
     return await get_progress(auth0_sub)

@@ -8,6 +8,7 @@ from flask import send_from_directory
 
 import profile
 from connection import ME
+from likes import like_columns, like_json
 
 THUMBNAIL_DIR = profile.ROOT / "uploads" / "project_thumbnails"
 MAX_LENGTHS = {"title": 100, "summary": 300, "description": 10000}
@@ -221,7 +222,7 @@ async def get_invites(auth0_sub):
         invites = await conn.fetch(
             f"""
             SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail,
-                   o.id AS owner_id, o.display_name AS owner_name
+                   o.id AS owner_id, o.display_name AS owner_name, {like_columns("project")}
             FROM project_contributors c
             JOIN projects p ON p.id = c.project_id
             JOIN users o ON o.id = p.owner_id
@@ -252,6 +253,7 @@ async def get_invites(auth0_sub):
             "id": str(invite["id"]),
             "title": invite["title"],
             "thumbnail": f"/projects/{invite['id']}/thumbnail" if invite["has_thumbnail"] else None,
+            "likes": like_json(invite),
             "owner": _user_json(invite["owner_id"], invite["owner_name"]),
             "accepted": accepted.get(invite["id"], []),
         }
@@ -326,7 +328,7 @@ async def get_feed(auth0_sub, limit=3):
         rows = await conn.fetch(
             f"""
             {CONNECTIONS_CTE}
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, {like_columns("project")}
             FROM projects p, me
             WHERE p.owner_id IN (SELECT id FROM connected)
               AND p.owner_id <> me.id
@@ -344,6 +346,7 @@ async def get_feed(auth0_sub, limit=3):
             "id": str(row["id"]),
             "title": row["title"],
             "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+            "likes": like_json(row),
         }
         for row in rows
     ]
@@ -358,7 +361,7 @@ async def get_project(auth0_sub, project_id):
         row = await conn.fetchrow(
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
-                   p.created_at, p.board_added_at IS NOT NULL AS on_board,
+                   p.created_at, p.board_added_at IS NOT NULL AS on_board, {like_columns("project")},
                    o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner,
                    (SELECT c.status FROM project_contributors c
                     WHERE c.project_id = p.id AND c.user_id = {ME}) AS my_status,
@@ -399,6 +402,7 @@ async def get_project(auth0_sub, project_id):
         "created_at": row["created_at"],
         "is_owner": row["is_owner"],
         "on_board": row["on_board"],
+        "likes": like_json(row),
         "collaboration": _collaboration_status(row),
         # Only shown to the owner (button to /requests/<id>)
         "pending_requests": row["pending_requests"] if row["is_owner"] else 0,
@@ -603,7 +607,7 @@ async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
         page = min(max(page, 1), pages)
         rows = await conn.fetch(
             f"""
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, {like_columns("project")}
             {on_board}
             ORDER BY p.board_added_at DESC, p.id
             LIMIT $2 OFFSET $3
@@ -621,6 +625,7 @@ async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
                 "id": str(row["id"]),
                 "title": row["title"],
                 "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+                "likes": like_json(row),
             }
             for row in rows
         ],
@@ -667,7 +672,7 @@ async def get_user_projects(auth0_sub, user_id, page=1):
         page = min(max(page, 1), pages)
         rows = await conn.fetch(
             f"""
-            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, w.role,
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, w.role, {like_columns("project")},
                    o.id AS owner_id, o.display_name AS owner_name,
                    (SELECT count(*) FROM project_contributors c
                     WHERE c.project_id = p.id AND c.status = 'accepted') AS member_count,
@@ -698,6 +703,7 @@ async def get_user_projects(auth0_sub, user_id, page=1):
                 "title": row["title"],
                 "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
                 "role": row["role"],
+                "likes": like_json(row),
                 # Up to 4 pictures: creator + first 3 members; extra = members not pictured ("+N")
                 "people": [_user_json(row["owner_id"], row["owner_name"])] + [
                     _user_json(member["id"], member["username"]) for member in json.loads(row["first_members"])
