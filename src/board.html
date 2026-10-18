@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button id="homeButton" onclick="location.href = '/home'">Home</button>
+
+<main>
+  <h1>The board</h1>
+  <p class="intro">Projects looking for collaborators. Open one to request to join it.</p>
+
+  {# 10 per page, most recently added first; ?page=N picks the page #}
+  <div id="boardList">
+    {% for project in board.projects %}
+      <article class="project-card">
+        {% if project.thumbnail %}
+          <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
+        {% endif %}
+        <h3>{{ project.title }}</h3>
+        <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
+      </article>
+    {% else %}
+      <p class="empty">No projects are on the board yet.</p>
+    {% endfor %}
+  </div>
+
+  {% if board.pages > 1 %}
+    <nav id="pager">
+      <button onclick="location.href = '/board?page={{ board.page - 1 }}'" {% if board.page <= 1 %}disabled{% endif %}>Previous</button>
+      <span>Page {{ board.page }} of {{ board.pages }}</span>
+      <button onclick="location.href = '/board?page={{ board.page + 1 }}'" {% if board.page >= board.pages %}disabled{% endif %}>Next</button>
+    </nav>
+  {% endif %}
+</main>
+
+<style>
+  body {
+    background-image: url('/Images/bg.png');
+    font-family: Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  h1, h3 {
+    color: white;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  #homeButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+  main {
+    max-width: 480px;
+    margin: 60px auto 40px;
+  }
+
+  h1, .intro {
+    text-align: center;
+  }
+
+  .intro {
+    color: white;
+  }
+
+  #boardList {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  /* Same cards as the Projects and Board tabs on the home page */
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+  }
+
+  .project-card h3 {
+    margin: 0;
+  }
+
+  .project-card .thumbnail {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .empty {
+    color: #555;
+  }
+
+  #pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    color: white;
+  }
+</style>

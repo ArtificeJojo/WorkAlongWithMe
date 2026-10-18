@@ -18,6 +18,15 @@
 
 <div class="screen-frame"></div>
 
+{# Answers to your collaborator requests since you last came here (each shown once) #}
+{% for update in request_updates %}
+  {% if update.status == "rejected" %}
+    <p class="request-update rejected">Your request to become a collaborator on "{{ update.title }}" was rejected.</p>
+  {% else %}
+    <p class="request-update accepted">Your request to become a collaborator on "{{ update.title }}" was accepted! It's highlighted below.</p>
+  {% endif %}
+{% endfor %}
+
 <section id="projects">
   <h2>Projects</h2>
   <div id="line"></div>
@@ -34,6 +43,8 @@
   // Projects this person created or joined, 6 per page, newest first
   (() => {
     const userId = {{ user_id|tojson }};
+    // Projects you were just accepted onto: highlighted for this visit only
+    const newProjectIds = new Set({{ request_updates|selectattr("status", "equalto", "accepted")|map(attribute="project_id")|list|tojson }});
     const grid = document.getElementById("projectGrid");
     const pager = document.getElementById("pager");
     const prevPage = document.getElementById("prevPage");
@@ -43,6 +54,7 @@
     const projectCard = project => {
       const card = document.createElement("a");
       card.className = "project-card";
+      card.classList.toggle("new-project", newProjectIds.has(project.id));
       card.href = `/project/${project.id}`;
 
       if (project.thumbnail) {
@@ -235,6 +247,29 @@
 
   .project-card:hover {
     background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Just accepted onto it through a collaborator request */
+  .project-card.new-project {
+    background-color: #ffe066;
+    box-shadow: 0 0 0 3px #f5c400;
+  }
+
+  .request-update {
+    margin: 12px 60px 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+
+  .request-update.accepted {
+    background-color: #fff3bf;
+    color: #5c4400;
+  }
+
+  .request-update.rejected {
+    background-color: #f8d7da;
+    color: #b00020;
   }
 
   .project-card img,

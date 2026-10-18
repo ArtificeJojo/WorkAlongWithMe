@@ -359,7 +359,13 @@ async def get_project(auth0_sub, project_id):
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
                    p.created_at, p.board_added_at IS NOT NULL AS on_board,
-                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner
+                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner,
+                   (SELECT c.status FROM project_contributors c
+                    WHERE c.project_id = p.id AND c.user_id = {ME}) AS my_status,
+                   (SELECT r.status FROM collaborator_requests r
+                    WHERE r.project_id = p.id AND r.user_id = {ME}) AS my_request,
+                   (SELECT count(*) FROM collaborator_requests r
+                    WHERE r.project_id = p.id AND r.status = 'pending') AS pending_requests
             FROM projects p JOIN users o ON o.id = p.owner_id
             WHERE p.id = $2 AND {VISIBLE_TO_ME}
             """,
@@ -393,9 +399,231 @@ async def get_project(auth0_sub, project_id):
         "created_at": row["created_at"],
         "is_owner": row["is_owner"],
         "on_board": row["on_board"],
+        "collaboration": _collaboration_status(row),
+        # Only shown to the owner (button to /requests/<id>)
+        "pending_requests": row["pending_requests"] if row["is_owner"] else 0,
         # Visible project = owner not blocked either way, so the owner is always viewable
         "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
         "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],
+    }
+
+
+def _collaboration_status(row):
+    """Where the viewer stands on joining the project, for the "request to collaborate" button:
+    'member', 'invited', 'requested', 'rejected', 'full' (5 requests already pending),
+    'can_request' (it's on the board), or None (owner, or nothing to show)."""
+    if row["is_owner"]:
+        return None
+    if row["my_status"] == "accepted":
+        return "member"
+    if row["my_status"] == "pending":
+        return "invited"
+    if row["my_request"] in ("pending", "rejected"):
+        return {"pending": "requested", "rejected": "rejected"}[row["my_request"]]
+    if not row["on_board"]:
+        return None
+    return "full" if row["pending_requests"] >= MAX_PENDING_REQUESTS else "can_request"
+
+
+MAX_PENDING_REQUESTS = 5
+
+
+async def request_to_collaborate(auth0_sub, project_id):
+    """Ask to become a collaborator on a project that's on the board.
+    Returns 'sent' (or was already pending), 'full' (the project already has 5 pending requests),
+    or None if they can't: not on the board or hidden from them, they own it, are on the team,
+    have been invited, or were already rejected."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            # Locking the project makes simultaneous requests take turns, so the limit of 5 holds
+            allowed = await conn.fetchval(
+                f"""
+                SELECT p.id FROM projects p
+                WHERE p.id = $2 AND p.board_added_at IS NOT NULL AND p.owner_id <> {ME} AND {VISIBLE_TO_ME}
+                  AND NOT EXISTS (SELECT 1 FROM project_contributors c WHERE c.project_id = p.id AND c.user_id = {ME})
+                FOR UPDATE OF p
+                """,
+                auth0_sub, project_id,
+            )
+            if not allowed:
+                return None
+
+            previous = await conn.fetchval(
+                f"SELECT status FROM collaborator_requests WHERE project_id = $2 AND user_id = {ME}",
+                auth0_sub, project_id,
+            )
+            if previous == "pending":
+                return "sent"
+            if previous == "rejected":
+                return None
+
+            pending = await conn.fetchval(
+                "SELECT count(*) FROM collaborator_requests WHERE project_id = $1 AND status = 'pending'", project_id,
+            )
+            if pending >= MAX_PENDING_REQUESTS:
+                return "full"
+
+            # An old accepted request is reused if they've since been removed from the team
+            await conn.execute(
+                f"""
+                INSERT INTO collaborator_requests (project_id, user_id) VALUES ($2, {ME})
+                ON CONFLICT (project_id, user_id)
+                DO UPDATE SET status = 'pending', seen = FALSE, requested_at = now()
+                """,
+                auth0_sub, project_id,
+            )
+            return "sent"
+    finally:
+        await conn.close()
+
+
+# Requester u and the logged-in user haven't blocked each other (either way)
+NOT_BLOCKED_WITH_U = f"""
+    NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id = u.id AND b.blocked_id = {ME})
+           OR (b.blocker_id = {ME} AND b.blocked_id = u.id)
+    )
+"""
+
+
+async def get_requests(auth0_sub, project_id):
+    """The pending collaborator requests for /requests/<id>, oldest first, leaving out anyone the
+    owner has blocked or been blocked by. None unless the logged-in user owns the project."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        project = await conn.fetchrow(
+            f"SELECT id, title FROM projects WHERE id = $2 AND owner_id = {ME}", auth0_sub, project_id,
+        )
+        if not project:
+            return None
+        requests = await conn.fetch(
+            f"""
+            SELECT u.id, u.display_name
+            FROM collaborator_requests r JOIN users u ON u.id = r.user_id
+            WHERE r.project_id = $2 AND r.status = 'pending' AND {NOT_BLOCKED_WITH_U}
+            ORDER BY r.requested_at, u.id
+            """,
+            auth0_sub, project_id,
+        )
+    finally:
+        await conn.close()
+
+    return {
+        "id": str(project["id"]),
+        "title": project["title"],
+        "requests": [_user_json(r["id"], r["display_name"]) for r in requests],
+    }
+
+
+async def respond_to_request(auth0_sub, project_id, user_id, accept):
+    """The owner accepts (user joins the team) or rejects a pending request. The requester sees
+    the answer on their profile. Returns False if there's no such pending request for the
+    logged-in user's project, or the two have blocked each other."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            answered = await conn.fetchval(
+                f"""
+                UPDATE collaborator_requests r SET status = $4, seen = FALSE
+                FROM projects p, users u
+                WHERE p.id = r.project_id AND u.id = r.user_id
+                  AND r.project_id = $2 AND r.user_id = $3 AND r.status = 'pending'
+                  AND p.owner_id = {ME} AND {NOT_BLOCKED_WITH_U}
+                RETURNING r.user_id
+                """,
+                auth0_sub, project_id, user_id, "accepted" if accept else "rejected",
+            )
+            if answered and accept:
+                # Joins straight away; replaces a pending invite if the owner had also sent one
+                await conn.execute(
+                    """
+                    INSERT INTO project_contributors (project_id, user_id, status) VALUES ($1, $2, 'accepted')
+                    ON CONFLICT (project_id, user_id) DO UPDATE SET status = 'accepted'
+                    """,
+                    project_id, user_id,
+                )
+    finally:
+        await conn.close()
+
+    return answered is not None
+
+
+async def request_update_highlight(auth0_sub):
+    """How to highlight the logged-in user's "View profile" button on /home: 'rejected' (red) or
+    'accepted' (yellow) if a request was answered since they last opened /profile, else None.
+    A rejection wins if there are both, since the message about it is only on /profile."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        statuses = {
+            row["status"] for row in await conn.fetch(
+                f"SELECT DISTINCT status FROM collaborator_requests "
+                f"WHERE user_id = {ME} AND status <> 'pending' AND NOT seen",
+                auth0_sub,
+            )
+        }
+    finally:
+        await conn.close()
+
+    return "rejected" if "rejected" in statuses else "accepted" if "accepted" in statuses else None
+
+
+async def take_request_updates(auth0_sub):
+    """The logged-in user's requests that were answered since they last opened /profile,
+    marking them seen (so /profile shows each answer once and /home stops highlighting)."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        rows = await conn.fetch(
+            f"""
+            UPDATE collaborator_requests r SET seen = TRUE
+            FROM projects p
+            WHERE p.id = r.project_id AND r.user_id = {ME} AND r.status <> 'pending' AND NOT r.seen
+            RETURNING r.project_id, r.status, p.title
+            """,
+            auth0_sub,
+        )
+    finally:
+        await conn.close()
+
+    return [{"project_id": str(row["project_id"]), "status": row["status"], "title": row["title"]} for row in rows]
+
+
+BOARD_PER_PAGE = 10
+
+
+async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
+    """One page of the projects on the board, most recently added first. Projects whose owner
+    and the viewer have blocked each other (either way) are left out."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        on_board = f"FROM projects p WHERE p.board_added_at IS NOT NULL AND {VISIBLE_TO_ME}"
+        total = await conn.fetchval(f"SELECT count(*) {on_board}", auth0_sub)
+        pages = max(1, -(-total // per_page))
+        page = min(max(page, 1), pages)
+        rows = await conn.fetch(
+            f"""
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail
+            {on_board}
+            ORDER BY p.board_added_at DESC, p.id
+            LIMIT $2 OFFSET $3
+            """,
+            auth0_sub, per_page, (page - 1) * per_page,
+        )
+    finally:
+        await conn.close()
+
+    return {
+        "page": page,
+        "pages": pages,
+        "projects": [
+            {
+                "id": str(row["id"]),
+                "title": row["title"],
+                "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+            }
+            for row in rows
+        ],
     }
 
 
