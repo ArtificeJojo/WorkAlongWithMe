@@ -5,6 +5,10 @@
 <button id="homeButton" onclick="location.href = '/home'">Home</button>
 {% if project.is_owner %}
   <div id="actionButtons">
+    {# Shown while it's on the board (or still has requests waiting after being taken off) #}
+    <button id="requestsButton" onclick="location.href = '/requests/{{ project.id }}'" hidden>
+      View pending requests ({{ project.pending_requests }})
+    </button>
     <button id="boardButton"></button>
     <button onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
   </div>
@@ -31,6 +35,10 @@
       <button disabled>Request sent</button>
     {% elif project.collaboration == "invited" %}
       <button onclick="location.href = '/invites'">You've been invited, see your invites</button>
+    {% elif project.collaboration == "rejected" %}
+      <button disabled>Request declined</button>
+    {% elif project.collaboration == "full" %}
+      <button disabled>Not taking requests right now</button>
     {% endif %}
   </div>
 {% endif %}
@@ -95,6 +103,12 @@
     collaborateButton.disabled = true;
     const response = await fetch(`/projects/${ {{ project.id|tojson }} }/collaborate`, { method: "POST" });
 
+    if (response.status === 409) {
+      // Someone else's request filled the last of the 5 spots since the page loaded
+      collaborateButton.textContent = "Not taking requests right now";
+      showNotice("This project already has 5 pending requests. Try again later.", "error");
+      return;
+    }
     if (!response.ok) {
       // e.g. the owner just took it off the board
       collaborateButton.disabled = false;
@@ -117,8 +131,11 @@
   const boardDialog = document.getElementById("boardDialog");
   const notice = document.getElementById("notice");
 
+  const pendingRequests = {{ project.pending_requests|tojson }};
+
   const showBoardButton = () => {
     boardButton.textContent = onBoard ? "Remove from board" : "Add to board";
+    document.getElementById("requestsButton").hidden = !onBoard && pendingRequests === 0;
   };
 
   const showNotice = (text, kind) => {

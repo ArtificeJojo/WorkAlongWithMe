@@ -1,0 +1,166 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<button id="backButton" onclick="location.href = '/project/{{ project.id }}'">Back to project</button>
+
+<main>
+  <h1>Pending requests for {{ project.title }}</h1>
+  <p id="notice" role="status" hidden></p>
+
+  {# Oldest first; picture and name both link to their profile #}
+  <ul id="requestList">
+    {% for user in project.requests %}
+      <li data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+        <a class="person" href="/friend/{{ user.id }}">
+          <img src="{{ user.picture }}" alt="" />
+        </a>
+        <a class="person username" href="/friend/{{ user.id }}">{{ user.username }}</a>
+        <div class="actions">
+          <button class="accept">Accept</button>
+          <button class="reject">Reject</button>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+  <p id="noRequests" class="empty" {% if project.requests %}hidden{% endif %}>No pending requests right now.</p>
+</main>
+
+<script>
+  const projectId = {{ project.id|tojson }};
+  const notice = document.getElementById("notice");
+  const list = document.getElementById("requestList");
+
+  // Green for accepting, red for rejecting
+  const showNotice = (text, kind) => {
+    notice.textContent = text;
+    notice.className = kind;
+    notice.hidden = false;
+  };
+
+  const respond = async (item, action) => {
+    item.querySelectorAll("button").forEach(button => button.disabled = true);
+    const response = await fetch(`/projects/${projectId}/requests/${item.dataset.userId}/${action}`, { method: "POST" });
+
+    // 404 = already answered (e.g. in another tab) or no longer possible; just drop it from the list
+    if (!response.ok && response.status !== 404) {
+      item.querySelectorAll("button").forEach(button => button.disabled = false);
+      showNotice("Couldn't respond to that request. Please try again.", "rejected");
+      return;
+    }
+    const username = item.dataset.username;
+    if (response.ok && action === "accept") showNotice(`${username} is now a collaborator.`, "accepted");
+    else if (response.ok) showNotice(`You rejected ${username}'s request.`, "rejected");
+    item.remove();
+    document.getElementById("noRequests").hidden = list.children.length > 0;
+  };
+
+  list.querySelectorAll("li").forEach(item => {
+    item.querySelector(".accept").onclick = () => respond(item, "accept");
+    item.querySelector(".reject").onclick = () => respond(item, "reject");
+  });
+</script>
+
+<style>
+  body {
+    background-image: url('/Images/bg.png');
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 20px 40px;
+  }
+
+  h1 {
+    color: white;
+  }
+
+  button {
+    background-color: rgb(107, 204, 236);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  button.reject {
+    background-color: #f8d7da;
+  }
+
+  #backButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+  }
+
+  main {
+    max-width: 640px;
+    margin: 60px auto 0;
+  }
+
+  #notice {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+
+  #notice.accepted {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  #notice.rejected {
+    background-color: #f8d7da;
+    color: #b00020;
+  }
+
+  #requestList {
+    list-style: none;
+    padding: 0;
+  }
+
+  #requestList li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0;
+    padding: 10px 14px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+  }
+
+  .person {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .person img {
+    display: block;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .username {
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+
+  .username:hover {
+    text-decoration: underline;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .empty {
+    color: white;
+  }
+</style>

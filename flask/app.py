@@ -140,6 +140,8 @@ async def home():
             posts=await post.get_feed(user["sub"]),
             # Board tab: the 5 most recently added; "See more" goes to /board
             board=(await project.get_board(user["sub"], per_page=5))["projects"],
+            # Yellow/red "View profile" until they've seen an answered collaborator request on /profile
+            profile_highlight=await project.request_update_highlight(user["sub"]),
         )
 
 @app.route("/board")
@@ -171,6 +173,8 @@ async def view_profile():
             user_id=str(about_you["id"]),
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
             has_invites=await project.has_pending_invites(user["sub"]),
+            # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
+            request_updates=await project.take_request_updates(user["sub"]),
         )
 
 @app.route("/connections")
@@ -459,9 +463,38 @@ async def request_to_collaborate(project_id):
     if not user:
         return "Not logged in", 401
 
-    if not await project.request_to_collaborate(user["sub"], project_id):
+    result = await project.request_to_collaborate(user["sub"], project_id)
+    if result == "full":
+        return "This project already has the maximum number of pending requests", 409
+    if not result:
         return "You can't request to collaborate on this project", 404
     return jsonify({"requested": True})
+
+@app.route("/requests/<uuid:project_id>")
+async def collaborator_requests(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
+
+    details = await project.get_requests(user["sub"], project_id)
+    if not details:
+        return "Project not found", 404
+
+    with open("..\\src\\requests.html") as html:
+
+        return render_template_string(html.read(), project=details)
+
+@app.route("/projects/<uuid:project_id>/requests/<uuid:user_id>/<any(accept, reject):action>", methods=["POST"])
+async def respond_to_collaborator_request(project_id, user_id, action):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await project.respond_to_request(user["sub"], project_id, user_id, accept=action == "accept"):
+        return "No pending request from that user", 404
+    return jsonify({"status": "accepted" if action == "accept" else "rejected"})
 
 @app.route("/projects/<uuid:project_id>/thumbnail")
 async def project_thumbnail(project_id):

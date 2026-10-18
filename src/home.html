@@ -6,7 +6,8 @@
 
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="View profile" onclick="location.href = '/profile'" />
-  <button onclick="location.href = '/profile'">View profile</button>
+  {# Yellow = a collaborator request was accepted, red = rejected; until they open /profile #}
+  <button id="viewProfile" {% if profile_highlight %}class="{{ profile_highlight }}"{% endif %} onclick="location.href = '/profile'">View profile</button>
   <h1>{{ username }}</h1>
 </div>
 
@@ -114,6 +115,15 @@
     object-fit: cover;
     border-radius: 50%;
     cursor: pointer;
+  }
+
+  /* An answered collaborator request is waiting on /profile */
+  #viewProfile.accepted {
+    background-color: #ffe066;
+  }
+
+  #viewProfile.rejected {
+    background-color: #f28b82;
   }
 
   #underPB {
