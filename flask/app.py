@@ -16,7 +16,7 @@ import profile
 import connection
 import project
 import post
-import quiz
+import likes
 import quests
 import matching
 import party
@@ -79,7 +79,7 @@ async def callback():
         app.logger.warning("Login callback failed", exc_info=True)
         return redirect("/?" + urlencode({"error": "login_failed", "error_description": str(e)}))
 
-    # Keep sending them to /aboutyou, then /quiz, until they've finished both
+    # Keep sending them to /aboutyou until they've submitted the form
     return redirect(step or "/home")
 
 
@@ -311,7 +311,7 @@ async def project_create():
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
     if step := await setup_redirect(user["sub"]):
-        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou first", 403)
 
     if request.method == "POST":
         try:
@@ -337,7 +337,7 @@ async def project_edit(project_id):
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
     if step := await setup_redirect(user["sub"]):
-        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou first", 403)
 
     if request.method == "POST":
         try:
@@ -399,7 +399,7 @@ async def create_post():
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
     if step := await setup_redirect(user["sub"]):
-        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou first", 403)
 
     if request.method == "POST":
         try:
@@ -504,6 +504,18 @@ async def respond_to_collaborator_request(project_id, user_id, action):
         return "No pending request from that user", 404
     return jsonify({"status": "accepted" if action == "accept" else "rejected"})
 
+@app.route("/<any(posts, projects):kind>/<uuid:item_id>/like", methods=["POST", "DELETE"])
+async def like(kind, item_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    # POST likes it, DELETE takes the like back
+    result = await likes.set_like(user["sub"], kind.rstrip("s"), item_id, request.method == "POST")
+    if result is None:
+        return "Not found", 404
+    return jsonify(result)
+
 @app.route("/projects/<uuid:project_id>/thumbnail")
 async def project_thumbnail(project_id):
     user = await auth0().get_user(store_options={"request": request})
@@ -552,32 +564,13 @@ async def about_you():
         finally:
             await conn.close()
 
-        # First time through: back to /aboutyou, which now shows the quiz prompt
-        return redirect("/aboutyou" if await setup_redirect(user["sub"]) else "/home")
+        return redirect("/home")
 
     # Pre-fill whatever they've answered before
     about_you = await get_about_you(user["sub"])
     with open("..\\src\\about_you.html", encoding="utf-8") as html:
 
-        return render_template_string(
-            html.read(),
-            about_you=about_you or {},
-            # Form done but quiz not: show the "very serious" quiz prompt
-            quiz_prompt=setup_step(about_you) == "/quiz",
-        )
-
-@app.route("/quiz", methods=["GET", "POST"])
-async def take_quiz():
-    user = await auth0().get_user(store_options={"request": request})
-    if not user:
-        return redirect("/")
-    step = await setup_redirect(user["sub"])
-    if step != "/quiz":
-        # Not ready for it yet (/aboutyou first), or already done
-        return redirect(step or "/home")
-
-    # The setup "quiz" is now Chomp's Kanban Swamp quest; finishing it sets quiz_completed (see quests.py)
-    return redirect("/quest/gators")
+        return render_template_string(html.read(), about_you=about_you or {})
 
 @app.route("/quest")
 async def quest_start():
@@ -718,11 +711,9 @@ async def register_user(user):
     return await setup_redirect(user["sub"])
 
 def setup_step(about_you):
-    """First-time setup is /aboutyou, then /quiz. Returns the page they still need to finish, or None."""
+    """First-time setup is the /aboutyou form. Returns "/aboutyou" until it's done, then None."""
     if not about_you or not about_you["about_you_completed"]:
         return "/aboutyou"
-    if not about_you["quiz_completed"]:
-        return "/quiz"
     return None
 
 async def setup_redirect(auth0_sub):
@@ -733,7 +724,7 @@ async def get_about_you(auth0_sub):
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT id, display_name, organization, track, about_you_completed, quiz_completed "
+            "SELECT id, display_name, organization, track, about_you_completed "
             "FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:

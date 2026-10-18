@@ -56,7 +56,7 @@ def form(client, teammates, name="The Swamp Squad"):
 
 def test_tavern_needs_the_gators_quest_first(client):
     r = client.get("/tavern")
-    assert r.status_code == 302 and r.headers["Location"].endswith("/quiz")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/quest")
 
 
 def test_tavern_shows_matches_with_reasons(client, no_gemini):

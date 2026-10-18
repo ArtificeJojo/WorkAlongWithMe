@@ -16,6 +16,8 @@
           <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
         {% endif %}
         <h3>{{ project.title }}</h3>
+        {# Heart button (filled in by /js/likes.js) #}
+        <button class="like-button" data-kind="project" data-id="{{ project.id }}" data-liked="{{ project.likes.liked|tojson }}" data-count="{{ project.likes.count }}"></button>
         <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
       </article>
     {% else %}
@@ -31,6 +33,8 @@
     </nav>
   {% endif %}
 </main>
+
+<script src="/js/likes.js"></script>
 
 <style>
   body {
@@ -97,6 +101,10 @@
 
   .project-card h3 {
     margin: 0;
+  }
+
+  .project-card .like-button {
+    align-self: center;
   }
 
   .project-card .thumbnail {

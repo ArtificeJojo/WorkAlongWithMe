@@ -119,21 +119,12 @@ def test_script_json_cannot_break_out_of_a_script_tag():
 
 # ------------------------------------------------------------------ pages and saving
 
-def test_about_you_then_the_quiz_step_opens_the_gators_quest(client):
-    # About you no longer needs a track; the "very serious" pop-up leads to /quiz, which is now Kanban Swamp
+def test_about_you_goes_straight_to_home(client):
+    # About you no longer needs a track, and there's no setup quiz after it: quests are optional from /home
     r = client.post("/aboutyou", data={"username": "__test__", "organization": "UF"})
-    assert r.status_code == 302 and r.headers["Location"].endswith("/aboutyou")
-    assert "very serious" in client.get("/aboutyou").get_data(as_text=True)
-    r = client.get("/quiz")
-    assert r.headers["Location"].endswith("/quest/gators")
-    assert client.get("/quest").headers["Location"].endswith("/quest/gators")
-
-
-def test_finishing_gators_unlocks_home(client):
-    assert client.get("/home").headers["Location"].endswith("/quiz")
-    finish(client, "gators", GATOR_ANSWERS)
+    assert r.status_code == 302 and r.headers["Location"].endswith("/home")
     assert client.get("/home").status_code == 200
-    assert client.get("/quiz").headers["Location"].endswith("/home")  # setup is done
+    assert client.get("/quest").headers["Location"].endswith("/quest/gators")
 
 
 def test_gators_page_renders_with_its_story(client):
