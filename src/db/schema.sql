@@ -114,6 +114,15 @@ CREATE TABLE IF NOT EXISTS project_contributors (
 );
 CREATE INDEX IF NOT EXISTS project_contributors_user ON project_contributors (user_id);
 
+-- Requests to become a collaborator on a project that's on the board (sent from /project/<id>)
+CREATE TABLE IF NOT EXISTS collaborator_requests (
+  project_id    UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  requested_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (project_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS collaborator_requests_user ON collaborator_requests (user_id);
+
 -- Posts from /create_post: up to 250 characters of text and/or one image, shown on /home.
 CREATE TABLE IF NOT EXISTS posts (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

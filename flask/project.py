@@ -359,7 +359,11 @@ async def get_project(auth0_sub, project_id):
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
                    p.created_at, p.board_added_at IS NOT NULL AS on_board,
-                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner
+                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner,
+                   (SELECT c.status FROM project_contributors c
+                    WHERE c.project_id = p.id AND c.user_id = {ME}) AS my_status,
+                   EXISTS (SELECT 1 FROM collaborator_requests r
+                           WHERE r.project_id = p.id AND r.user_id = {ME}) AS requested
             FROM projects p JOIN users o ON o.id = p.owner_id
             WHERE p.id = $2 AND {VISIBLE_TO_ME}
             """,
@@ -393,9 +397,86 @@ async def get_project(auth0_sub, project_id):
         "created_at": row["created_at"],
         "is_owner": row["is_owner"],
         "on_board": row["on_board"],
+        "collaboration": _collaboration_status(row),
         # Visible project = owner not blocked either way, so the owner is always viewable
         "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
         "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],
+    }
+
+
+def _collaboration_status(row):
+    """Where the viewer stands on joining the project, for the "request to collaborate" button:
+    'member', 'invited', 'requested', 'can_request' (it's on the board), or None (owner, or nothing to show)."""
+    if row["is_owner"]:
+        return None
+    if row["my_status"] == "accepted":
+        return "member"
+    if row["my_status"] == "pending":
+        return "invited"
+    if row["requested"]:
+        return "requested"
+    return "can_request" if row["on_board"] else None
+
+
+async def request_to_collaborate(auth0_sub, project_id):
+    """Ask to become a collaborator on a project that's on the board. Returns True if the request
+    was sent (or already had been); False if the project isn't on the board or visible to them,
+    or they already own it, are on the team or have been invited."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        await conn.execute(
+            f"""
+            INSERT INTO collaborator_requests (project_id, user_id)
+            SELECT p.id, {ME} FROM projects p
+            WHERE p.id = $2 AND p.board_added_at IS NOT NULL AND p.owner_id <> {ME} AND {VISIBLE_TO_ME}
+              AND NOT EXISTS (SELECT 1 FROM project_contributors c WHERE c.project_id = p.id AND c.user_id = {ME})
+            ON CONFLICT DO NOTHING
+            """,
+            auth0_sub, project_id,
+        )
+        return await conn.fetchval(
+            f"SELECT EXISTS (SELECT 1 FROM collaborator_requests WHERE project_id = $2 AND user_id = {ME})",
+            auth0_sub, project_id,
+        )
+    finally:
+        await conn.close()
+
+
+BOARD_PER_PAGE = 10
+
+
+async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
+    """One page of the projects on the board, most recently added first. Projects whose owner
+    and the viewer have blocked each other (either way) are left out."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        on_board = f"FROM projects p WHERE p.board_added_at IS NOT NULL AND {VISIBLE_TO_ME}"
+        total = await conn.fetchval(f"SELECT count(*) {on_board}", auth0_sub)
+        pages = max(1, -(-total // per_page))
+        page = min(max(page, 1), pages)
+        rows = await conn.fetch(
+            f"""
+            SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail
+            {on_board}
+            ORDER BY p.board_added_at DESC, p.id
+            LIMIT $2 OFFSET $3
+            """,
+            auth0_sub, per_page, (page - 1) * per_page,
+        )
+    finally:
+        await conn.close()
+
+    return {
+        "page": page,
+        "pages": pages,
+        "projects": [
+            {
+                "id": str(row["id"]),
+                "title": row["title"],
+                "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
+            }
+            for row in rows
+        ],
     }
 
 

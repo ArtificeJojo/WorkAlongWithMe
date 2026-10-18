@@ -4,7 +4,7 @@
 
 <button id="homeButton" onclick="location.href = '/home'">Home</button>
 {% if project.is_owner %}
-  <div id="ownerButtons">
+  <div id="actionButtons">
     <button id="boardButton"></button>
     <button onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
   </div>
@@ -20,6 +20,19 @@
       <button id="boardCancel" class="secondary">Cancel</button>
     </div>
   </dialog>
+{% endif %}
+
+{# Board projects: anyone else can ask to join (button, or where they already stand) #}
+{% if project.collaboration %}
+  <div id="actionButtons">
+    {% if project.collaboration == "can_request" %}
+      <button id="collaborateButton">Request to become a collaborator</button>
+    {% elif project.collaboration == "requested" %}
+      <button disabled>Request sent</button>
+    {% elif project.collaboration == "invited" %}
+      <button onclick="location.href = '/invites'">You've been invited, see your invites</button>
+    {% endif %}
+  </div>
 {% endif %}
 
 <p id="notice" role="status" hidden></p>
@@ -66,6 +79,33 @@
 
   <p class="created">Created {{ project.created_at.strftime("%B %d, %Y") }}</p>
 </main>
+
+{% if project.collaboration == "can_request" %}
+<script>
+  const collaborateButton = document.getElementById("collaborateButton");
+  const notice = document.getElementById("notice");
+
+  const showNotice = (text, kind) => {
+    notice.textContent = text;
+    notice.className = kind;
+    notice.hidden = false;
+  };
+
+  collaborateButton.onclick = async () => {
+    collaborateButton.disabled = true;
+    const response = await fetch(`/projects/${ {{ project.id|tojson }} }/collaborate`, { method: "POST" });
+
+    if (!response.ok) {
+      // e.g. the owner just took it off the board
+      collaborateButton.disabled = false;
+      showNotice("Couldn't send the request. This project may no longer be on the board.", "error");
+      return;
+    }
+    collaborateButton.textContent = "Request sent";
+    showNotice("Your request to become a collaborator was sent to the project's creator.", "success");
+  };
+</script>
+{% endif %}
 
 {% if project.is_owner %}
 <script>
@@ -138,7 +178,7 @@
     left: 20px;
   }
 
-  #ownerButtons {
+  #actionButtons {
     position: absolute;
     top: 20px;
     right: 20px;

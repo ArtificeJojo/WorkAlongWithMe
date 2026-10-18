@@ -22,6 +22,7 @@
 <div id="feedTabs" role="tablist">
   <button role="tab" data-tab="postFeed">Posts</button>
   <button role="tab" data-tab="projectFeed">Projects</button>
+  <button role="tab" data-tab="boardFeed">Board</button>
 </div>
 
 <section id="postFeed" class="feed" role="tabpanel">
@@ -63,8 +64,24 @@
   {% endfor %}
 </section>
 
+<section id="boardFeed" class="feed" role="tabpanel" hidden>
+  <h2>Latest on the board</h2>
+  {% for project in board %}
+    <article class="project-card">
+      {% if project.thumbnail %}
+        <img class="thumbnail" src="{{ project.thumbnail }}" alt="" />
+      {% endif %}
+      <h3>{{ project.title }}</h3>
+      <button onclick="location.href = '/project/{{ project.id }}'">Check out project</button>
+    </article>
+  {% else %}
+    <p class="empty">No projects are on the board yet.</p>
+  {% endfor %}
+  <button onclick="location.href = '/board'">See more</button>
+</section>
+
 <script>
-  // Posts / Projects tabs
+  // Posts / Projects / Board tabs
   const feedTabs = document.querySelectorAll("#feedTabs [role=tab]");
   const showFeed = name => feedTabs.forEach(tab => {
     const selected = tab.dataset.tab === name;

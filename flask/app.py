@@ -138,7 +138,21 @@ async def home():
             organization=about_you["organization"],
             projects=await project.get_feed(user["sub"]),
             posts=await post.get_feed(user["sub"]),
+            # Board tab: the 5 most recently added; "See more" goes to /board
+            board=(await project.get_board(user["sub"], per_page=5))["projects"],
         )
+
+@app.route("/board")
+async def board():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
+
+    with open("..\\src\\board.html") as html:
+
+        return render_template_string(html.read(), board=await project.get_board(user["sub"], request.args.get("page", 1, type=int)))
 
 @app.route("/profile")
 async def view_profile():
@@ -438,6 +452,16 @@ async def project_board(project_id):
     if not await project.set_on_board(user["sub"], project_id, request.method == "POST"):
         return "You can only change the board for your own projects", 404
     return jsonify({"onBoard": request.method == "POST"})
+
+@app.route("/projects/<uuid:project_id>/collaborate", methods=["POST"])
+async def request_to_collaborate(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await project.request_to_collaborate(user["sub"], project_id):
+        return "You can't request to collaborate on this project", 404
+    return jsonify({"requested": True})
 
 @app.route("/projects/<uuid:project_id>/thumbnail")
 async def project_thumbnail(project_id):
