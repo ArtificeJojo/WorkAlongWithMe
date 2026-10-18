@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="UTF-8" />
+<title>Work Along With Me</title>
+
+<h1>The Very Serious Quiz</h1>
+
+{# Questions come from quiz.QUESTIONS; each answer is sent as its index (q0=2, ...) #}
+<form id="quizForm" method="post" action="/quiz" novalidate>
+  {% for question in questions %}
+    {% set q = loop.index0 %}
+    <fieldset id="question{{ q }}" class="question">
+      <legend>{{ loop.index }}. {{ question.question }}</legend>
+      {% for answer in question.answers %}
+        <label>
+          <input type="radio" name="q{{ q }}" value="{{ loop.index0 }}" />
+          {{ answer }}
+        </label>
+      {% endfor %}
+    </fieldset>
+  {% endfor %}
+
+  <p id="formError" role="alert" hidden>Please answer every question.</p>
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+  const form = document.getElementById("quizForm");
+  const questions = [...document.querySelectorAll(".question")];
+  const answered = question => question.querySelector("input:checked") !== null;
+
+  // Unanswered questions: red message + yellow highlight until they're answered
+  form.onsubmit = event => {
+    const missing = questions.filter(question => !answered(question));
+    questions.forEach(question => question.classList.toggle("missing", missing.includes(question)));
+    document.getElementById("formError").hidden = missing.length === 0;
+    if (missing.length) event.preventDefault();
+  };
+
+  questions.forEach(question => question.onchange = () => question.classList.remove("missing"));
+</script>
+
+<style>
+  body {
+    background-image: url('/Images/bg.png');
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+    color: white;
+    margin-top: 60px;
+  }
+
+  #quizForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 560px;
+    margin: 32px auto;
+  }
+
+  .question {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: none;
+    border-radius: 12px;
+  }
+
+  .question legend {
+    float: left;  /* keeps the legend inside the rounded box */
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .question label {
+    cursor: pointer;
+  }
+
+  .missing {
+    background-color: #ffe066;
+  }
+
+  #formError {
+    color: #b00020;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+
+  button {
+    align-self: center;
+    background-color: rgb(107, 204, 236);
+    border-radius: 16px;
+    border: none;
+    padding: 8px 24px;
+    cursor: pointer;
+  }
+</style>

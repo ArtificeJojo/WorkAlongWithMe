@@ -9,13 +9,14 @@ from auth0_server_python.store.abstract import AbstractDataStore
 from flask import Flask, request, redirect, url_for, render_template, render_template_string, after_this_request, jsonify, send_from_directory
 import asyncio
 from markupsafe import escape
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from uuid import UUID
 
 import profile
 import connection
 import project
 import post
+import quiz
 
 load_dotenv()
 app = Flask(__name__)
@@ -41,6 +42,13 @@ def site_image(filename):
 
 @app.route("/login")
 async def login():
+    # The login cookie (_a0_tx) only reaches /callback on the same host, and Auth0 always calls
+    # back to APP_BASE_URL, so start the login there (e.g. if a link still points at an old ngrok URL)
+    # Compare hosts only: behind the Cloudflare tunnel Flask sees http even though visitors use https
+    base_url = env.get("APP_BASE_URL", "").rstrip("/")
+    if request.host != urlparse(base_url).netloc:
+        return redirect(base_url + request.full_path.rstrip("?"))
+
     url = await auth0().start_interactive_login(
         options=StartInteractiveLoginOptions(
             authorization_params=dict(request.args),
@@ -58,14 +66,14 @@ async def callback():
             request.url,
             store_options={"request": request},
         )
-        completed = await register_user(result["state_data"]["user"])
+        step = await register_user(result["state_data"]["user"])
     except Exception as e:
         # Send the error back to index.html, which already displays ?error= params
         app.logger.warning("Login callback failed", exc_info=True)
         return redirect("/?" + urlencode({"error": "login_failed", "error_description": str(e)}))
 
-    # Keep sending them to /aboutyou until they've submitted the form
-    return redirect("/home" if completed else "/aboutyou")
+    # Keep sending them to /aboutyou, then /quiz, until they've finished both
+    return redirect(step or "/home")
 
 
 class CookieStore(AbstractDataStore):
@@ -119,8 +127,8 @@ async def home():
     if not user:
         return redirect("/")
     about_you = await get_about_you(user["sub"])
-    if not about_you or not about_you["about_you_completed"]:
-        return redirect("/aboutyou")
+    if step := setup_step(about_you):
+        return redirect(step)
 
     with open("..\\src\\home.html") as html:
 
@@ -138,8 +146,8 @@ async def view_profile():
     if not user:
         return redirect("/")
     about_you = await get_about_you(user["sub"])
-    if not about_you or not about_you["about_you_completed"]:
-        return redirect("/aboutyou")
+    if step := setup_step(about_you):
+        return redirect(step)
 
     with open("..\\src\\profile.html") as html:
 
@@ -156,8 +164,8 @@ async def connections():
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/")
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
 
     with open("..\\src\\connections.html") as html:
 
@@ -276,8 +284,8 @@ async def project_create():
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
 
     if request.method == "POST":
         try:
@@ -302,8 +310,8 @@ async def project_edit(project_id):
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
 
     if request.method == "POST":
         try:
@@ -348,8 +356,8 @@ async def view_project(project_id):
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/")
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
 
     details = await project.get_project(user["sub"], project_id)
     if not details:
@@ -364,8 +372,8 @@ async def create_post():
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/") if request.method == "GET" else ("Not logged in", 401)
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou") if request.method == "GET" else ("Finish /aboutyou first", 403)
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step) if request.method == "GET" else ("Finish /aboutyou and /quiz first", 403)
 
     if request.method == "POST":
         try:
@@ -394,8 +402,8 @@ async def invites():
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/")
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
 
     with open("..\\src\\invites.html") as html:
 
@@ -420,6 +428,17 @@ async def respond_to_project_invite(project_id, action):
         return "No pending invite to that project", 404
     return jsonify({"title": title})
 
+@app.route("/projects/<uuid:project_id>/board", methods=["POST", "DELETE"])
+async def project_board(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    # POST puts the project on the board, DELETE takes it off
+    if not await project.set_on_board(user["sub"], project_id, request.method == "POST"):
+        return "You can only change the board for your own projects", 404
+    return jsonify({"onBoard": request.method == "POST"})
+
 @app.route("/projects/<uuid:project_id>/thumbnail")
 async def project_thumbnail(project_id):
     user = await auth0().get_user(store_options={"request": request})
@@ -433,8 +452,8 @@ async def view_other_profile(user_id):
     user = await auth0().get_user(store_options={"request": request})
     if not user:
         return redirect("/")
-    if not await about_you_completed(user["sub"]):
-        return redirect("/aboutyou")
+    if step := await setup_redirect(user["sub"]):
+        return redirect(step)
 
     other = await connection.get_user_profile(user["sub"], user_id)
     if not other:
@@ -469,17 +488,43 @@ async def about_you():
         finally:
             await conn.close()
 
-        return redirect("/home")
+        # First time through: back to /aboutyou, which now shows the quiz prompt
+        return redirect("/aboutyou" if await setup_redirect(user["sub"]) else "/home")
 
     # Pre-fill whatever they've answered before
     about_you = await get_about_you(user["sub"])
     with open("..\\src\\about_you.html") as html:
 
-        return render_template_string(html.read(), about_you=about_you or {})
+        return render_template_string(
+            html.read(),
+            about_you=about_you or {},
+            # Form done but quiz not: show the "very serious" quiz prompt
+            quiz_prompt=setup_step(about_you) == "/quiz",
+        )
+
+@app.route("/quiz", methods=["GET", "POST"])
+async def take_quiz():
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return redirect("/")
+    step = await setup_redirect(user["sub"])
+    if step != "/quiz":
+        # Not ready for it yet (/aboutyou first), or already done
+        return redirect(step or "/home")
+
+    if request.method == "POST":
+        if quiz.parse_answers(request.form) is None:
+            return redirect("/quiz")
+        await quiz.complete_quiz(user["sub"])
+        return redirect("/home")
+
+    with open("..\\src\\quiz.html") as html:
+
+        return render_template_string(html.read(), questions=quiz.QUESTIONS)
 
 async def register_user(user):
     """Create a users row for this Auth0 account if there isn't one yet.
-    Returns whether they've completed the /aboutyou form."""
+    Returns where to send them to finish setup (see setup_step), or None if they're done."""
     display_name = user.get("name") or user.get("nickname") or user.get("email") or user["sub"]
 
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
@@ -492,18 +537,26 @@ async def register_user(user):
     finally:
         await conn.close()
 
-    return await about_you_completed(user["sub"])
+    return await setup_redirect(user["sub"])
 
-async def about_you_completed(auth0_sub):
-    about_you = await get_about_you(auth0_sub)
-    return bool(about_you and about_you["about_you_completed"])
+def setup_step(about_you):
+    """First-time setup is /aboutyou, then /quiz. Returns the page they still need to finish, or None."""
+    if not about_you or not about_you["about_you_completed"]:
+        return "/aboutyou"
+    if not about_you["quiz_completed"]:
+        return "/quiz"
+    return None
+
+async def setup_redirect(auth0_sub):
+    return setup_step(await get_about_you(auth0_sub))
 
 async def get_about_you(auth0_sub):
-    """Returns the user's /aboutyou answers and completion flag, or None if they have no row."""
+    """Returns the user's /aboutyou answers and setup flags, or None if they have no row."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT id, display_name, organization, track, about_you_completed FROM users WHERE auth0_sub = $1", auth0_sub,
+            "SELECT id, display_name, organization, track, about_you_completed, quiz_completed "
+            "FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:
         await conn.close()

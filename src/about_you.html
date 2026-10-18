@@ -39,6 +39,21 @@
   showDescription();
 </script>
 
+{% if quiz_prompt %}
+  {# Shown once the form is submitted; the only way forward is the quiz #}
+  <dialog id="quizPrompt">
+    <h2>One more thing...</h2>
+    <p>Before you can continue, you must take a <strong>"very serious"</strong> quiz.</p>
+    <button onclick="location.href = '/quiz'">I accept</button>
+  </dialog>
+
+  <script>
+    const quizPrompt = document.getElementById("quizPrompt");
+    quizPrompt.oncancel = event => event.preventDefault();  // Escape can't dismiss it
+    quizPrompt.showModal();
+  </script>
+{% endif %}
+
 <style>
   body{
     background-image: url('/Images/bg.png');
@@ -64,5 +79,23 @@
   #trackDescription {
     text-align: center;
     margin-top: 24px;
+  }
+
+  #quizPrompt {
+    border: none;
+    border-radius: 16px;
+    padding: 24px 32px;
+    text-align: center;
+  }
+
+  #quizPrompt::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  #quizPrompt button {
+    background-color: rgb(107, 204, 236);
+    border: none;
+    padding: 8px 20px;
+    cursor: pointer;
   }
 </style>
