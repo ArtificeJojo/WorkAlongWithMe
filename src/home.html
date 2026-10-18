@@ -57,8 +57,12 @@
 
 <section id="postFeed" class="feed" role="tabpanel">
   <h2>Latest posts</h2>
+  <p id="postNotice" role="status" hidden></p>
   {% for post in posts %}
-    <article class="post-card">
+    <article class="post-card" data-post-id="{{ post.id }}">
+      {% if post.is_mine %}
+        <button class="delete-post" title="Delete this post">Delete</button>
+      {% endif %}
       {# Author links to their profile (your own goes to /profile) #}
       <a class="author" href="/friend/{{ post.author.id }}">
         <img class="author-picture" src="{{ post.author.picture }}" alt="" />
@@ -75,10 +79,19 @@
         <a class="post-project" href="/project/{{ post.project.id }}">Project: {{ post.project.title }}</a>
       {% endif %}
     </article>
-  {% else %}
-    <p class="empty">No posts from you, your friends or your teammates yet.</p>
   {% endfor %}
+  <p id="noPosts" class="empty" {% if posts %}hidden{% endif %}>No posts from you, your friends or your teammates yet.</p>
 </section>
+
+{# One warning before deleting a post #}
+<dialog id="deletePostDialog">
+  <h2>Delete this post?</h2>
+  <p>It will be removed for everyone, along with its likes. This can't be undone.</p>
+  <div class="dialog-buttons">
+    <button id="deletePostConfirm" class="danger">Delete post</button>
+    <button id="deletePostCancel" class="secondary">Cancel</button>
+  </div>
+</dialog>
 
 <section id="projectFeed" class="feed" role="tabpanel" hidden>
   <h2>Latest projects from your friends and teammates</h2>
@@ -125,6 +138,37 @@
   });
   feedTabs.forEach(tab => tab.onclick = () => showFeed(tab.dataset.tab));
   showFeed("postFeed");
+
+  // Deleting your own posts, after one warning
+  const deletePostDialog = document.getElementById("deletePostDialog");
+  const postNotice = document.getElementById("postNotice");
+  let postToDelete = null;
+
+  const showPostNotice = (text, kind) => {
+    postNotice.textContent = text;
+    postNotice.className = kind;
+    postNotice.hidden = false;
+  };
+
+  document.querySelectorAll(".delete-post").forEach(button => button.onclick = () => {
+    postToDelete = button.closest(".post-card");
+    deletePostDialog.showModal();
+  });
+
+  document.getElementById("deletePostCancel").onclick = () => deletePostDialog.close();
+
+  document.getElementById("deletePostConfirm").onclick = async () => {
+    deletePostDialog.close();
+    const response = await fetch(`/posts/${postToDelete.dataset.postId}`, { method: "DELETE" });
+    // 404 = already deleted (e.g. in another tab), so it's gone either way
+    if (!response.ok && response.status !== 404) {
+      showPostNotice("Couldn't delete the post. Please try again.", "error");
+      return;
+    }
+    postToDelete.remove();
+    showPostNotice("Your post was deleted.", "success");
+    document.getElementById("noPosts").hidden = document.querySelector(".post-card") !== null;
+  };
 </script>
 
 <style>
@@ -221,6 +265,79 @@
     padding: 12px;
     background-color: rgba(255, 255, 255, 0.4);
     border-radius: 12px;
+  }
+
+  /* Room for the Delete button in the top-right corner of your own posts */
+  .post-card {
+    position: relative;
+  }
+
+  .post-card .delete-post {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 10px;
+    border: none;
+    background-color: #e05561;
+    color: white;
+    cursor: pointer;
+  }
+
+  button.danger {
+    background-color: #e05561;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    background-color: #ddd;
+    border: none;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  #deletePostDialog {
+    max-width: 420px;
+    border: none;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+
+  #deletePostDialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* The page's white headings would be invisible on the dialog's white background */
+  #deletePostDialog h2, #deletePostDialog p {
+    color: #222;
+    margin-top: 0;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  #postNotice {
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    box-sizing: border-box;
+  }
+
+  #postNotice.success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  #postNotice.error {
+    background-color: #f8d7da;
+    color: #b00020;
   }
 
   .post-card .author {

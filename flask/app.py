@@ -183,6 +183,8 @@ async def view_profile():
             has_invites=await project.has_pending_invites(user["sub"]),
             # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
             request_updates=await project.take_request_updates(user["sub"]),
+            # Projects they were on that the creator deleted, shown once
+            deleted_projects=await project.take_deletion_notices(user["sub"]),
         )
 
 @app.route("/connections")
@@ -415,6 +417,16 @@ async def create_post():
 
         return render_template_string(html.read(), projects=await post.get_linkable_projects(user["sub"]))
 
+@app.route("/posts/<uuid:post_id>", methods=["DELETE"])
+async def delete_post(post_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await post.delete_post(user["sub"], post_id):
+        return "You can only delete your own posts", 404
+    return jsonify({"deleted": True})
+
 @app.route("/posts/<uuid:post_id>/image")
 async def post_image(post_id):
     user = await auth0().get_user(store_options={"request": request})
@@ -464,6 +476,19 @@ async def project_board(project_id):
     if not await project.set_on_board(user["sub"], project_id, request.method == "POST"):
         return "You can only change the board for your own projects", 404
     return jsonify({"onBoard": request.method == "POST"})
+
+@app.route("/projects/<uuid:project_id>", methods=["DELETE"])
+async def delete_project(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    result = await project.delete_project(user["sub"], project_id)
+    if result == "on_board":
+        return "Take the project off the board before deleting it", 409
+    if not result:
+        return "You can only delete your own projects", 404
+    return jsonify({"deleted": True})
 
 @app.route("/projects/<uuid:project_id>/collaborate", methods=["POST"])
 async def request_to_collaborate(project_id):

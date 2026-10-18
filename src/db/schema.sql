@@ -152,6 +152,15 @@ CREATE TABLE IF NOT EXISTS project_likes (
   PRIMARY KEY (project_id, user_id)
 );
 
+-- "<title> was deleted" messages for a deleted project's contributors; removed once shown on /profile
+CREATE TABLE IF NOT EXISTS deleted_project_notices (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_title  TEXT NOT NULL,
+  deleted_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS deleted_project_notices_user ON deleted_project_notices (user_id);
+
 -- Groups formed in the Party Camp, plus the Gemini-written team guide.
 CREATE TABLE IF NOT EXISTS groups (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

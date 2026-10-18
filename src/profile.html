@@ -18,6 +18,11 @@
 
 <div class="screen-frame"></div>
 
+{# Projects you were on that their creator deleted since you last came here (each shown once) #}
+{% for title in deleted_projects %}
+  <p class="request-update rejected">The project "{{ title }}" was deleted by its creator.</p>
+{% endfor %}
+
 {# Answers to your collaborator requests since you last came here (each shown once) #}
 {% for update in request_updates %}
   {% if update.status == "rejected" %}
