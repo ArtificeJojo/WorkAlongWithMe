@@ -20,6 +20,7 @@ import likes
 import quests
 import matching
 import party
+import skills
 
 load_dotenv()
 app = Flask(__name__)
@@ -185,6 +186,7 @@ async def view_profile():
             html.read(),
             username=about_you["display_name"],
             user_id=str(about_you["id"]),
+            skills=about_you["skills"],
             has_custom_picture=await profile.has_custom_profile_picture(user["sub"]),
             has_invites=await project.has_pending_invites(user["sub"]),
             # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
@@ -582,15 +584,16 @@ async def about_you():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         organization = request.form.get("organization", "").strip()
-        if not username or not organization:
+        technical_skills = skills.clean(request.form.getlist("skills"))
+        if not username or not organization or not technical_skills:
             return redirect("/aboutyou")
 
         conn = await asyncpg.connect(env.get("DATABASE_URL"))
         try:
             await conn.execute(
-                "UPDATE users SET display_name = $1, organization = $2, about_you_completed = TRUE "
-                "WHERE auth0_sub = $3",
-                username, organization, user["sub"],
+                "UPDATE users SET display_name = $1, organization = $2, skills = $3, about_you_completed = TRUE "
+                "WHERE auth0_sub = $4",
+                username, organization, technical_skills, user["sub"],
             )
         finally:
             await conn.close()
@@ -601,7 +604,10 @@ async def about_you():
     about_you = await get_about_you(user["sub"])
     with open("..\\src\\about_you.html", encoding="utf-8") as html:
 
-        return render_template_string(html.read(), about_you=about_you or {})
+        return render_template_string(
+            html.read(), about_you=about_you or {},
+            skill_suggestions=skills.suggestions(), max_skills=skills.MAX_SKILLS, max_skill_length=skills.MAX_LENGTH,
+        )
 
 @app.route("/quest")
 async def quest_start():
@@ -619,9 +625,8 @@ async def quest_page(quest_id):
     if not user:
         return redirect("/")
     # Quests are part of setup, so only /aboutyou has to be done first
-    about_you = await get_about_you(user["sub"])
-    if not about_you or not about_you["about_you_completed"]:
-        return redirect("/aboutyou")
+    if step := setup_step(await get_about_you(user["sub"])):
+        return redirect(step)
     if quest_id not in quests.QUESTS:
         return "Quest not found", 404
 
@@ -770,8 +775,9 @@ async def register_user(user):
     return await setup_redirect(user["sub"])
 
 def setup_step(about_you):
-    """First-time setup is the /aboutyou form. Returns "/aboutyou" until it's done, then None."""
-    if not about_you or not about_you["about_you_completed"]:
+    """First-time setup is the /aboutyou form, including at least one technical skill
+    (users who finished it before skills were added go back once). Returns "/aboutyou" until it's done, then None."""
+    if not about_you or not about_you["about_you_completed"] or not about_you["skills"]:
         return "/aboutyou"
     return None
 
@@ -783,7 +789,7 @@ async def get_about_you(auth0_sub):
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         return await conn.fetchrow(
-            "SELECT id, display_name, organization, track, about_you_completed "
+            "SELECT id, display_name, organization, track, about_you_completed, skills "
             "FROM users WHERE auth0_sub = $1", auth0_sub,
         )
     finally:

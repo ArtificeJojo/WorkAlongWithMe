@@ -62,7 +62,8 @@ def client(monkeypatch):
     monkeypatch.setattr(builtins, "open", _open)
     run(_sql("DELETE FROM users WHERE display_name = '__test__'"))
     run(_sql(
-        "INSERT INTO users (display_name, auth0_sub, organization, about_you_completed) VALUES ('__test__', $1, 'UF', TRUE)",
+        "INSERT INTO users (display_name, auth0_sub, organization, about_you_completed, skills) "
+        "VALUES ('__test__', $1, 'UF', TRUE, ARRAY['Python'])",
         SUB,
     ))
     monkeypatch.setattr(app_module, "auth0", lambda: FakeAuth0(SUB))
@@ -121,10 +122,28 @@ def test_script_json_cannot_break_out_of_a_script_tag():
 
 def test_about_you_goes_straight_to_home(client):
     # About you no longer needs a track, and there's no setup quiz after it: quests are optional from /home
-    r = client.post("/aboutyou", data={"username": "__test__", "organization": "UF"})
+    r = client.post("/aboutyou", data={"username": "__test__", "organization": "UF", "skills": ["Python"]})
     assert r.status_code == 302 and r.headers["Location"].endswith("/home")
     assert client.get("/home").status_code == 200
     assert client.get("/quest").headers["Location"].endswith("/quest/gators")
+
+
+def test_home_needs_at_least_one_skill(client):
+    run(_sql("UPDATE users SET skills = '{}' WHERE auth0_sub = $1", SUB))
+    assert client.get("/home").headers["Location"].endswith("/aboutyou")
+    assert client.get("/quest/gators").headers["Location"].endswith("/aboutyou")
+    # Submitting without skills stays on /aboutyou
+    r = client.post("/aboutyou", data={"username": "__test__", "organization": "UF"})
+    assert r.headers["Location"].endswith("/aboutyou")
+    # Blanks and repeats are dropped, and only the first 5 are kept
+    r = client.post("/aboutyou", data={
+        "username": "__test__", "organization": "UF",
+        "skills": [" SQL ", "", "sql", "Go", "Rust", "C", "Java", "Ruby"],
+    })
+    assert r.headers["Location"].endswith("/home")
+    saved = run(_sql("SELECT skills FROM users WHERE auth0_sub = $1", SUB, fetch=True))[0]["skills"]
+    assert saved == ["SQL", "Go", "Rust", "C", "Java"]
+    assert client.get("/home").status_code == 200
 
 
 def test_gators_page_renders_with_its_story(client):

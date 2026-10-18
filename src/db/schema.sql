@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   organization         TEXT,
   track                TEXT CHECK (track IN ('gators', 'turtle')),
   about_you_completed  BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 1 to 5 technical skills from /aboutyou; /home also needs at least one
+  skills               TEXT[] NOT NULL DEFAULT '{}',
   -- Uploaded file in uploads/profile_pictures/ (Flask); NULL = default assets/donkey.jpg.
   -- Separate from avatar, which is the quest hero's animal (e.g. 'fox').
   profile_picture      TEXT,
