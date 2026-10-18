@@ -48,6 +48,11 @@ def site_script(filename):
     # Shared page scripts (e.g. pixel.js, the animated pixel characters)
     return send_from_directory(profile.ROOT / "src" / "js", filename)
 
+@app.route("/audio/<path:filename>")
+def voice_clip(filename):
+    # Character voice clips (recorded once by make_voices.py)
+    return send_from_directory(profile.ROOT / "src" / "audio", filename)
+
 @app.route("/favicon.ico")
 def favicon():
     # Every page links here; browsers also ask for it on pages without a <link rel="icon">, e.g. plain-text error pages.
@@ -869,4 +874,4 @@ def auth0():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run()

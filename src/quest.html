@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Work Along With Me: Quest</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet" />
 
 
-<script src="/js/pixel.js?v=4"></script>
+<script src="/js/pixel.js?v=7"></script>
 <script src="/js/sfx.js?v=4"></script>
+<script src="/js/music.js?v=5"></script>
 <style>
   /* Same colours as the rest of the site; only the scenery behind is the quest's own */
   :root {
@@ -35,11 +37,11 @@
   @keyframes drift { from { transform: translateX(-60px) } to { transform: translateX(380px) } }
   .fly { animation: flit 5s ease-in-out infinite; }
   /* Floating code blocks (swamp) and message bottles (pond): they sink away as the journey goes on */
-  .float { animation: bob 2.4s ease-in-out infinite; transition: opacity 1.2s ease, transform 1.2s ease; }
+  .float { animation: bob 2.4s steps(2) infinite; transition: opacity 1.2s steps(6), transform 1.2s steps(6); }
   .float:nth-child(2n) { animation-duration: 3s; animation-delay: .4s; }
   .float:nth-child(3n) { animation-duration: 2.7s; animation-delay: .9s; }
-  .float.sunk { opacity: 0; animation: none; transform: translateY(8px); }
-  @keyframes bob { 0%,100% { transform: translateY(0) rotate(0) } 30% { transform: translateY(1.4px) rotate(1.5deg) } 70% { transform: translateY(-.6px) rotate(-1.5deg) } }
+  .float.sunk { opacity: 0; animation: none; transform: translateY(6px); }
+  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(1px) } }
   @keyframes flit { 0%,100% { transform: translate(0,0) } 30% { transform: translate(18px,-8px) } 60% { transform: translate(-10px,-14px) } }
 
   /* ---------- layout ---------- */
@@ -65,10 +67,10 @@
   /* stage: the character lives here, standing in the world */
   .stage { position: relative; flex: 1 1 auto; min-height: clamp(190px, 34vh, 340px); }
   #actor { position: absolute; left: 3%; bottom: -6px; transform-origin: 50% 100%; }
-  #actor.submerged { transform: translateY(115%); }
+  #actor.submerged { transform: translateY(115%); opacity: 0; }
   #actor.leap { animation: leap 1.2s cubic-bezier(.25,.7,.35,1) forwards; }
   /* squash and stretch: stretched tall on the way up, squashed flat on landing */
-  @keyframes leap { 0% { transform: translateY(115%) scale(.85,1.2) } 38% { transform: translateY(-30%) scale(.9,1.14) rotate(-6deg) } 55% { transform: translateY(-36%) scale(1,1) rotate(2deg) } 76% { transform: translateY(0) scale(1.18,.82) rotate(0) } 88% { transform: translateY(-5%) scale(.95,1.06) } 100% { transform: translateY(0) scale(1,1) } }
+  @keyframes leap { 0% { transform: translateY(115%) scale(.85,1.2); opacity: 0 } 12% { opacity: 1 } 38% { transform: translateY(-30%) scale(.9,1.14) rotate(-6deg) } 55% { transform: translateY(-36%) scale(1,1) rotate(2deg) } 76% { transform: translateY(0) scale(1.18,.82) rotate(0) } 88% { transform: translateY(-5%) scale(.95,1.06) } 100% { transform: translateY(0) scale(1,1) } }
   #actor.offstage { transform: translateX(160%); }
   #actor.swimin { animation: swimin 2.6s cubic-bezier(.3,.6,.4,1) forwards; }
   @keyframes swimin { 0% { transform: translateX(160%) translateY(0) rotate(0) } 20% { transform: translateX(118%) translateY(-4%) rotate(-3deg) } 40% { transform: translateX(76%) translateY(0) rotate(2deg) } 60% { transform: translateX(38%) translateY(-4%) rotate(-3deg) } 80% { transform: translateX(10%) translateY(0) rotate(1deg) } 92% { transform: translateX(-2%) scale(1.04,.96) } 100% { transform: translateX(0) translateY(0) scale(1,1) } }
@@ -92,6 +94,215 @@
   .line.karaoke .w { color: #8a8798; transition: color .15s; }
   .line.karaoke .w.said { color: var(--ink); }
   .line.karaoke .w.now { color: var(--ink); background: #fff1a8; border-radius: 6px; box-shadow: 0 0 0 3px #fff1a8; }
+  /* MEGA-BUG's villain moment */
+  #world svg { transition: filter 1s ease; }
+  body.boss #world svg { filter: brightness(.55) saturate(1.4) hue-rotate(-25deg); }
+  body.boss #world::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 75% 60%, rgba(200, 60, 220, .25), rgba(30, 0, 40, .55) 70%); animation: bosspulse 2.4s ease-in-out infinite; }
+  @keyframes bosspulse { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+  .name-tag.evil { background: #7a1f8f; transform: rotate(3deg) scale(1.08); }
+  .btn.evil { background: #b14fc5; color: #fff; font-weight: bold; }
+  #prop.bossrise { animation: bossrise 1.1s cubic-bezier(.2,.8,.3,1.2) both; }
+  @keyframes bossrise { 0% { transform: translateY(120%) scale(.8,1.2) } 70% { transform: translateY(-8%) scale(1.08,.94) } 100% { transform: none } }
+  #prop.taunt .px-char { animation: taunt .6s ease-in-out 2; }
+  @keyframes taunt { 0%,100% { transform: scale(1) } 30% { transform: scale(1.12) rotate(-4deg) } 60% { transform: scale(1.08) rotate(4deg) } }
+  #actor.scared .px-char { animation: scared .18s linear infinite !important; }
+  @keyframes scared { 0%,100% { transform: translateX(0) } 50% { transform: translateX(-3px) } }
+  .name-tag, .scene-title { font-family: "Silkscreen", "Courier New", monospace; }
+  .name-tag { border-radius: 2px !important; box-shadow: 3px 3px 0 rgba(0,0,0,.35); }
+  /* ---------- story cutscenes in the middle of the stage ---------- */
+  #vis { position: absolute; left: 50%; bottom: 0; width: min(46vw, 400px); height: 100%; transform: translateX(-46%); transform-origin: 50% 100%; pointer-events: none; z-index: 1; }
+  @media (max-width: 700px) { #vis { transform: translateX(-40%) scale(.62); } }
+  #vis .pc { position: absolute; }
+  #vis svg { display: block; image-rendering: pixelated; }
+  #vis.show .pop-in { animation: v-pop .5s steps(5) both; }
+  #vis .drop-in { animation: v-drop .5s steps(5) both; }
+  @keyframes v-pop { 0% { transform: scale(0); opacity: 0 } 70% { transform: scale(1.15); opacity: 1 } 100% { transform: scale(1); opacity: 1 } }
+  @keyframes v-drop { 0% { transform: translateY(-120px); opacity: 0 } 80% { transform: translateY(6px); opacity: 1 } 100% { transform: none; opacity: 1 } }
+  .hammering { transform-origin: 80% 90%; animation: v-hammer .4s steps(2) infinite; }
+  @keyframes v-hammer { 0%,100% { transform: rotate(-35deg) } 50% { transform: rotate(10deg) } }
+  .paint { width: 14px; height: 40px; transform-origin: top; animation: v-paint .4s steps(4) both; }
+  @keyframes v-paint { from { transform: scaleY(0) } to { transform: scaleY(1) } }
+  .brushing { animation: v-brush 1.4s steps(7) infinite; }
+  @keyframes v-brush { 0%,100% { transform: translateX(0) } 50% { transform: translateX(110px) } }
+  .scanning { animation: v-scan 1.6s steps(8) infinite; }
+  @keyframes v-scan { 0%,100% { transform: translate(0,0) } 33% { transform: translate(40px,-14px) } 66% { transform: translate(20px,10px) } }
+  .pulse { animation: v-pulse .6s steps(3) infinite; }
+  @keyframes v-pulse { 0%,100% { opacity: .2; transform: scale(.7) } 50% { opacity: 1; transform: scale(1.1) } }
+  .wave-flag { animation: v-flag .5s steps(2) infinite; transform-origin: 0 100%; }
+  @keyframes v-flag { 50% { transform: skewY(-6deg) } }
+  .follow { animation: v-follow 1s steps(4) infinite; }
+  @keyframes v-follow { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+  .sail { position: absolute; inset: 0; animation: v-sail 2s steps(16) both; }
+  @keyframes v-sail { 0% { transform: translateX(-130%) } 80% { transform: translateX(4%) } 100% { transform: none } }
+  .sail.docked { animation: v-bob 1.6s steps(2) infinite; }
+  @keyframes v-bob { 50% { transform: translateY(3px) } }
+  .unroll { transform-origin: left; animation: v-unroll .8s steps(8) both; }
+  @keyframes v-unroll { from { transform: scaleX(.1) } to { transform: scaleX(1) } }
+  .water-gap { position: absolute; left: 14%; right: 14%; bottom: 0; height: 22%; background: repeating-linear-gradient(90deg, #4a6aa0 0 8px, #3f5d90 8px 16px); }
+  .countdown { font: bold 42px "Silkscreen", monospace; color: #fff; text-shadow: 3px 3px 0 #1b1f1a; }
+  .flash-in { animation: v-flash .5s steps(3) both; }
+  @keyframes v-flash { 0% { opacity: 0; filter: brightness(3) } 100% { opacity: 1; filter: none } }
+  .swing-in { transform-origin: left top; animation: v-swing 1.2s steps(8) both; }
+  @keyframes v-swing { 0% { transform: rotate(80deg) } 70% { transform: rotate(-8deg) } 100% { transform: none } }
+  .gate-door { transition: transform 1.2s steps(8); }
+  .gate-door.open { transform: translateY(-70%); }
+  .gate-door svg { width: 70px; height: 80px; }
+  .hint-note { background: #fff4d6; border: 3px solid #1b1f1a; padding: 4px 8px; font: 12px "Silkscreen", monospace; max-width: 150px; box-shadow: 3px 3px 0 #1b1f1a; }
+  .hint-diagram, .hint-demo { background: rgba(255,255,255,.92); border: 3px solid #1b1f1a; padding: 2px 8px; font-size: 20px; white-space: nowrap; }
+  .hint-diagram span { color: #e64980; } .hint-diagram span:nth-child(2n) { color: #4c6ef5; }
+  .hint-demo span { display: inline-block; animation: v-tap .5s steps(2) both; }
+  @keyframes v-tap { 0% { transform: scale(.4); opacity: .2 } 100% { transform: scale(1.2); opacity: 1; color: #e64980 } }
+  .hatch { animation: v-hatch .6s steps(3) .4s both; }
+  @keyframes v-hatch { to { transform: translateX(70px) } }
+  .rocket-up { animation: v-launch 2.6s steps(20) .9s both; }
+  @keyframes v-launch { 0% { transform: translateY(0) } 15% { transform: translateY(-40px) } 100% { transform: translateY(-110vh) } }
+  .rocket-up .flame { margin-left: 18px; animation: flick .1s steps(2) infinite; }
+  .puff { animation: v-puff 1.6s steps(8) both; }
+  @keyframes v-puff { 0% { transform: scale(.3); opacity: 0 } 30% { opacity: 1 } 100% { transform: scale(2) translateY(-30px); opacity: 0 } }
+  .app { width: min(42vw, 320px); background: #fffbea; border: 4px solid #1b1f1a; box-shadow: 4px 4px 0 #1b1f1a; font-size: 12px; color: #222; }
+  .app-bar { background: #2f9e44; color: #fff; font: 13px "Silkscreen", monospace; padding: 4px 8px; }
+  .app-post { display: flex; gap: 6px; align-items: center; padding: 5px 8px; border-top: 2px solid #e9e1c6; animation: v-pop .4s steps(4) both; }
+  .app-post span { flex: 1; } .app-post em { font-style: normal; font-weight: bold; }
+  .app-post.a1 { animation-delay: .4s } .app-post.a2 { animation-delay: 1.4s } .app-post.a3 { animation-delay: 2.6s; background: #d3f9d8 }
+  .heart { color: #e03131; animation: v-pulse .8s steps(3) 1s infinite; }
+  .join { background: #ffd43b; padding: 1px 5px; border: 2px solid #1b1f1a; }
+  /* MEGA-BUG gobbling, getting zapped, and running away */
+  .gobbled { animation: v-gobble 1.2s steps(8) both; }
+  @keyframes v-gobble { 0% { transform: none; opacity: 1 } 90% { opacity: 1 } 100% { transform: translateX(min(40vw, 320px)) scale(.2) rotate(180deg); opacity: 0 } }
+  #prop { transition: transform .8s steps(6); transform-origin: 50% 100%; }
+  #prop.gorged { transform: scale(1.3); }
+  #prop.zapped .px-char { animation: v-zap .12s steps(2) infinite !important; filter: brightness(2.2) saturate(.3); }
+  @keyframes v-zap { 50% { transform: translateX(-6px) } }
+  #prop.runaway { transform: translateX(160%); transition: transform 1.6s steps(12); }
+  .beam { position: absolute; bottom: 30%; height: 22px; right: 12%; transform-origin: left; animation: v-beam 1s steps(6) both;
+          background: repeating-linear-gradient(90deg, #fff3bf 0 8px, #66d9e8 8px 16px, #fff 16px 24px); border: 3px solid #1b1f1a; box-shadow: 0 0 18px #66d9e8; z-index: 2; }
+  @keyframes v-beam { 0% { transform: scaleX(0) } 40% { transform: scaleX(1) } 80% { opacity: 1 } 100% { transform: scaleX(1); opacity: 0 } }
+  .scissors { position: absolute; left: 20%; top: 20%; z-index: 2; animation: v-snip 1.2s steps(6) both; }
+  .scissors svg { width: 84px; height: 84px; image-rendering: pixelated; }
+  @keyframes v-snip { 0% { transform: translate(-80px,-60px) rotate(-30deg); opacity: 0 } 30% { opacity: 1 } 50% { transform: translate(0,0) rotate(0) } 65% { transform: rotate(-20deg) } 80% { transform: rotate(0) } 100% { transform: translate(60px,40px) rotate(20deg); opacity: 0 } }
+  .sweat { position: absolute; top: 4%; animation: v-sweat .9s steps(4) infinite; }
+  .sweat svg { width: 16px; height: 22px; }
+  @keyframes v-sweat { 0% { transform: translateY(0); opacity: 1 } 100% { transform: translateY(30px); opacity: 0 } }
+  /* the gate puzzle in the dialogue box */
+  .puzzle { margin-top: 12px; padding: 10px 12px; border: 2px dashed #868e96; border-radius: 10px; }
+  .puzzle-q { margin: 0 0 8px; } .pattern { font-size: 1.4rem; letter-spacing: .25em; }
+  .puzzle-a { display: flex; gap: 8px; flex-wrap: wrap; }
+  .puzzle-a .btn.right { background: #8ce99a; }
+  body.calm #vis *, body.calm .beam, body.calm .scissors { animation: none !important; }
+  /* Chomp's lily pad */
+  #pad { position: absolute; left: calc(3% - 2%); bottom: -18px; z-index: 0; animation: padbob 2.4s steps(2) infinite; }
+  #pad svg { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  #pad.land { animation: padland .5s steps(5); }
+  @keyframes padbob { 50% { transform: translateY(2px) } }
+  @keyframes padland { 0% { transform: scale(1,1) } 30% { transform: scale(1.12,.6) translateY(6px) } 70% { transform: scale(.96,1.1) } 100% { transform: none } }
+  #actor { z-index: 1; }
+  /* Ping Pond scenes */
+  .bubble { display: inline-block; background: #fff; border: 3px solid #1b1f1a; padding: 2px 8px; font: 12px "Silkscreen", monospace; color: #1b1f1a; white-space: nowrap; box-shadow: 3px 3px 0 #1b1f1a; }
+  .bubble.loud { background: #ffe3e3; } .bubble.calm { background: #d3f9d8; } .bubble.whisper { font-size: 10px; opacity: .85; font-style: italic; }
+  .jumble { animation: v-jumble .6s steps(3) infinite; }
+  @keyframes v-jumble { 0%,100% { transform: rotate(-12deg) } 50% { transform: rotate(12deg) translateY(-6px) } }
+  .slide-right { animation: v-slide 1.2s steps(8) both; }
+  @keyframes v-slide { from { transform: translateX(-60px) } to { transform: none } }
+  .riddle-scroll { background: #fff4d6; border: 4px solid #8a5a3a; padding: 10px 14px; font: 15px "Silkscreen", monospace; color: #3b2a1c; box-shadow: 4px 4px 0 #1b1f1a; text-align: center; }
+  .flip { animation: v-flip 2s steps(4) infinite; }
+  @keyframes v-flip { 0%,40% { transform: rotate(0) } 50%,90% { transform: rotate(180deg) } 100% { transform: rotate(360deg) } }
+  .pond-app { width: min(40vw, 280px); }
+  .pond-app .map { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px; background: #d3f9d8; }
+  .pond-app .map span { background: #fff; border: 2px solid #1b1f1a; padding: 2px 4px; font-size: 11px; }
+  .pond-app .map .pin { background: #ffe066; animation: v-pulse 1s steps(2) infinite; }
+  .pond-app .when { padding: 4px 8px; font-size: 11px; font-weight: bold; }
+  .lily-note { background: #4fae5c; padding: 8px; border: 3px solid #1b1f1a; border-radius: 50%; }
+  .name-tag.frog { background: #2f9e44; }
+  body.storm #world svg { filter: brightness(.5) saturate(.6); transition: filter 1.2s; }
+  body.storm #world::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(105deg, transparent 0 14px, rgba(200,220,255,.35) 14px 16px); animation: rain .35s steps(3) infinite; }
+  body.storm #world::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: #fff; opacity: 0; animation: lightning 4.2s steps(1) infinite; }
+  body.storm-ending #world::after { opacity: .3; transition: opacity 2s; }
+  @keyframes rain { to { background-position: -24px 60px; } }
+  @keyframes lightning { 0%, 7%, 11%, 100% { opacity: 0 } 5%, 9% { opacity: .55 } }
+  .drift-l { animation: v-driftl 3s steps(6) infinite alternate; } .drift-r { animation: v-driftr 3s steps(6) infinite alternate; }
+  @keyframes v-driftl { to { transform: translateX(14px) } } @keyframes v-driftr { to { transform: translateX(-14px) } }
+  .flashbolt { animation: v-bolt 4.2s steps(1) infinite; }
+  @keyframes v-bolt { 0%, 12%, 100% { opacity: 0 } 4%, 10% { opacity: 1 } }
+  .shake { animation: v-shake .25s steps(2) infinite; }
+  @keyframes v-shake { 50% { transform: translate(3px, -2px) rotate(2deg) } }
+  .raise { animation: v-raise .8s steps(6) both; }
+  @keyframes v-raise { from { transform: translateY(80px) } to { transform: none } }
+  .surf-wave { animation: v-bob 1s steps(2) infinite; }
+  #actor.tuck .px-char { transform: scale(.8, .55) translateY(20%) !important; transition: transform .6s steps(4); filter: brightness(.95); }
+  #actor.surf .px-char { animation: v-surf 1.2s steps(6) infinite !important; }
+  @keyframes v-surf { 0%,100% { transform: rotate(-8deg) translateY(0) } 50% { transform: rotate(8deg) translateY(-10%) } }
+  #actor.spot::before { content: ""; position: absolute; left: -20%; right: -20%; bottom: 0; height: 160%; background: linear-gradient(to bottom, rgba(255,250,200,0), rgba(255,250,200,.55)); clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%); pointer-events: none; }
+  .spotlight { position: absolute; left: 30%; width: 40%; bottom: 0; height: 100%; background: linear-gradient(to bottom, rgba(255,250,200,.1), rgba(255,250,200,.6)); clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%); animation: v-pulse 1.4s steps(3) infinite; }
+  .pull { transform-origin: 50% 90%; animation: v-pull .6s steps(3) .2s both; }
+  @keyframes v-pull { to { transform: rotate(50deg) } }
+  .light-up { animation: v-flash .6s steps(3) both; }
+  .firework { width: 4px; height: 4px; animation: v-pop .1s both; }
+  .firework i { position: absolute; width: 8px; height: 8px; background: var(--c); transform: rotate(var(--a)) translateX(0); animation: v-burst 1.4s steps(7) infinite; animation-delay: inherit; }
+  @keyframes v-burst { 0% { transform: rotate(var(--a)) translateX(0); opacity: 1 } 80% { opacity: 1 } 100% { transform: rotate(var(--a)) translateX(70px); opacity: 0 } }
+  /* cleaning up: blocks and bottles flash and disappear as each answer helps */
+  .float.poof { animation: poof .35s steps(3) both !important; }
+  @keyframes poof { 0% { filter: brightness(1) } 60% { filter: brightness(3); transform: translateY(-3px) } 100% { filter: brightness(3); opacity: 0 } }
+  .glitchy { animation: v-glitch .3s steps(2) infinite; }
+  @keyframes v-glitch { 0%,100% { transform: translate(0,0); filter: none } 50% { transform: translate(-4px,2px) skewX(-6deg); filter: hue-rotate(90deg) contrast(1.4) } }
+  .glitchy .app-bar { background: #e03131; }
+  .glitchy .fly1 { transform: rotate(-14deg) translate(-6px,-4px); } .glitchy .fly2 { transform: rotate(10deg) translateY(6px); } .glitchy .fly3 { opacity: .5; }
+  .wait-talk { visibility: hidden; }
+  .actions, .choices, .puzzle { animation: none; }
+  .dialog .actions:not(.wait-talk), .dialog .choices:not(.wait-talk) { animation: btns-in .3s steps(3); }
+  @keyframes btns-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+  /* the launch bridge */
+  .swamp-gap { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; background: repeating-linear-gradient(90deg, #4a6aa0 0 8px, #3f5d90 8px 16px); border-top: 4px solid #6f8fc8; }
+  .bank { position: absolute; bottom: 0; width: 22%; height: 70px; background: #866043; border-top: 12px solid #5fb43e; box-shadow: inset 0 -6px 0 #6f4e36; }
+  .bank.left { left: 0; } .bank.right { right: 0; }
+  .plank { position: absolute; height: 16px; background: #c08552; border: 3px solid #5a3d27; border-top-color: #e0a874; }
+  .rope-bridge { position: absolute; inset: 0; transform-origin: 21% 75%; }
+  .rope { position: absolute; bottom: 84px; height: 3px; background: #8a5a3a; }
+  .walker { left: 4%; animation: walk-across 2.4s steps(16) both; }
+  .walker svg { display: block; transform: scaleX(1); }
+  @keyframes walk-across { 0% { left: 4%; opacity: 1 } 100% { left: 78%; opacity: 1 } }
+  /* Chomp coding back at the Time Eater */
+  .laptop .screen { width: 120px; height: 72px; background: #1b1f1a; border: 5px solid #495057; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .laptop .screen i { display: block; height: 5px; background: #8ce99a; animation: v-type .6s steps(4) infinite; transform-origin: left; }
+  .laptop .screen i:nth-child(2n) { background: #74c0fc; width: 70%; } .laptop .screen i:nth-child(3n) { background: #ffd43b; width: 50%; }
+  @keyframes v-type { from { transform: scaleX(.2) } to { transform: scaleX(1) } }
+  .laptop .keys { width: 150px; height: 12px; background: #868e96; border: 4px solid #495057; margin-left: -15px; }
+  .mug { font-size: 22px; animation: v-drop .4s steps(4) both; }
+  .codeblock { display: inline-block; font: bold 13px Consolas, monospace; color: #fff; background: #4c6ef5; border: 3px solid #1b1f1a; padding: 2px 6px; }
+  .codeblock.hot { background: #fa5252; box-shadow: 0 0 10px #ffd43b; }
+  .code-in { animation: v-code-in .9s steps(6) both; }
+  @keyframes v-code-in { 0% { transform: translate(0,0); opacity: 0 } 20% { opacity: 1 } 100% { transform: translate(-200px, 120px) scale(.4); opacity: 0 } }
+  .code-shot { animation: v-shot 1s steps(6) both; }
+  @keyframes v-shot { 0% { transform: translateX(0); opacity: 0 } 15% { opacity: 1 } 70% { transform: translateX(min(42vw, 360px)) } 100% { transform: translate(min(36vw, 300px), -90px) rotate(200deg); opacity: 0 } }
+  #prop.deflect .px-char { animation: v-zap .15s steps(2) 6 !important; }
+  .example { display: block; font-size: .8rem; color: #555; margin-top: 2px; }
+  .plan-card { background: #fffbea; border: 4px solid #1b1f1a; box-shadow: 4px 4px 0 #1b1f1a; padding: 6px 10px; font-size: 12px; min-width: 180px; }
+  .plan-card .bar { height: 12px; border: 3px solid #1b1f1a; background: #fff; margin: 4px 0; }
+  .plan-card .bar i { display: block; height: 100%; background: #fa5252; animation: v-fill 1.2s steps(6) both; transform-origin: left; }
+  @keyframes v-fill { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+  .plan-card .task { animation: v-pop .3s steps(3) both; }
+  .trophy-banner { background: #ffd43b; border: 4px solid #1b1f1a; padding: 4px 10px; font: 13px "Silkscreen", monospace; box-shadow: 4px 4px 0 #1b1f1a; white-space: nowrap; }
+  .cheer { font-size: 28px; animation: v-follow .6s steps(2) infinite; }
+  /* the surrender */
+  #prop.surrender .px-char { animation: v-zap .2s steps(2) infinite !important; }
+  .white-flag { position: absolute; left: -10px; top: -30px; animation: v-flag .4s steps(2) infinite; }
+  #prop.shrinking .px-char { transform: scale(.15) !important; filter: brightness(3); transition: transform .8s steps(8), filter .8s; }
+  /* the gate puzzle */
+  .gate-door { background: #495057; border: 6px solid #343a40; box-shadow: inset 0 0 0 4px #6c757d; padding: 10px 12px; transition: transform 1.2s steps(8); }
+  .gate.open .gate-door { transform: translateY(-140%); opacity: 0; transition: transform 1.2s steps(8), opacity .4s steps(2) 1s; }
+  .doorway { width: 230px; height: 86px; background: radial-gradient(#fff3bf, #ffd43b 60%, #f08c00); border: 6px solid #343a40; display: grid; place-items: center; animation: v-flash .8s steps(4) .6s both; }
+  .doorway span { font: 12px "Silkscreen", monospace; color: #1b1f1a; }
+  .tiles { display: flex; gap: 5px; }
+  .tile { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 3px solid #1b1f1a; font-size: 20px; color: #fff; }
+  .tile.blue { background: #4c6ef5; } .tile.red { background: #fa5252; }
+  .tile.slot { background: #212529; color: #ffd43b; border-style: dashed; animation: v-pulse 1s steps(2) infinite; }
+  .tile.placed { animation: v-drop .5s steps(4) both; }
+  .tile.pair0 { box-shadow: 0 -6px 0 #ffd43b; } .tile.pair1 { box-shadow: 0 -6px 0 #8ce99a; } .tile.pair2 { box-shadow: 0 -6px 0 #74c0fc; }
+  .tile.tap { transform: translateY(-8px) scale(1.15); box-shadow: 0 0 0 4px #ffd43b; }
+  .lock { text-align: center; font-size: 22px; margin-top: 6px; }
+  .puzzle-q.dense { font-size: .92rem; line-height: 1.35; background: #f1f3f5; padding: 8px 10px; border-radius: 6px; }
+  .tile-btn { gap: 8px; text-transform: capitalize; }
+  .tile-btn .tile { width: 28px; height: 28px; font-size: 16px; }
   .dialog.pop { animation: dpop .35s cubic-bezier(.3,.7,.4,1.4); }
   @keyframes dpop { 0% { transform: scale(.96) translateY(6px) } 100% { transform: none } }
   .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
@@ -153,13 +364,14 @@
     <h1 id="questName">Quest</h1>
     <div class="toggles">
       <button class="pill" id="voiceToggle" aria-pressed="true">Sound on</button>
+      <button class="pill" id="musicToggle" aria-pressed="true">Music on</button>
       <label class="pill"><input type="checkbox" id="calmToggle" /> Calm mode</label>
       <a class="pill" href="/home">Home</a>
     </div>
   </header>
   <nav class="map" id="map" aria-label="Quest journey"></nav>
   <p class="sr-only" id="progressText" aria-live="polite"></p>
-  <div class="stage" id="stage" aria-hidden="true"><div id="actor"></div><div id="prop"></div></div>
+  <div class="stage" id="stage" aria-hidden="true"><div id="vis"></div><div id="pad"></div><div id="actor"></div><div id="prop"></div></div>
   <div class="dialog-wrap">
     <div class="name-tag" id="nameTag"></div>
     <section class="dialog" id="dialog" aria-labelledby="questName"></section>
@@ -203,8 +415,18 @@
     voiceToggle.setAttribute("aria-pressed", String(voiceOn));
     voiceToggle.textContent = voiceOn ? "Sound on" : "Sound off";
     Sfx.enabled = voiceOn;
+    if (window.Music) Music.enabled = voiceOn && musicOn;
   };
+  const musicToggle = document.getElementById("musicToggle");
+  let musicOn = store.get("wawm-music") !== "0";
+  const setMusicButton = () => {
+    musicToggle.setAttribute("aria-pressed", String(musicOn));
+    musicToggle.textContent = musicOn ? "Music on" : "Music off";
+    Music.enabled = voiceOn && musicOn;
+  };
+  musicToggle.addEventListener("click", () => { musicOn = !musicOn; store.set("wawm-music", musicOn ? "1" : "0"); setMusicButton(); });
   setVoiceButton();
+  setMusicButton();
 
   document.body.classList.toggle("pond", POND);
   document.body.classList.toggle("calm", calmToggle.checked);
@@ -222,14 +444,26 @@
       || voices.find(v => FEMALE.test(v.name)) || voices.find(v => /en-US/i.test(v.lang)) || voices[0] || null;
   }
   if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-  function speak(text) {
+  const MALE = /(guy|david|mark|andrew|brian|eric|christopher|roger|steffan|daniel|alex|fred|google us english$|male)/i;
+  let maleVoice = null;
+  function pickMale() {
+    if (!("speechSynthesis" in window)) return;
+    const voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang) && !/female/i.test(v.name));
+    maleVoice = voices.find(v => MALE.test(v.name) && /natural|online|neural/i.test(v.name)) || voices.find(v => MALE.test(v.name)) || null;
+  }
+  if ("speechSynthesis" in window) { pickMale(); speechSynthesis.addEventListener("voiceschanged", pickMale); }
+  function speak(text, speaker = QUEST.character) {
     if (!voiceOn || !("speechSynthesis" in window)) return null;
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if (chosenVoice) u.voice = chosenVoice;
-      u.rate = POND ? 0.86 : 1.12;
-      u.pitch = POND ? 1.05 : 1.3;
+      if ((speaker === "chomp" || speaker === "megabug") && maleVoice) u.voice = maleVoice;
+      const villain = speaker === "megabug";
+      const frog = speaker === "freddie";
+      const tiny = speaker === "tinybugs";
+      u.rate = villain ? 0.9 : tiny ? 1.3 : frog ? 1.2 : POND ? 0.86 : 1.12;
+      u.pitch = villain ? 0.1 : tiny ? 2 : frog ? 1.7 : POND ? 1.05 : 1.05;  // MEGA-BUG: as deep as the browser voice goes
       return u;  // the caller starts it, after hooking up lip-sync
     } catch { return null; }
   }
@@ -240,9 +474,68 @@
   // so it also works with the sound off, for anyone reading instead of listening.
   const SYLLABLE_MS = POND ? 240 : 165;
   const syllables = w => Math.max(1, (w.toLowerCase().replace(/[^a-z]/g, "").replace(/e$/, "").match(/[aeiouy]+/g) || []).length);
+  // Gemini-recorded voices (made once by flask/make_voices.py): "speaker|line" -> clip file.
+  const VOICE_FILES = {};
+  fetch("/audio/manifest.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : {}).then(m => Object.assign(VOICE_FILES, m)).catch(() => {});
+  const clipFor = (speaker, text) => voiceOn && (VOICE_FILES._done || []).includes(speaker) && VOICE_FILES[`${speaker}|${text}`] ? `/audio/${VOICE_FILES[`${speaker}|${text}`]}` : null;
+  const voiceAudio = new Audio();
+  let audioCtx = null, analyser = null, levels = null, villainWet = null;
+  function hookAnalyser() {
+    // Reads how loud the voice is right now, so the mouth opens on the actual sound.
+    if (audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = audioCtx.createMediaElementSource(voiceAudio);
+      analyser = audioCtx.createAnalyser(); analyser.fftSize = 512;
+      src.connect(analyser); analyser.connect(audioCtx.destination);
+      // MEGA-BUG's voice gets a big cavern echo.
+      const echo = audioCtx.createDelay(); echo.delayTime.value = 0.16;
+      const fb = audioCtx.createGain(); fb.gain.value = 0.38;
+      villainWet = audioCtx.createGain(); villainWet.gain.value = 0;
+      src.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(villainWet); villainWet.connect(audioCtx.destination);
+      levels = new Float32Array(analyser.fftSize);
+    } catch { analyser = null; }
+  }
+  const loudness = () => {
+    if (!analyser) return null;
+    analyser.getFloatTimeDomainData(levels);
+    let sum = 0; for (const v of levels) sum += v * v;
+    return Math.sqrt(sum / levels.length);
+  };
+  function stopVoices() {
+    try { voiceAudio.pause(); } catch {}
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+
   let talkToken = 0;
-  function talk(text, lineEl, mood = "talk") {
+  // Buttons appear only once the character has finished talking (right away in calm mode).
+  let talkActive = false, revealTimer = null;
+  function revealButtons() {
+    const hidden = [...dialog.querySelectorAll(".wait-talk")];
+    if (!hidden.length) return;
+    hidden.forEach(n => n.classList.remove("wait-talk"));
+    if (!dialog.contains(document.activeElement)) {
+      const target = dialog.querySelector(".choice") && hidden.some(n => n.classList.contains("choices"))
+        ? dialog.querySelector(".choice") : [...dialog.querySelectorAll(".actions .btn:not(:disabled)")].pop();
+      if (target) target.focus();
+    }
+  }
+  function scheduleReveal(ms) {
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => { if (!talkActive) revealButtons(); }, ms);
+  }
+  function holdButtons() {
+    if (calm()) return;
+    talkActive = true; clearTimeout(revealTimer);
+    dialog.querySelectorAll(".actions, .choices, .puzzle").forEach(n => n.classList.add("wait-talk"));
+  }
+  // who: the character object that talks (its mouth moves) and which voice it uses.
+  function talk(text, lineEl, mood = "talk", who = null, onDone = null) {
+    const speaker = who ? who.speaker : QUEST.character;
+    const actor = who ? who.char : guideChar;
     const token = ++talkToken;
+    if (!calm()) { talkActive = true; clearTimeout(revealTimer); dialog.querySelectorAll(".actions").forEach(n => n.classList.add("wait-talk")); }
+    [guideChar, bug, frogChar].forEach(c => { if (c && c !== actor) { c.setMouth(null); c.setMood("idle"); } });
     const live = () => token === talkToken;
     let mouthTimers = [], paceTimer = null, done = false;
     const clearMouth = () => { mouthTimers.forEach(clearTimeout); mouthTimers = []; };
@@ -260,19 +553,25 @@
     lineEl.classList.remove("karaoke");
     actor.setMouth(null);
     actor.setMood(mood);
-    const utter = speak(text);
+    stopVoices();
+    const clip = clipFor(speaker, text);
+    const utter = clip ? null : speak(text, speaker);
     if (calm() || !words.length) {
-      if (utter) speechSynthesis.speak(utter);
+      if (clip) { voiceAudio.src = clip; voiceAudio.play().catch(() => {}); }
+      else if (utter) speechSynthesis.speak(utter);
       if (mood === "talk") actor.setMood("idle");
+      talkActive = false; scheduleReveal(0);
+      if (onDone) setTimeout(() => live() && onDone(), clip ? 2500 : 400);
       return;
     }
     lineEl.classList.add("karaoke");
     let current = -1;
-    function sayWord(i, ms) {
+    function sayWord(i, ms, mouth = true) {
       if (!live() || done || i <= current || i >= words.length) return;
       for (let k = Math.max(0, current); k < i; k++) words[k].span.className = "w said";
       current = i;
       words[i].span.className = "w now";
+      if (!mouth) return;
       clearMouth();
       const n = syllables(words[i].text), per = ms / n;
       for (let k = 0; k < n; k++) {
@@ -282,13 +581,17 @@
     }
     const wordMs = i => syllables(words[i].text) * SYLLABLE_MS;
     const pauseAfter = i => /[.!?…]$/.test(words[i].text) ? 320 : /[,;:]$/.test(words[i].text) ? 160 : 40;
+    // Safety net: if a voice never reports that it ended, show the buttons anyway.
+    setTimeout(() => { if (live() && !done) { talkActive = false; scheduleReveal(0); } }, 4000 + words.length * 700);
     function finish() {
       if (!live() || done) return;
+      talkActive = false; scheduleReveal(450);
       done = true; clearMouth(); clearTimeout(paceTimer);
       words.forEach(w => { w.span.className = "w said"; });
       lineEl.classList.remove("karaoke");
       actor.setMouth(null);
       if (mood === "talk") actor.setMood("idle");
+      if (onDone) setTimeout(() => live() && onDone(), 350);
     }
     // Estimated pace, used with no voice, or if the voice gives no word timing.
     function pace(i) {
@@ -298,6 +601,48 @@
       paceTimer = setTimeout(() => pace(i + 1), wordMs(i) + pauseAfter(i));
     }
     actor.setMouth(false);
+    if (clip) {
+      // Gemini voice: the mouth follows the loudness of the voice, and the words light up in step with the clip.
+      hookAnalyser();
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+      const weight = i => syllables(words[i].text) + (/[.!?…]$/.test(words[i].text) ? 2 : /[,;:]$/.test(words[i].text) ? 1 : 0);
+      const weights = words.map((_, i) => weight(i));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let open = false;
+      const frame = () => {
+        if (!live() || done) return;
+        const d = voiceAudio.duration;
+        if (d && isFinite(d)) {
+          const goal = (voiceAudio.currentTime / d) * total;
+          let acc = 0, i = 0;
+          while (i < words.length - 1 && acc + weights[i] <= goal) acc += weights[i++];
+          sayWord(i, 0, false);
+        }
+        const level = loudness();
+        const nowOpen = level == null ? Math.floor(voiceAudio.currentTime * 7) % 2 === 0 : level > (open ? 0.025 : 0.045);
+        if (nowOpen !== open) { open = nowOpen; actor.setMouth(open); }
+        requestAnimationFrame(frame);
+      };
+      voiceAudio.onended = () => { if (live()) finish(); };
+      voiceAudio.onerror = () => { if (live() && current < 0) pace(0); };
+      voiceAudio.src = clip;
+      const villain = speaker === "megabug";
+      voiceAudio.preservesPitch = !villain; voiceAudio.mozPreservesPitch = !villain; voiceAudio.webkitPreservesPitch = !villain;
+      const tiny = speaker === "tinybugs";
+      voiceAudio.preservesPitch = !(villain || tiny); voiceAudio.mozPreservesPitch = !(villain || tiny); voiceAudio.webkitPreservesPitch = !(villain || tiny);
+      voiceAudio.playbackRate = villain ? 0.86 : tiny ? 1.4 : 1;
+      if (villainWet) villainWet.gain.value = villain ? 0.55 : 0;
+      if (speaker === "tinybugs" && !calm()) {
+        [[0.06, 1.1], [0.12, 0.95], [0.18, 1.2], [0.25, 1.05]].forEach(([delay, rate]) => {
+          const extra = new Audio(clip);
+          extra.preservesPitch = false; extra.mozPreservesPitch = false; extra.webkitPreservesPitch = false;
+          extra.playbackRate = rate * 1.4; extra.volume = 0.5;
+          setTimeout(() => extra.play().catch(() => {}), delay * 1000);
+        });
+      }
+      voiceAudio.play().then(() => requestAnimationFrame(frame)).catch(() => { if (live()) pace(0); });
+      return;
+    }
     if (!utter) { pace(0); return; }
     let gotBoundary = false;
     utter.onboundary = e => {
@@ -319,114 +664,143 @@
   }
 
   // ------------------------------------------------------------- the world
-  // Smooth cartoon scenery: thick ink outlines, round candy hills, flat bright colors.
+  // A blocky voxel world: textured blocks on a heightmap, so every tree stands on a hill block.
   function drawWorld() {
-    const INK = "#1b1b2f";
-    const o = (w = 1.3) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
-    // Overlapping circles melted into one outlined blob (clouds, tree tops, bushes).
-    const blob = (circles, fill, w = 1.3, cls = "") =>
-      `<g${cls ? ` class="${cls}"` : ""}>${circles.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + w}" fill="${INK}"/>`).join("")}` +
-      `${circles.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join("")}</g>`;
-    const wave = (y0, amp, step = 20) => { let d = `M-10 ${y0}`; for (let x = -10; x < 330; x += step) d += ` q${step / 4} ${-amp} ${step / 2} 0 t${step / 2} 0`; return d; };
-    const lily = (x, y, s = 1, flower = true) =>
-      `<path d="M${x} ${y} L${x + 9 * s} ${y - 1.74 * s} A${10 * s} ${4 * s} 0 1 0 ${x + 9 * s} ${y + 1.74 * s} Z" fill="#5cc46a" ${o(1)}/>` +
-      `<path d="M${x - 6 * s} ${y - 1 * s} Q${x - 2 * s} ${y - 2.5 * s} ${x + 3 * s} ${y - 2 * s}" fill="none" stroke="#3d9a4c" stroke-width=".8" stroke-linecap="round"/>` +
-      (flower ? `<circle cx="${x - 3 * s}" cy="${y - 3 * s}" r="${2 * s}" fill="#ff9ecf" ${o(.9)}/><circle cx="${x - 3 * s}" cy="${y - 3 * s}" r="${.8 * s}" fill="#fff6a8"/>` : "");
-    const cattail = (x, base, h, lean = 0) =>
-      `<path d="M${x} ${base} Q${x + lean / 2} ${base - h / 2} ${x + lean} ${base - h}" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>` +
-      `<path d="M${x} ${base} Q${x + lean / 2} ${base - h / 2} ${x + lean} ${base - h}" fill="none" stroke="#4f8a47" stroke-width="1.3" stroke-linecap="round"/>` +
-      `<rect x="${x + lean - 1.8}" y="${base - h - 2}" width="3.6" height="9" rx="1.8" fill="#8a5a3a" ${o(.9)}/>`;
-    let svg = "";
-    let defs = "";
+    const R = (x, y, w, h, c, cls = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"${cls ? ` class="${cls}"` : ""}/>`;
+    const hash = (x, y, s = 1) => { let h = (x * 374761393 + y * 668265263 + s * 974711) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+    const B = 8, P = 2;           // block size, texture pixel size
+    const WATER = 122;            // top of the water
+    // A textured block: base color plus speckles on a 4x4 texture grid.
+    const block = (x, y, base, spk, amount = 0.3, s = 1) => {
+      let out = R(x, y, B, B, base);
+      for (let j = 0; j < B / P; j++) for (let i = 0; i < B / P; i++) {
+        const r = hash(x / P + i, y / P + j, s);
+        if (r < amount) out += R(x + i * P, y + j * P, P, P, spk[Math.floor(r * 97) % spk.length]);
+      }
+      return out;
+    };
+    // A grass block's side: green top strip with drips, dirt below.
+    const grassBlock = (x, y, g) => {
+      let out = block(x, y, g.dirt, g.dirtSpk, 0.35, 2) + R(x, y, B, P, g.grass) + R(x, y + P, B, P, g.grass);
+      for (let i = 0; i < B / P; i++) if (hash(x + i, y, 3) < 0.5) out += R(x + i * P, y + 2 * P, P, P, g.grass);
+      return out + R(x, y, B, 1, g.grassLight);
+    };
+    // A hill: columns of blocks standing on the shoreline, `heights` in blocks, one per column.
+    const hill = (x0, heights, g, top = WATER) => {
+      let out = "";
+      heights.forEach((h, i) => {
+        const x = x0 + i * B;
+        for (let k = 0; k < h; k++) out += k === h - 1 ? grassBlock(x, top - (k + 1) * B, g) : block(x, top - (k + 1) * B, g.dirt, g.dirtSpk, 0.35, 4);
+      });
+      return out;
+    };
+    const topOf = (x0, heights, col, top = WATER) => top - heights[col] * B; // y of the grass surface of a column
+    // A tree standing on (x, ground): log blocks, then a leaf canopy.
+    const tree = (x, ground, trunk, leaves, t) => {
+      let out = "";
+      for (let k = 1; k <= trunk; k++) out += block(x, ground - k * B, t.log, t.logSpk, 0.45, 5);
+      const top = ground - trunk * B;
+      leaves.forEach(([dx, dy]) => { out += block(x + dx * B, top + dy * B, t.leaf, t.leafSpk, 0.45, 6); });
+      (t.vines || []).forEach(([dx, len]) => { out += R(x + dx * B + 3, top, 2, len, t.vine); });
+      return out;
+    };
+    const CANOPY_BIG = [[-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1], [-2, -2], [-1, -2], [0, -2], [1, -2], [2, -2], [-1, -3], [0, -3], [1, -3]];
+    const CANOPY_SMALL = [[-1, -1], [0, -1], [1, -1], [-1, -2], [0, -2], [1, -2], [0, -3]];
+    // A lily pad lying flat on the water (a pixel oval with a notch), optional flower.
+    const lily = (x, y, flower) =>
+      `<g class="lily">${R(x - 8, y - 1, 16, 3, "#357a3f")}${R(x - 6, y - 2, 12, 5, "#4fae5c")}${R(x - 8, y, 16, 1, "#5bbd68")}${R(x + 2, y - 2, 4, 2, "transparent")}` +
+      `${R(x + 3, y - 2, 3, 2, "#2c6a36")}${flower ? R(x - 4, y - 4, 4, 3, "#f39ac1") + R(x - 3, y - 3, 2, 1, "#ffe55c") : ""}</g>`;
+    // A small ripple under a floating thing, never wider than the thing itself.
+    const ripple = (x, y, w, c) => R(x, y, w, 1, c, "ripple") + R(x + 2, y + 2, w - 4, 1, c, "ripple");
+    let svg = "", sky = "";
 
     if (!POND) {
       // ---- Kanban Swamp at sunset
-      defs = `<linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1f5c"/><stop offset=".38" stop-color="#7b3f8c"/><stop offset=".64" stop-color="#e2667a"/><stop offset=".84" stop-color="#ffa268"/><stop offset="1" stop-color="#ffd98a"/></linearGradient>` +
-        `<linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b5d8e"/><stop offset=".45" stop-color="#2d3b63"/><stop offset="1" stop-color="#161d33"/></linearGradient>`;
-      svg += `<rect x="-10" y="0" width="340" height="128" fill="url(#skyG)"/>`;
-      for (let i = 0; i < 14; i++) svg += `<circle cx="${(i * 67 + 11) % 320}" cy="${6 + (i * 23) % 40}" r="${i % 3 ? .6 : 1}" fill="#fff" class="shimmer ${["", "d2", "d3"][i % 3]}"/>`;
-      svg += `<g id="sun"><circle cx="236" cy="72" r="30" fill="#ffe7a1" opacity=".25"/><circle cx="236" cy="72" r="19" fill="#ffe9a8" ${o(1.4)}/><circle cx="230" cy="66" r="5" fill="#fff8d8"/></g>`;
-      svg += `<g class="cloud slow">${blob([[30, 40, 6], [38, 37, 8], [47, 40, 6]], "#f7a6b8", 1)}</g><g class="cloud">${blob([[150, 28, 5], [157, 25, 7], [165, 28, 5]], "#f9b9a8", 1)}</g>`;
-      // far bumpy hills, then swamp trees with hanging moss
-      svg += `<path d="M-10 110 Q14 88 40 102 Q66 82 96 100 Q128 78 160 98 Q190 84 216 102 Q246 86 272 100 Q298 88 330 102 L330 128 L-10 128Z" fill="#9b5592" ${o(1.1)}/>`;
-      const tree = (x, base, h, r, c = "#4a2b63") =>
-        `<path d="M${x - 4} ${base} Q${x - 1} ${base - h * .5} ${x - 2} ${base - h} L${x + 2} ${base - h} Q${x + 1} ${base - h * .5} ${x + 4} ${base} Z" fill="#3a2150" ${o(1.1)}/>` +
-        blob([[x - r * .8, base - h, r * .75], [x, base - h - r * .45, r], [x + r * .85, base - h, r * .7]], c, 1.1) +
-        [-.7, -.1, .6].map(k => `<path d="M${x + r * k} ${base - h + r * .4} q1 6 -1 ${9 + Math.abs(k) * 6}" fill="none" stroke="#7fa86a" stroke-width="1.2" stroke-linecap="round"/>`).join("");
-      [[18, 118, 34, 11], [70, 118, 26, 9], [122, 118, 38, 12], [176, 118, 24, 8], [278, 118, 36, 12], [314, 118, 28, 10]].forEach(([x, b, h, r]) => { svg += tree(x, b, h, r); });
-      svg += `<path d="M-10 118 Q60 112 140 117 Q220 121 330 115 L330 126 L-10 126Z" fill="#3b2450" ${o(1.1)}/>`;
-      // the water
-      svg += `<path d="${wave(122, 1.6)} L330 230 L-10 230Z" fill="url(#waterG)" ${o(1.3)}/>`;
-      [[220, 130, 22], [226, 137, 14, "d2"], [218, 145, 26, "d3"], [228, 154, 12], [222, 163, 18, "d2"]].forEach(([x, y, w, d]) => {
-        svg += `<path d="M${x} ${y} h${w}" stroke="#ffb27a" stroke-width="1.6" stroke-linecap="round" class="shimmer ${d || ""}"/>`;
+      const bands = ["#2b2050", "#3a2460", "#542a6a", "#6f3170", "#8d3a6e", "#ad476a", "#cc5a63", "#e2735c", "#f08f5c", "#f6ab65", "#f8c470"];
+      bands.forEach((c, i) => { sky += R(-10, i * 11, 340, 11.5, c); });
+      for (let i = 0; i < 16; i++) svg += R((i * 67 + 11) % 320, 4 + (i * 23) % 44, i % 3 ? 1 : 2, i % 3 ? 1 : 2, "#fff6e0", `shimmer ${["", "d2", "d3"][i % 3]}`);
+      svg += `<g id="sun">${R(220, 58, 32, 32, "#ffd36b")}${R(224, 62, 24, 24, "#ffe69a")}${R(230, 68, 12, 12, "#fff5cf")}</g>`;
+      svg += `<g class="cloud slow">${R(20, 40, 40, 6, "#f7a6b8")}${R(30, 34, 22, 6, "#f7a6b8")}</g><g class="cloud">${R(140, 24, 32, 5, "#f9b9a8")}${R(148, 19, 16, 5, "#f9b9a8")}</g>`;
+      // distant mountains (flat, hazy)
+      [[0, 3], [24, 5], [56, 4], [88, 6], [128, 4], [160, 5], [200, 3], [232, 5], [272, 6], [304, 4]].forEach(([x, h], i) => {
+        svg += R(x, WATER - h * B - 8, 40, h * B + 8, i % 2 ? "#6a3a72" : "#5e3468");
       });
-      [[30, 140], [70, 166], [262, 172], [150, 176]].forEach(([x, y]) => { svg += `<path d="M${x} ${y} q3 -2 6 0 t6 0" fill="none" stroke="#8fa3d6" stroke-width=".9" stroke-linecap="round"/>`; });
-      [[52, 152, 1.1], [140, 166, 1], [196, 148, .9, false], [286, 160, 1.2]].forEach(([x, y, s, f]) => { svg += lily(x, y, s, f !== false); });
+      const swamp = { grass: "#4f7d3a", grassLight: "#6a9a4c", dirt: "#5a4030", dirtSpk: ["#4c3628", "#684a38", "#3f2d21"] };
+      const H = [2, 3, 3, 2, 1, 1, 2, 2, 3, 2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 2, 3, 3, 2, 1, 1, 2, 3, 4, 4, 3, 2, 2, 3, 3, 3, 2, 2, 3, 3, 3];
+      svg += hill(0, H, swamp);
+      const swampTree = { log: "#4e3b2a", logSpk: ["#3f2f21", "#5c4632"], leaf: "#3d5f2c", leafSpk: ["#324f24", "#4a7035", "#2c4520"], vine: "#6f9a4a", vines: [[-2, 20], [1, 14], [2, 24]] };
+      [[3, 2, CANOPY_BIG], [13, 2, CANOPY_SMALL], [24, 2, CANOPY_SMALL], [35, 2, CANOPY_BIG]].forEach(([col, trunk, canopy]) => {
+        svg += tree(col * B, topOf(0, H, col), trunk, canopy, swampTree);
+      });
+      // the water: rows of water blocks, lighter at the surface
+      for (let y = WATER; y < 230; y += B) for (let x = 0; x < 320; x += B) {
+        svg += y === WATER ? block(x, y, "#4a6aa0", ["#5a7cb2", "#3f5d90"], 0.35, 7) : block(x, y, y < 160 ? "#34507f" : "#263c62", ["#3d5b8c", "#2c4570", "#22365a"], 0.25, 8);
+      }
+      // the sun's reflection
+      [[226, 130, 20], [230, 138, 12, "d2"], [222, 146, 26, "d3"], [232, 154, 10], [226, 162, 16, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#ffb27a", `shimmer ${d || ""}`); });
+      // lily pads: kept clear of the floating code blocks and their ripples
+      [[30, 150, true], [62, 172, false], [276, 150, true], [300, 172, true], [168, 174, false]].forEach(([x, y, f]) => { svg += lily(x, y, f); });
       // Tangled code blocks floating in the swamp (story: "the swamp is FLOODED with tangled code blocks")
-      const blocks = [["#5c7cfa", "{ }"], ["#ff922b", "</>"], ["#f06595", "if"], ["#20c997", "fn()"], ["#fcc419", "[ ]"], ["#845ef7", "=>"], ["#4dabf7", "++"], ["#ff6b6b", "01"]];
+      const cubes = [["#4c6ef5", "#364fc7", "{}"], ["#f76707", "#c2410c", "</>"], ["#e64980", "#a61e4d", "if"], ["#12b886", "#087f5b", "fn"], ["#fab005", "#e67700", "[]"], ["#7950f2", "#5f3dc4", "=>"], ["#339af0", "#1864ab", "++"], ["#fa5252", "#c92a2a", "01"]];
       let floats = "";
-      [[100, 126, -8], [152, 131, 6], [204, 125, -4], [126, 139, 10], [180, 142, -6], [240, 134, 5], [92, 150, 4], [214, 151, -10]].forEach(([x, y, rot], i) => {
-        const [fill, txt] = blocks[i];
-        floats += `<g class="float"><g transform="rotate(${rot} ${x + 10} ${y + 6})">` +
-          `<rect x="${x}" y="${y}" width="20" height="12" rx="3" fill="${fill}" ${o(1.2)}/>` +
-          `<rect x="${x + 2.5}" y="${y + 1.8}" width="10" height="1.6" rx=".8" fill="#ffffff" opacity=".45"/>` +
-          `<text x="${x + 10}" y="${y + 9.2}" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-weight="bold" font-size="6.2" fill="#fff" stroke="${INK}" stroke-width=".5" paint-order="stroke">${txt.replace("<", "&lt;").replace(">", "&gt;")}</text></g>` +
-          `<path d="M${x - 3} ${y + 12.5} q3 -1.6 6 0 t6 0 t6 0 t6 0" fill="none" stroke="#9fb4e8" stroke-width=".9" stroke-linecap="round"/></g>`;
+      [[96, 126], [146, 131], [198, 124], [122, 141], [176, 144], [236, 133], [92, 154], [214, 155]].forEach(([x, y], i) => {
+        const [face, side, txt] = cubes[i];
+        floats += `<g class="float">${R(x, y, 16, 3, side)}${R(x + 1, y, 14, 2, "#ffffff55")}${R(x, y + 3, 16, 10, face)}${R(x + 14, y + 3, 2, 10, side)}` +
+          `<text x="${x + 7}" y="${y + 11}" text-anchor="middle" font-family="Consolas, 'Courier New', monospace" font-weight="bold" font-size="7" fill="#fff">${txt.replace("<", "&lt;").replace(">", "&gt;")}</text>` +
+          `${ripple(x - 1, y + 14, 18, "#9fb4e8")}</g>`;
       });
       svg += `<g id="floaters">${floats}</g>`;
-      for (let i = 0; i < 12; i++) svg += `<g class="firefly" style="animation-delay:${(i % 6) * 0.6}s"><circle cx="${(i * 53 + 17) % 310}" cy="${84 + (i * 29) % 60}" r="2.6" fill="#fff6a0" opacity=".25"/><circle cx="${(i * 53 + 17) % 310}" cy="${84 + (i * 29) % 60}" r="1" fill="#fffbd0"/></g>`;
-      // foreground banks and cattails
-      svg += blob([[-6, 214, 30], [24, 220, 22]], "#2a1c3d", 1.4) + blob([[326, 212, 30], [296, 222, 20]], "#2a1c3d", 1.4);
-      [[6, 196, 34, -3], [12, 198, 26, 2], [18, 200, 30, 4], [300, 198, 30, -4], [308, 196, 36, 2], [314, 200, 24, 5]].forEach(([x, b, h, l]) => { svg += cattail(x, b, h, l); });
+      for (let i = 0; i < 12; i++) svg += R((i * 53 + 17) % 310, 84 + (i * 29) % 60, 2, 2, "#fff6a0", "firefly").replace("/>", ` style="animation-delay:${(i % 6) * 0.6}s"/>`);
+      // foreground banks with reeds
+      const bank = { grass: "#3f6a30", grassLight: "#57863f", dirt: "#4a3326", dirtSpk: ["#3d2a1f", "#56402f"] };
+      svg += hill(0, [4, 3, 2], bank, 214) + hill(296, [2, 3, 4], bank, 214);
+      [[4, 182, 22], [14, 186, 16], [302, 186, 18], [312, 180, 24]].forEach(([x, y, h]) => { svg += R(x, y - h, 2, h, "#5f8f3a") + R(x - 1, y - h - 6, 4, 7, "#6b4a30"); });
     } else {
       // ---- Ping Pond on a bright day
-      defs = `<linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ccfff"/><stop offset=".6" stop-color="#bfeeff"/><stop offset="1" stop-color="#fff6cf"/></linearGradient>` +
-        `<linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd6d2"/><stop offset=".5" stop-color="#3fa9ad"/><stop offset="1" stop-color="#226f79"/></linearGradient>`;
-      svg += `<rect x="-10" y="0" width="340" height="128" fill="url(#skyG)"/>`;
-      svg += `<g id="sun"><circle cx="262" cy="34" r="22" fill="#fff3a6" opacity=".45"/><circle cx="262" cy="34" r="13" fill="#ffe66d" ${o(1.3)}/><circle cx="258" cy="30" r="3.5" fill="#fff9cf"/></g>`;
-      const cloud = (x, y, s) => blob([[x, y, 6 * s], [x + 8 * s, y - 4 * s, 8 * s], [x + 17 * s, y - 1 * s, 7 * s], [x + 24 * s, y + 1 * s, 5 * s]], "#ffffff", 1.2);
-      svg += `<g class="cloud">${cloud(20, 30, 1)}</g><g class="cloud slow">${cloud(140, 20, 1.2)}</g><g class="cloud">${cloud(222, 48, .8)}</g>`;
-      // big round candy hills with lollipop trees
-      svg += blob([[30, 128, 34], [100, 134, 40], [190, 132, 38], [270, 126, 40], [330, 132, 30]], "#a6e89a", 1.3);
-      const lolly = (x, y, h, c) => `<path d="M${x} ${y} v${-h}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M${x} ${y} v${-h}" stroke="#a0714a" stroke-width="1" stroke-linecap="round"/><circle cx="${x}" cy="${y - h - 4}" r="5" fill="${c}" ${o(1.1)}/><path d="M${x - 2.5} ${y - h - 6} q2 -2 4 0" fill="none" stroke="#fff" stroke-width=".9" stroke-linecap="round" opacity=".7"/>`;
-      svg += lolly(150, 100, 8, "#ff9ecf") + lolly(166, 102, 6, "#ffd94a") + lolly(236, 92, 9, "#7fd8ff") + lolly(290, 92, 7, "#ff9ecf");
-      svg += blob([[60, 140, 30], [150, 146, 34], [240, 142, 32], [320, 146, 26]], "#79cf86", 1.3);
-      // willow tree (kept inside the area every screen shape shows)
-      svg += `<path d="M66 122 Q70 96 66 72 L76 72 Q74 98 82 122 Z" fill="#8a5a3a" ${o(1.3)}/>`;
-      svg += blob([[56, 62, 14], [72, 54, 17], [90, 62, 13], [64, 70, 12], [84, 72, 11]], "#5fbf6e", 1.3);
-      for (let i = 0; i < 9; i++) {
-        const x = 50 + i * 5.2, len = 20 + (i % 3) * 9;
-        svg += `<path d="M${x} 70 q${i % 2 ? 2 : -2} ${len / 2} 0 ${len}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/><path d="M${x} 70 q${i % 2 ? 2 : -2} ${len / 2} 0 ${len}" fill="none" stroke="#4fae5c" stroke-width="1.6" stroke-linecap="round"/>`;
-      }
-      // the water
-      svg += `<path d="${wave(122, 1.6)} L330 230 L-10 230Z" fill="url(#waterG)" ${o(1.3)}/>`;
-      [[40, 130, 24], [120, 142, 16, "d2"], [210, 134, 28, "d3"], [270, 152, 18], [80, 164, 22, "d2"]].forEach(([x, y, w, d]) => {
-        svg += `<path d="M${x} ${y} h${w}" stroke="#effdff" stroke-width="1.5" stroke-linecap="round" class="shimmer ${d || ""}"/>`;
+      const bands = ["#5cc0ff", "#68c6ff", "#76ccff", "#86d3ff", "#97daff", "#a8e1ff", "#bae8ff", "#cbeefd", "#dcf3f8", "#ecf8ee", "#f6f8dc"];
+      bands.forEach((c, i) => { sky += R(-10, i * 11, 340, 11.5, c); });
+      svg += `<g id="sun">${R(246, 18, 26, 26, "#ffe66d")}${R(250, 22, 18, 18, "#fff3a6")}</g>`;
+      const cloud = (x, y, s) => R(x, y, 40 * s, 8 * s, "#ffffff") + R(x + 8 * s, y - 6 * s, 22 * s, 6 * s, "#ffffff") + R(x, y + 8 * s, 40 * s, 2 * s, "#e3f2ff");
+      svg += `<g class="cloud">${cloud(18, 30, 1)}</g><g class="cloud slow">${cloud(136, 18, 1.2)}</g><g class="cloud">${cloud(222, 50, .8)}</g>`;
+      // distant hills
+      [[0, 5], [40, 7], [88, 6], [136, 8], [184, 6], [232, 7], [280, 5]].forEach(([x, h]) => { svg += R(x, WATER - h * B, 48, h * B, "#a9dcb0"); });
+      const meadow = { grass: "#5fb43e", grassLight: "#7fd05a", dirt: "#866043", dirtSpk: ["#6f4e36", "#9a7050", "#7a573c"] };
+      const H = [3, 4, 5, 5, 6, 6, 6, 5, 5, 4, 3, 3, 2, 2, 3, 3, 4, 4, 5, 5, 4, 4, 3, 2, 2, 2, 3, 4, 5, 5, 6, 6, 5, 4, 4, 3, 3, 3, 4, 4, 4];
+      svg += hill(0, H, meadow);
+      const oak = { log: "#6b5133", logSpk: ["#5a4429", "#7a5d3b"], leaf: "#3f9a3a", leafSpk: ["#358a31", "#4cad45", "#2f7a2b"] };
+      const birch = { log: "#e8e4d8", logSpk: ["#3a3a3a", "#cfc9b8"], leaf: "#6cbf4a", leafSpk: ["#5eae3f", "#7ccf58"] };
+      // trees: each one planted on the top block of its column
+      [[5, 2, CANOPY_BIG, oak], [17, 2, CANOPY_SMALL, birch], [29, 2, CANOPY_BIG, oak], [37, 2, CANOPY_SMALL, birch]].forEach(([col, trunk, canopy, kind]) => {
+        svg += tree(col * B, topOf(0, H, col), trunk, canopy, kind);
       });
-      [[60, 154, 1.1], [150, 168, 1], [238, 148, .9, false], [300, 166, 1.2]].forEach(([x, y, s, f]) => { svg += lily(x, y, s, f !== false); });
+      // flowers on the grass
+      [[1, "#ff5d6c"], [9, "#ffe14a"], [13, "#ff9ecf"], [22, "#ffe14a"], [25, "#ff5d6c"], [33, "#b58cff"], [39, "#ff9ecf"]].forEach(([col, c]) => {
+        const g = topOf(0, H, col), x = col * B + 3;
+        svg += R(x, g - 5, 1, 5, "#3d8a2c") + R(x - 1, g - 7, 3, 3, c) + R(x, g - 6, 1, 1, "#fff6a8");
+      });
+      for (let y = WATER; y < 230; y += B) for (let x = 0; x < 320; x += B) {
+        svg += y === WATER ? block(x, y, "#5fc8e8", ["#74d4f0", "#4fb8da"], 0.35, 7) : block(x, y, y < 160 ? "#3a9fd0" : "#2c7fb0", ["#48acd8", "#3392c4", "#2a78a8"], 0.25, 8);
+      }
+      [[40, 130, 24], [120, 142, 16, "d2"], [210, 134, 28, "d3"], [270, 150, 18], [80, 162, 22, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#e8fbff", `shimmer ${d || ""}`); });
+      [[30, 152, true], [64, 172, false], [282, 150, false], [300, 172, true], [170, 174, true]].forEach(([x, y, f]) => { svg += lily(x, y, f); });
       for (let i = 0; i < 4; i++) {
-        const x = 70 + i * 60, y = 100 + (i % 2) * 14;
-        svg += `<g class="fly" style="animation-delay:${i}s"><ellipse cx="${x - 1}" cy="${y - 2.4}" rx="3.2" ry="1.6" fill="#e8fbff" ${o(.7)}/><ellipse cx="${x + 2}" cy="${y - 2.4}" rx="3.2" ry="1.6" fill="#e8fbff" ${o(.7)}/>` +
-          `<path d="M${x - 4} ${y} h9" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M${x - 4} ${y} h9" stroke="#2c9bc8" stroke-width="1.2" stroke-linecap="round"/></g>`;
+        const x = 70 + i * 60, y = 96 + (i % 2) * 12;
+        svg += `<g class="fly" style="animation-delay:${i}s">${R(x, y, 8, 2, "#2c9bc8")}${R(x + 1, y - 3, 3, 2, "#e8fbff")}${R(x + 5, y - 3, 3, 2, "#e8fbff")}${R(x + 7, y, 2, 2, "#1b4f66")}</g>`;
       }
       // Message bottles crowding the pond (story: "the pond is flooded with bottles, croaks and splashes")
       let bottles = "";
-      [[108, 126, -12], [148, 133, 14], [196, 124, -6], [232, 137, 10], [128, 145, -16], [178, 147, 8], [254, 129, -10]].forEach(([x, y, rot]) => {
-        bottles += `<g class="float"><g transform="rotate(${rot} ${x + 4} ${y + 6})">` +
-          `<rect x="${x + 2.2}" y="${y - 4}" width="3.6" height="5" rx="1" fill="#c8f3ea" ${o(1)}/>` +
-          `<rect x="${x + 1.8}" y="${y - 6}" width="4.4" height="2.4" rx="1" fill="#b07a4a" ${o(.9)}/>` +
-          `<rect x="${x}" y="${y}" width="8" height="12" rx="3" fill="#c8f3ea" ${o(1.1)}/>` +
-          `<rect x="${x + 2}" y="${y + 2.5}" width="4" height="6" rx=".8" fill="#fffbea" stroke="#d29a44" stroke-width=".5"/>` +
-          `<path d="M${x + 1.4} ${y + 2} v6" stroke="#fff" stroke-width=".9" stroke-linecap="round" opacity=".8"/></g>` +
-          `<path d="M${x - 3} ${y + 12.5} q2.5 -1.4 5 0 t5 0 t5 0" fill="none" stroke="#e8fbff" stroke-width=".9" stroke-linecap="round"/></g>`;
+      [[104, 127], [146, 133], [196, 125], [232, 138], [126, 146], [178, 148], [254, 129]].forEach(([x, y]) => {
+        bottles += `<g class="float">${R(x + 2, y - 6, 4, 2, "#8a5a3a")}${R(x + 2, y - 4, 4, 4, "#bfe8e0")}${R(x, y, 8, 12, "#bfe8e0")}${R(x + 6, y, 2, 12, "#93cfc4")}` +
+          `${R(x + 2, y + 3, 3, 6, "#fffbea")}${R(x + 1, y + 1, 1, 6, "#ffffff")}${ripple(x - 1, y + 13, 10, "#e8fbff")}</g>`;
       });
       svg += `<g id="floaters">${bottles}</g>`;
-      svg += blob([[-6, 214, 28], [22, 222, 20]], "#3f9a52", 1.4) + blob([[326, 212, 28], [298, 222, 18]], "#3f9a52", 1.4);
-      [[6, 196, 32, -3], [13, 198, 24, 2], [304, 198, 30, -4], [312, 196, 34, 3]].forEach(([x, b, h, l]) => { svg += cattail(x, b, h, l); });
+      const bank = { grass: "#4fa236", grassLight: "#6fc04e", dirt: "#7a573c", dirtSpk: ["#6a4b33", "#8a6446"] };
+      svg += hill(0, [4, 3, 2], bank, 214) + hill(296, [2, 3, 4], bank, 214);
+      [[4, 182, 22], [14, 186, 16], [302, 186, 18], [312, 180, 24]].forEach(([x, y, h]) => { svg += R(x, y - h, 2, h, "#58b84a") + R(x, y - h + 6, 2, 1, "#3d8a2c") + R(x, y - h + 13, 2, 1, "#3d8a2c"); });
     }
     // Raised by 30 so the water, the floating blocks and the characters sit above the dialogue box.
     document.getElementById("world").innerHTML =
-      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs>${defs}</defs><g transform="translate(0,-30)">${svg}</g></svg>`;
+      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,-30)">${sky}${svg}</g></svg>`;
   }
 
   // ------------------------------------------------------------- journey map
@@ -447,7 +821,7 @@
     // The swamp/pond clears as the journey goes on: floaters sink away one by one.
     const floaters = [...document.querySelectorAll("#floaters .float")];
     const keep = Math.round(floaters.length * (1 - pct));
-    floaters.forEach((f, i) => f.classList.toggle("sunk", i < floaters.length - keep));
+    floaters.forEach((f, i) => { if (i < floaters.length - keep) f.classList.add("sunk"); });
     // The sun sets as the journey goes on.
     document.documentElement.style.setProperty("--sun-y", `${Math.round(pct * (POND ? 30 : 52))}px`);
     document.getElementById("progressText").textContent =
@@ -460,6 +834,23 @@
   const actorSize = () => Math.round(Math.min(window.innerWidth * 0.32, POND ? 280 : 250));
   const actor = Pixel.mount(actorEl, QUEST.character, { size: actorSize(), mood: "idle", still: calmToggle.checked, label: "" });
   if (!actor.setMouth) actor.setMouth = () => {};  // an old cached pixel.js has no lip-sync: keep the story working
+  const guideChar = actor;
+  // Chomp stands on a big lily pad floating in the swamp.
+  const padEl = document.getElementById("pad");
+  if (!POND) {
+    const g = [[6, 0, 26, 1, "#6fcc7a"], [2, 1, 34, 2, "#5bbd68"], [0, 3, 38, 3, "#4fae5c"], [2, 6, 34, 2, "#3f9a4c"], [6, 8, 26, 1, "#357a3f"],
+               [16, 0, 4, 3, "transparent"], [17, 0, 3, 3, "#2c6a36"], [8, 3, 6, 1, "#6fcc7a"], [24, 4, 7, 1, "#6fcc7a"], [33, 2, 3, 2, "#ff9ecf"], [34, 2, 1, 1, "#ffe55c"]];
+    padEl.innerHTML = `<svg viewBox="0 0 38 9" shape-rendering="crispEdges">${g.map(([x, y, w, h, c]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`).join("")}</svg>`;
+    padEl.style.width = `${Math.round(actorSize() * 1.15)}px`;
+  }
+  let bug = null;  // MEGA-BUG, while it is on stage
+  const mountBug = () => { bug = Pixel.mount(propEl, "megabug", { size: Math.min(window.innerWidth * 0.3, 230), still: calm(), label: "" }); if (!bug.setMouth) bug.setMouth = () => {}; return bug; };
+  const nameTag = document.getElementById("nameTag");
+  const speakerTag = (who) => {
+    nameTag.textContent = who === true ? "THE TIME EATER" : typeof who === "string" ? who : QUEST.guide;
+    nameTag.classList.toggle("evil", who === true);
+    nameTag.classList.toggle("frog", who === "Freddie");
+  };
   const calm = () => calmToggle.checked || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ------------------------------------------------------------- dialogue box
@@ -477,12 +868,379 @@
   };
   const show = (...nodes) => {
     dialog.replaceChildren(...nodes.flat().filter(n => n != null));
+    if (talkActive && !calm()) dialog.querySelectorAll(".actions, .choices, .puzzle").forEach(n => n.classList.add("wait-talk"));
     dialog.classList.remove("pop"); void dialog.offsetWidth; dialog.classList.add("pop");
   };
   function say(text, mood = "talk") {
     const p = el("p", { class: "line", "aria-live": "polite" });
     talk(text, p, mood);
     return p;
+  }
+
+  // ------------------------------------------------------------- story cutscenes (pixel scenes in the middle of the stage)
+  const visEl = document.getElementById("vis");
+  const INK = "#1b1f1a";
+  // A small pixel picture: rects are [x, y, w, h, color]; `px` is how big one pixel is on screen.
+  const pic = (w, h, rects, px = 6) =>
+    `<svg viewBox="0 0 ${w} ${h}" width="${w * px}" height="${h * px}" shape-rendering="crispEdges" aria-hidden="true">${rects.map(([x, y, rw, rh, c]) => `<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${c}"/>`).join("")}</svg>`;
+  // A piece placed in the cutscene: left/bottom in %, with an animation class.
+  const piece = (html, left, bottom, cls = "", delay = 0) =>
+    `<div class="pc ${cls}" style="left:${left}%;bottom:${bottom}%;animation-delay:${delay}s">${html}</div>`;
+  const setVis = (html, cls = "") => { visEl.className = cls; visEl.innerHTML = html; };
+  const clearVis = () => setVis("");
+
+  const ART = {
+    hammer: pic(10, 10, [[0, 0, 6, 3, "#9aa3ad"], [0, 0, 6, 1, "#c5ccd3"], [2, 3, 2, 7, "#8a5a3a"], [2, 3, 1, 7, "#a8744c"]]),
+    block: c => pic(6, 6, [[0, 0, 6, 6, c], [0, 0, 6, 1, "#ffffff66"], [5, 0, 1, 6, "#00000033"], [0, 5, 6, 1, "#00000033"]]),
+    brush: pic(4, 12, [[1, 0, 2, 7, "#8a5a3a"], [0, 7, 4, 2, "#9aa3ad"], [0, 9, 4, 3, "#e64980"]]),
+    canvas: pic(18, 14, [[0, 0, 18, 14, "#6b4a30"], [1, 1, 16, 12, "#fffbea"]]),
+    magnifier: pic(10, 10, [[1, 0, 5, 1, INK], [0, 1, 1, 5, INK], [6, 1, 1, 5, INK], [1, 6, 5, 1, INK], [1, 1, 5, 5, "#bfe8ff"], [2, 2, 2, 1, "#ffffff"], [6, 6, 2, 2, "#8a5a3a"], [7, 7, 3, 3, "#8a5a3a"]]),
+    doc: pic(12, 15, [[0, 0, 12, 15, "#fffbea"], [2, 2, 8, 1, "#8d8574"], [2, 5, 7, 1, "#8d8574"], [2, 8, 8, 1, "#8d8574"], [2, 11, 5, 1, "#8d8574"]]),
+    bang: pic(3, 9, [[0, 0, 3, 6, "#ffd43b"], [0, 7, 3, 2, "#ffd43b"]]),
+    mic: pic(6, 14, [[1, 0, 4, 5, "#495057"], [2, 1, 1, 1, "#adb5bd"], [2, 5, 2, 6, "#343a40"], [0, 11, 6, 2, "#343a40"]]),
+    wave: pic(3, 10, [[0, 0, 1, 2, "#ffd43b"], [1, 2, 1, 6, "#ffd43b"], [0, 8, 1, 2, "#ffd43b"]]),
+    slide: pic(18, 13, [[0, 0, 18, 11, "#fffbea"], [2, 2, 6, 1, "#e64980"], [2, 5, 14, 4, "#74c0fc"], [5, 6, 2, 3, "#2b8a3e"], [9, 7, 2, 2, "#2b8a3e"], [13, 5, 2, 4, "#2b8a3e"], [8, 11, 2, 2, "#6b4a30"]]),
+    flag: pic(10, 16, [[0, 0, 1, 16, "#6b4a30"], [1, 0, 8, 6, "#e03131"], [3, 2, 3, 2, "#ffd43b"]]),
+    crown: pic(9, 6, [[0, 2, 9, 4, "#ffd43b"], [0, 0, 1, 2, "#ffd43b"], [4, 0, 1, 2, "#ffd43b"], [8, 0, 1, 2, "#ffd43b"], [2, 3, 1, 1, "#e03131"], [6, 3, 1, 1, "#4c6ef5"]]),
+    buddy: c => pic(5, 7, [[1, 0, 3, 3, c], [0, 3, 5, 3, c], [1, 6, 1, 1, INK], [3, 6, 1, 1, INK], [1, 1, 1, 1, INK], [3, 1, 1, 1, INK]]),
+    boat: pic(40, 10, [[0, 0, 40, 3, "#8a5a3a"], [2, 3, 36, 3, "#6b4a30"], [5, 6, 30, 3, "#5a3d27"], [0, 0, 40, 1, "#a8744c"]], 6),
+    bench: pic(34, 12, [[0, 0, 34, 3, "#c08552"], [0, 0, 34, 1, "#d9a06a"], [2, 3, 3, 9, "#8a5a3a"], [29, 3, 3, 9, "#8a5a3a"]]),
+    scroll: pic(30, 8, [[0, 0, 3, 8, "#c9a66b"], [27, 0, 3, 8, "#c9a66b"], [3, 1, 24, 6, "#fff4d6"], [5, 2, 18, 1, "#8d8574"], [5, 4, 14, 1, "#8d8574"]]),
+    note: c => pic(6, 6, [[0, 0, 6, 6, c], [0, 0, 6, 1, "#ffffff66"], [1, 2, 4, 1, "#00000044"]]),
+    board: pic(30, 14, [[0, 0, 30, 14, "#6b4a30"], [1, 1, 28, 12, "#3b2a1c"], [10, 1, 1, 12, "#6b4a30"], [20, 1, 1, 12, "#6b4a30"]]),
+    clipboard: pic(14, 16, [[0, 1, 14, 15, "#a8744c"], [4, 0, 6, 3, "#9aa3ad"], [2, 3, 10, 12, "#fffbea"]]),
+    tick: pic(5, 4, [[0, 2, 1, 1, "#2f9e44"], [1, 3, 1, 1, "#2f9e44"], [2, 2, 1, 1, "#2f9e44"], [3, 1, 1, 1, "#2f9e44"], [4, 0, 1, 1, "#2f9e44"]]),
+    page: pic(8, 9, [[0, 0, 8, 9, "#fffbea"], [0, 0, 8, 2, "#e03131"], [1, 4, 2, 1, "#8d8574"], [4, 4, 2, 1, "#8d8574"], [1, 6, 2, 1, "#8d8574"], [4, 6, 2, 1, "#8d8574"]]),
+    sweat: pic(3, 4, [[1, 0, 1, 1, "#8fd3ff"], [0, 1, 3, 3, "#8fd3ff"], [0, 1, 1, 1, "#ffffff"]]),
+    scissors: pic(14, 14, [[0, 0, 4, 4, "#e64980"], [1, 1, 2, 2, "#fff0f6"], [0, 10, 4, 4, "#e64980"], [1, 11, 2, 2, "#fff0f6"], [4, 3, 3, 2, "#ced4da"], [4, 9, 3, 2, "#ced4da"], [6, 5, 8, 2, "#e9ecef"], [6, 7, 8, 2, "#adb5bd"], [6, 6, 2, 2, "#ffd43b"]]),
+    sparkle: pic(5, 5, [[2, 0, 1, 5, "#fff3bf"], [0, 2, 5, 1, "#fff3bf"], [2, 2, 1, 1, "#ffffff"]]),
+    plank: pic(10, 3, [[0, 0, 10, 3, "#a8744c"], [0, 0, 10, 1, "#c08552"], [9, 0, 1, 3, "#8a5a3a"]]),
+    rope: pic(60, 10, [[0, 0, 60, 1, "#8a5a3a"], ...Array.from({ length: 12 }, (_, i) => [i * 5, 1, 4, 2, "#c08552"]), [0, 3, 60, 1, "#8a5a3a"]], 4),
+    bank: c => pic(16, 14, [[0, 0, 16, 2, "#5fb43e"], [0, 2, 16, 12, "#866043"], [3, 5, 2, 2, "#6f4e36"], [9, 9, 2, 2, "#6f4e36"]]),
+    pad: pic(14, 6, [[0, 2, 14, 4, "#9aa3ad"], [0, 2, 14, 1, "#c5ccd3"], [5, 0, 4, 2, "#ffd43b"]]),
+    mountain: pic(46, 30, [[14, 0, 18, 6, "#868e96"], [8, 6, 30, 6, "#7b838b"], [4, 12, 38, 8, "#6c757d"], [0, 20, 46, 10, "#5c636a"], [10, 8, 4, 3, "#495057"], [30, 15, 5, 3, "#495057"], [6, 24, 5, 3, "#495057"], [14, 0, 18, 1, "#adb5bd"]], 5),
+    door: pic(14, 16, [[0, 0, 14, 16, "#343a40"], [1, 1, 12, 15, "#495057"], [1, 5, 12, 1, "#343a40"], [1, 10, 12, 1, "#343a40"], [10, 7, 2, 3, "#ffd43b"]]),
+    hill: pic(60, 22, [[10, 0, 40, 4, "#5fb43e"], [4, 4, 52, 4, "#5fb43e"], [0, 8, 60, 14, "#866043"], [10, 4, 40, 1, "#4f962f"], [8, 12, 4, 3, "#6f4e36"], [44, 14, 4, 3, "#6f4e36"]], 5),
+    hatch: pic(16, 4, [[0, 0, 16, 4, "#495057"], [0, 0, 16, 1, "#868e96"], [7, 1, 2, 2, "#ffd43b"]]),
+    rocket: pic(8, 13, [[3, 0, 2, 1, "#e2474b"], [2, 1, 4, 2, "#e2474b"], [2, 3, 4, 6, "#f4f1ea"], [5, 3, 1, 6, "#cfcabd"], [3, 4, 2, 2, "#3f7fd1"], [0, 7, 2, 3, "#e2474b"], [6, 7, 2, 3, "#e2474b"], [2, 9, 4, 1, "#9aa3ad"]], 9),
+    flame: pic(4, 5, [[0, 0, 4, 2, "#f6a23a"], [1, 2, 2, 3, "#f6d44a"]], 9),
+    smoke: pic(6, 6, [[1, 0, 4, 6, "#e9ecef"], [0, 1, 6, 4, "#e9ecef"], [1, 1, 2, 2, "#ffffff"]]),
+  };
+  const SHAPES = { diamond: "◆", circle: "●" };
+
+  // SwampBook, explained: a little app window with posts, likes and a new teammate joining.
+  function showSwampBook() {
+    setVis(`<div class="app pc pop-in" style="left:5%;bottom:4%">
+      <div class="app-bar">SwampBook</div>
+      <div class="app-post a1"><b>${ART.buddy("#5c7cfa").replace('width="20"', 'width="16"')}</b><span>Frog Fred posted: <i>"My lily-pad app works!"</i></span><em class="heart">♥ 3</em></div>
+      <div class="app-post a2"><b>${ART.buddy("#e64980")}</b><span>Newt Nia: <i>"Need a designer for my game!"</i></span><em class="join">+ Join</em></div>
+      <div class="app-post a3"><b>${ART.buddy("#12b886")}</b><span>You joined Nia's team! 🎉</span></div></div>`, "show");
+  }
+
+  const POWER_DEMOS = {
+    builder: () => piece(ART.hammer, 18, 40, "hammering") + ["#4c6ef5", "#f76707", "#12b886", "#fab005"].map((c, i) => piece(ART.block(c), 50, 6 + i * 13.5, "drop-in", 0.3 + i * 0.35)).join(""),
+    designer: () => piece(ART.canvas, 30, 10) + ["#ff6b6b", "#fcc419", "#51cf66", "#339af0"].map((c, i) => `<div class="pc paint" style="left:${35 + i * 8}%;bottom:22%;background:${c};animation-delay:${0.3 + i * 0.3}s"></div>`).join("") + piece(ART.brush, 32, 40, "brushing"),
+    researcher: () => piece(ART.doc, 36, 8) + piece(ART.magnifier, 26, 30, "scanning") + piece(ART.bang, 66, 60, "pop-in", 1.6),
+    presenter: () => piece(ART.slide, 40, 18, "pop-in") + piece(ART.mic, 18, 6) + [0, 1, 2].map(i => piece(ART.wave, 30 + i * 6, 30, "pulse", i * 0.2)).join(""),
+    leader: () => piece(ART.flag, 22, 14, "wave-flag") + piece(ART.crown, 22, 82, "pop-in", .2) + ["#5c7cfa", "#e64980", "#12b886"].map((c, i) => piece(ART.buddy(c), 40 + i * 14, 6, "follow", i * 0.25)).join(""),
+  };
+  function showPower(value) { setVis(POWER_DEMOS[value] ? POWER_DEMOS[value]() : "", "show"); }
+
+  // The workbench sails in on a boat; the chosen tool lands on it.
+  const BENCH_TOOLS = {
+    list: () => piece(ART.scroll, 26, 50, "unroll"),
+    cards: () => piece(ART.board, 26, 50, "pop-in") + ["#ffd43b", "#ff8787", "#74c0fc", "#8ce99a", "#ffd43b"].map((c, i) => piece(ART.note(c), 28 + (i % 3) * 14, 56 + Math.floor(i / 3) * 14, "drop-in", 0.3 + i * 0.2)).join(""),
+    checklist: () => piece(ART.clipboard, 40, 46, "drop-in") + [0, 1, 2].map(i => piece(ART.tick, 47, 76 - i * 10, "pop-in", 0.5 + i * 0.4)).join(""),
+  };
+  function showWorkbench(tool) {
+    setVis(`<div class="sail ${tool ? "docked" : ""}">${piece(ART.bench, 22, 26)}${piece(ART.boat, 14, 4)}${tool ? BENCH_TOOLS[tool]() : ""}</div>`, "show");
+  }
+
+  // The bridge across the swamp, built the way the hero chose.
+  function showBridge(how) {
+    // Two banks with the swamp between them; the launch pad waits on the far side.
+    const N = 7, start = 21, span = 58;
+    const plank = (k, cls, delay, sag = 0) =>
+      `<div class="plank ${cls}" style="left:${start + k * span / N}%;width:${span / N - 0.6}%;bottom:${62 - sag}px;animation-delay:${delay}s"></div>`;
+    let deck = "", walkDelay = null;
+    if (how === "single_deadline") {
+      deck = `<div class="pc countdown" style="left:44%;bottom:130px">3</div>` + Array.from({ length: N }, (_, k) => plank(k, "flash-in", 1.8)).join("");
+      walkDelay = 2.4;
+    } else if (how === "checkins") {
+      deck = Array.from({ length: N }, (_, k) => plank(k, "drop-in", 0.2 + k * 0.45) +
+        `<div class="pc pop-in" style="left:${start + k * span / N + 1}%;bottom:92px;animation-delay:${0.45 + k * 0.45}s">${ART.tick}</div>`).join("");
+      walkDelay = 0.6 + N * 0.45;
+    } else if (how === "flexible") {
+      const sag = k => Math.round(Math.sin(((k + 0.5) / N) * Math.PI) * 12);
+      deck = `<div class="rope-bridge swing-in">` + Array.from({ length: N }, (_, k) => plank(k, "", 0, sag(k))).join("") +
+        `<div class="rope" style="left:${start}%;width:${span}%"></div></div>`;
+      walkDelay = 1.5;
+    }
+    const walker = walkDelay == null ? "" :
+      `<div class="pc walker" style="bottom:70px;animation-delay:${walkDelay}s">${Pixel.svgFor(Pixel.sprites.chomp({}), 58, "").outerHTML}</div>`;
+    setVis(`<div class="swamp-gap"></div><div class="bank left"></div><div class="bank right"></div>` +
+      `<div class="pc" style="right:4%;bottom:70px">${ART.pad}</div>${deck}${walker}`, "show");
+    if (how === "single_deadline" && !calm()) {
+      const n = visEl.querySelector(".countdown");
+      [["2", 600], ["1", 1200], ["", 1800]].forEach(([t, ms]) => setTimeout(() => { if (n) n.textContent = t; }, ms));
+      setTimeout(() => Sfx.play("whoosh"), 1800);
+    }
+    if (how === "checkins") for (let k = 0; k < N; k++) setTimeout(() => Sfx.play("planks"), 200 + k * 450);
+    if (walkDelay != null) setTimeout(() => Sfx.play("success"), (walkDelay + 2.4) * 1000);
+  }
+
+  // The rock mountain with the locked server gate.
+  // The server gate: a row of tiles on the door, each with a color AND a shape, and one empty slot.
+  const GATE_TILES = [["blue", "tri"], ["red", "circle"], ["blue", "tri"], ["red", "circle"], ["blue", "tri"]];
+  const GATE_ANSWER = "red-circle";
+  const tileHTML = (color, shape, extra = "") =>
+    `<span class="tile ${color} ${shape} ${extra}" aria-label="${color} ${shape === "tri" ? "triangle" : shape}"><b>${shape === "tri" ? "▲" : shape === "circle" ? "●" : "■"}</b></span>`;
+  function showGate(open = false, hint = null, filled = null) {
+    const slots = GATE_TILES.map(([c, sh], k) => tileHTML(c, sh, hint === "visual" ? `pair${Math.floor(k / 2)}` : hint === "demonstration" ? "demo" : "")).join("") +
+      (filled ? tileHTML(...filled.split("-"), "placed") : `<span class="tile slot">?</span>`);
+    let extra = "";
+    if (hint === "written") extra = `<div class="pc hint-note drop-in" style="left:62%;bottom:58%">Checklist:<br>1. Look only at the COLORS<br>2. Now look only at the SHAPES<br>3. What comes next for each?<br>4. Find the tile with both</div>`;
+    if (hint === "visual") extra = `<div class="pc bubble calm pop-in" style="left:4%;bottom:64%">Pairs repeat: [▲ ●] [▲ ●] [▲ ?]</div>`;
+    setVis(`${piece(ART.mountain, 4, 0)}` + (open ? `<div class="pc doorway" style="left:20%;bottom:6%"><span>🖥️ SERVER ONLINE ✓</span></div>` : "") +
+      `<div class="pc gate ${open ? "open" : ""}" style="left:20%;bottom:6%">` +
+      `<div class="gate-door"><div class="tiles">${slots}</div><div class="lock">${open ? "🔓" : "🔒"}</div></div></div>` +
+      (open ? piece(ART.sparkle, 30, 70, "pop-in") + piece(ART.sparkle, 62, 60, "pop-in", .2) : "") + extra, "show");
+    if (hint === "demonstration" && !calm()) {
+      // Chomp points at each tile in turn, so the repeating pair stands out.
+      visEl.querySelectorAll(".tile.demo").forEach((t, k) => setTimeout(() => { t.classList.add("tap"); setTimeout(() => t.classList.remove("tap"), 450); }, 400 + k * 500));
+    }
+  }
+
+  // The finale: the hill opens and the rocket blasts off.
+  function showLaunch() {
+    setVis(`${piece(ART.hill, 10, 0)}<div class="pc hatch" style="left:37%;bottom:30%">${ART.hatch}</div>` +
+      `<div class="pc rocket-up" style="left:41%;bottom:6%">${ART.rocket}<div class="flame">${ART.flame}</div></div>` +
+      [0, 1, 2, 3].map(i => piece(ART.smoke, 30 + i * 9, 28, "puff", 1 + i * 0.15)).join(""), "show launch");
+  }
+
+  // MEGA-BUG gobbling the launch schedule: pages fly into its mouth and it swells up.
+  function showGobble() {
+    setVis(Array.from({ length: 7 }, (_, i) => piece(ART.page, 10 + (i % 4) * 12, 20 + (i % 3) * 18, "gobbled", i * 0.25)).join(""), "show");
+    if (!calm()) { propEl.classList.add("gorge"); setTimeout(() => propEl.classList.add("gorged"), 1900); }
+  }
+  // Overworked Chomp coding as fast as she can: code blocks fly out of the swamp into her laptop,
+  // and code bolts fire at the Time Eater... and bounce right off.
+  function codingFrenzy() {
+    const blocks = ["{}", "</>", "if", "fn", "=>", "++"];
+    setVis(`<div class="pc laptop" style="left:2%;bottom:6%"><div class="screen">${Array.from({ length: 6 }, (_, k) => `<i style="animation-delay:${k * 0.25}s"></i>`).join("")}</div><div class="keys"></div></div>` +
+      `<div class="pc" style="left:1%;bottom:44%"><span class="bubble loud">TYPE TYPE TYPE!</span></div>` +
+      ["☕", "☕", "☕"].map((m, k) => `<div class="pc mug" style="left:${30 + k * 6}%;bottom:6%;animation-delay:${k * 0.4}s">${m}</div>`).join("") +
+      blocks.map((b, k) => `<div class="pc code-in" style="left:${40 + (k % 3) * 18}%;bottom:-10%;animation-delay:${k * 0.3}s"><span class="codeblock">${b}</span></div>`).join("") +
+      blocks.slice(0, 4).map((b, k) => `<div class="pc code-shot" style="left:24%;bottom:${30 + (k % 2) * 14}%;animation-delay:${2 + k * 0.35}s"><span class="codeblock hot">${b}</span></div>`).join(""), "show");
+    if (!calm()) for (let k = 0; k < 10; k++) setTimeout(() => Sfx.play("clunk"), k * 180);
+    if (!calm()) setTimeout(() => { Sfx.play("whoosh"); propEl.classList.add("deflect"); setTimeout(() => propEl.classList.remove("deflect"), 1600); }, 2000);
+  }
+  // Chomp overwhelmed: sweat drops and shaking.
+  const overwhelm = on => {
+    actorEl.classList.toggle("scared", on);
+    actorEl.querySelectorAll(".sweat").forEach(n => n.remove());
+    if (on) [0, 1, 2].forEach(i => { const d = el("div", { class: "sweat" }); d.innerHTML = ART.sweat; d.style.left = `${20 + i * 25}%`; d.style.animationDelay = `${i * 0.3}s`; actorEl.append(d); });
+  };
+  // Chomp's energy blast across the stage.
+  function energyBlast() {
+    const stage = document.getElementById("stage");
+    const beam = el("div", { class: "beam" });
+    beam.style.left = `calc(3% + ${actorSize() * 0.75}px)`;
+    stage.append(beam); setTimeout(() => beam.remove(), 1100);
+    Sfx.play("whoosh"); setTimeout(() => Sfx.play("boom"), 350);
+  }
+  // Magic scissors snipping MEGA-BUG.
+  function magicScissors() {
+    const sc = el("div", { class: "scissors" }); sc.innerHTML = ART.scissors;
+    propEl.append(sc); setTimeout(() => sc.remove(), 1300);
+    Sfx.play("sparkle"); setTimeout(() => Sfx.play("pops"), 500);
+  }
+
+  // ------------------------------------------------------------- Ping Pond cutscenes
+  Object.assign(ART, {
+    bottle: pic(6, 11, [[2, 0, 2, 1, "#8a5a3a"], [2, 1, 2, 2, "#bfe8e0"], [0, 3, 6, 8, "#bfe8e0"], [4, 3, 2, 8, "#93cfc4"], [1, 5, 3, 4, "#fffbea"]], 5),
+    froghead: pic(10, 7, [[0, 0, 4, 3, "#5fae3c"], [6, 0, 4, 3, "#5fae3c"], [1, 1, 2, 1, "#fff"], [7, 1, 2, 1, "#fff"], [0, 3, 10, 4, "#5fae3c"], [2, 5, 6, 1, "#1b1f1a"]], 5),
+    ring: pic(9, 9, [[3, 0, 3, 1, "#e8fbff"], [3, 8, 3, 1, "#e8fbff"], [0, 3, 1, 3, "#e8fbff"], [8, 3, 1, 3, "#e8fbff"], [1, 1, 2, 2, "#e8fbff"], [6, 1, 2, 2, "#e8fbff"], [1, 6, 2, 2, "#e8fbff"], [6, 6, 2, 2, "#e8fbff"]], 5),
+    heart: pic(7, 6, [[1, 0, 2, 1, "#ff6b8b"], [4, 0, 2, 1, "#ff6b8b"], [0, 1, 7, 2, "#ff6b8b"], [1, 3, 5, 1, "#ff6b8b"], [2, 4, 3, 1, "#ff6b8b"], [3, 5, 1, 1, "#ff6b8b"], [1, 1, 1, 1, "#ffc9d5"]], 5),
+    riddle: `<div class="riddle-scroll">What has a <b>neck</b>,<br>but no <b>head</b>?</div>`,
+    hourglass: pic(8, 12, [[0, 0, 8, 1, "#8a5a3a"], [0, 11, 8, 1, "#8a5a3a"], [1, 1, 6, 2, "#d0ebff"], [2, 3, 4, 2, "#d0ebff"], [3, 5, 2, 2, "#ffd43b"], [2, 7, 4, 2, "#d0ebff"], [1, 9, 6, 2, "#ffd43b"]], 6),
+    zip: pic(8, 12, [[4, 0, 4, 1, "#ffd43b"], [3, 1, 3, 3, "#ffd43b"], [1, 4, 6, 2, "#ffd43b"], [2, 6, 3, 3, "#ffd43b"], [0, 9, 3, 3, "#ffd43b"]], 6),
+    lilyapp: `<div class="app pond-app"><div class="app-bar">Lily-Pad App 🐸</div><div class="map"><span>🎪 Main stage</span><span>🍰 Snacks</span><span>🎨 Art stalls</span><span class="pin">📍 You are here</span></div><div class="when">Next demo: 7:00 at the Main stage</div></div>`,
+    flower: pic(7, 9, [[2, 0, 3, 1, "#ff9ecf"], [0, 1, 7, 3, "#ff9ecf"], [2, 4, 3, 1, "#ff9ecf"], [3, 2, 1, 1, "#ffe55c"], [3, 5, 1, 4, "#3d8a2c"]], 5),
+    cloud: pic(30, 10, [[4, 0, 12, 3, "#4a4f63"], [0, 3, 30, 5, "#3b3f52"], [2, 8, 26, 2, "#30333f"], [18, 1, 8, 2, "#4a4f63"]], 6),
+    bolt: pic(6, 12, [[3, 0, 3, 3, "#ffe066"], [2, 3, 3, 3, "#ffe066"], [0, 6, 5, 2, "#ffe066"], [2, 8, 2, 4, "#ffe066"]], 6),
+    breakflag: pic(10, 18, [[0, 0, 1, 18, "#6b4a30"], [1, 0, 8, 6, "#ffffff"], [3, 2, 4, 2, "#2f9e44"]], 6),
+    shellicon: pic(12, 8, [[2, 0, 8, 2, "#2f8f7c"], [0, 2, 12, 4, "#2f8f7c"], [2, 2, 3, 2, "#62c3a6"], [7, 2, 3, 2, "#62c3a6"], [0, 6, 12, 2, "#d9b066"]], 6),
+    wave: pic(24, 6, [[0, 3, 24, 3, "#4fb8da"], [2, 1, 6, 2, "#4fb8da"], [12, 0, 6, 3, "#4fb8da"], [4, 1, 2, 1, "#e8fbff"], [14, 0, 2, 1, "#e8fbff"]], 6),
+    stage: pic(50, 22, [[0, 16, 50, 6, "#8a5a3a"], [0, 16, 50, 1, "#c08552"], [2, 0, 2, 16, "#6b4a30"], [46, 0, 2, 16, "#6b4a30"], [2, 0, 46, 3, "#e03131"], [6, 3, 4, 2, "#e03131"], [16, 3, 4, 2, "#e03131"], [26, 3, 4, 2, "#e03131"], [36, 3, 4, 2, "#e03131"]], 5),
+    screen: pic(20, 14, [[0, 0, 20, 12, "#343a40"], [1, 1, 18, 10, "#74c0fc"], [3, 3, 6, 1, "#fff"], [3, 6, 12, 3, "#5fb43e"], [9, 12, 2, 2, "#495057"]], 5),
+    lever: pic(6, 12, [[0, 9, 6, 3, "#495057"], [2, 2, 2, 7, "#adb5bd"], [1, 0, 4, 3, "#e03131"]], 5),
+    star: pic(7, 7, [[3, 0, 1, 7, "#ffd43b"], [0, 3, 7, 1, "#ffd43b"], [2, 2, 3, 3, "#ffd43b"], [3, 3, 1, 1, "#fff"]], 5),
+  });
+  const firework = (left, bottom, color, delay) => `<div class="pc firework" style="left:${left}%;bottom:${bottom}%;--c:${color};animation-delay:${delay}s">${Array.from({ length: 8 }, (_, k) => `<i style="--a:${k * 45}deg"></i>`).join("")}</div>`;
+
+  // The message flood, sorted the way the hero likes to hear news.
+  function showMessages(how) {
+    if (!how) return setVis(Array.from({ length: 8 }, (_, i) => piece(ART.bottle, 8 + i * 11, 10 + (i % 3) * 22, "jumble", i * 0.15)).join("") +
+      piece(`<span class="bubble">CROAK!</span>`, 10, 72, "pulse") + piece(`<span class="bubble">SPLASH!</span>`, 60, 78, "pulse", .3), "show");
+    const parts = {
+      text: () => Array.from({ length: 6 }, (_, i) => piece(ART.bottle, 12 + i * 13, 8, "drop-in", i * 0.15)).join("") + piece(`<span class="bubble calm">📜 All the fair news, in one place</span>`, 6, 72, "pop-in", 1),
+      voice: () => [0, 1, 2].map(i => piece(ART.froghead, 12 + i * 30, 10, "pop-in", i * 0.2) + piece(ART.ring, 14 + i * 30, 32, "pulse", i * 0.3)).join(""),
+      in_person: () => piece(ART.shellicon, 18, 8, "slide-right") + piece(ART.froghead, 64, 8, "pop-in") + piece(ART.heart, 46, 42, "pop-in", 1.2),
+      mix: () => piece(ART.bottle, 12, 8, "drop-in") + piece(ART.froghead, 42, 8, "pop-in", .3) + piece(ART.ring, 44, 30, "pulse", .3) + piece(ART.shellicon, 70, 8, "pop-in", .6),
+    };
+    setVis(parts[how](), "show");
+  }
+
+  // The fair-gate riddle, with time to think or a quick answer.
+  function showRiddle(pace) {
+    setVis(piece(ART.riddle, 14, 30, "pop-in") + (pace === "take_time" ? piece(ART.hourglass, 74, 20, "flip") : pace === "instant" ? piece(ART.zip, 76, 30, "pop-in") : ""), "show");
+  }
+
+  // The lily-pad app: a fair map with the next demo time.
+  function showLilyApp() { setVis(`<div class="pc pop-in" style="left:4%;bottom:4%">${ART.lilyapp}</div>`, "show"); }
+
+  // How Freddie delivers the bug report.
+  function showReport(how) {
+    const note = text => `<div class="hint-note">${text}</div>`;
+    const parts = {
+      direct: () => piece(note("BUG: the map buttons are swapped."), 28, 50, "drop-in"),
+      gentle: () => piece(ART.flower, 34, 40, "pop-in") + piece(ART.heart, 50, 62, "pop-in", .3) + piece(note("You did great! Tiny fix: map buttons swapped. 🌸"), 18, 6, "drop-in", .5),
+      written: () => piece(`<div class="lily-note">${note("Map buttons are swapped. No rush! – Freddie")}</div>`, 20, 10, "drop-in"),
+      private: () => piece(`<span class="bubble whisper">psst... just between us...</span>`, 18, 60, "pop-in"),
+    };
+    setVis(parts[how] ? parts[how]() : "", "show");
+  }
+
+  // The storm, and how the hero handles it.
+  function startStorm() {
+    document.body.classList.add("storm");
+    // The storm hits the app: the map scrambles, alerts pile up, everyone shouts at once.
+    setVis(piece(ART.cloud, 6, 80, "drift-l") + piece(ART.cloud, 52, 84, "drift-r") + piece(ART.bolt, 46, 56, "flashbolt") +
+      `<div class="pc" style="left:20%;bottom:4%"><div class="app pond-app glitchy"><div class="app-bar">Lily-Pad App ⚡ ERROR</div>` +
+      `<div class="map"><span class="fly1">🍰 Sn@cks</span><span class="fly2">🎪 St#ge</span><span class="fly3">🎨 ???</span><span class="pin">📍 L0ST</span></div>` +
+      `<div class="when">⚠ 99+ alerts · Connection lost</div></div></div>` +
+      ["BLAH BLAH!", "WAIT, WHAT?!", "HEY! HEY!", "THE APP CRASHED!"].map((t, i) => piece(`<span class="bubble loud">${t}</span>`, i % 2 ? 66 : 0, 20 + i * 15, "shake", i * 0.1)).join(""), "show");
+    Music.play("suspense"); Music.storm(true); Sfx.play("thunder");
+  }
+  function calmStorm(how) {
+    const parts = {
+      break_signal: () => piece(ART.breakflag, 40, 10, "raise") + piece(`<span class="bubble calm">Break time ✋</span>`, 54, 60, "pop-in", .6),
+      step_away: () => piece(`<span class="bubble calm">Shell time... 💤</span>`, 30, 60, "pop-in"),
+      switch_to_text: () => Array.from({ length: 5 }, (_, i) => piece(ART.bottle, 12 + i * 15, 10, "drop-in", i * 0.15)).join("") + piece(`<span class="bubble calm">Quiet notes only 📜</span>`, 24, 66, "pop-in", .8),
+      none: () => piece(ART.wave, 10, 4, "surf-wave") + piece(ART.wave, 50, 4, "surf-wave", .3) + piece(`<span class="bubble calm">Cowabunga! 🏄</span>`, 34, 62, "pop-in"),
+    };
+    // ...and once things calm down, the app is saved too.
+    setVis((parts[how] ? parts[how]() : "") + piece(`<span class="bubble calm">App saved ✓</span>`, 20, 86, "pop-in", 1.4), "show");
+    actorEl.classList.toggle("tuck", how === "step_away");
+    actorEl.classList.toggle("surf", how === "none");
+    document.body.classList.add("storm-ending");
+    Music.storm(false);
+    setTimeout(() => { document.body.classList.remove("storm", "storm-ending"); actorEl.classList.remove("tuck", "surf"); Music.play("calm"); }, calm() ? 0 : 2600);
+  }
+
+  // The Pond Fair stage, and the hero's part in the demo.
+  function showFair(role) {
+    const crowd = ["#5c7cfa", "#e64980", "#12b886", "#fab005"].map((c, i) => piece(ART.buddy(c), 8 + i * 22, 0, role === "lead" ? "follow" : "", i * 0.15)).join("");
+    const parts = {
+      lead: () => `<div class="spotlight"></div>` + piece(ART.star, 46, 80, "pop-in"),
+      short_part: () => piece(ART.star, 40, 66, "pop-in") + piece(`<span class="bubble calm">⏱ 1 shining minute</span>`, 50, 76, "pop-in", .3),
+      behind_scenes: () => piece(ART.lever, 80, 30, "pull") + piece(ART.screen, 38, 38, "light-up", .5),
+    };
+    setVis(piece(ART.stage, 14, 22) + crowd + (parts[role] ? parts[role]() : ""), "show");
+  }
+
+  // The finale: a packed Pond Fair cheering for the lily-pad app.
+  function showFairSuccess() {
+    const crowd = ["#5c7cfa", "#e64980", "#12b886", "#fab005", "#7950f2", "#ff922b"].map((c, i) => piece(ART.buddy(c), 4 + i * 15, 0, "follow", i * 0.12)).join("");
+    setVis(piece(ART.stage, 14, 22) + `<div class="pc pop-in" style="left:22%;bottom:48%"><div class="trophy-banner">🏆 Lily-Pad App: Best in Show!</div></div>` +
+      `<div class="pc pop-in" style="left:28%;bottom:30%;animation-delay:.4s">${ART.screen}</div>` + crowd +
+      `<div class="pc cheer" style="left:2%;bottom:30%">🎉</div><div class="pc cheer" style="left:84%;bottom:34%;animation-delay:.3s">🎉</div>` +
+      firework(15, 80, "#ff6b8b", 0.2) + firework(75, 85, "#ffd43b", 0.7) + firework(48, 92, "#74c0fc", 1.1), "show");
+  }
+  function showFireworks() {
+    setVis(firework(20, 60, "#ff6b8b", 0) + firework(60, 70, "#ffd43b", .4) + firework(40, 40, "#74c0fc", .8) + firework(76, 45, "#8ce99a", 1.2), "show");
+  }
+
+  // Each answer clears some of the mess: code blocks sink in the swamp, bottles are fished out of the pond.
+  const cleanedScenes = new Set();
+  function cleanUp(i) {
+    if (cleanedScenes.has(i)) return;
+    cleanedScenes.add(i);
+    const left = [...document.querySelectorAll("#floaters .float:not(.sunk)")];
+    const n = Math.ceil(left.length / Math.max(1, QUEST.scenes.length - i));
+    left.slice(0, n).forEach((f, k) => setTimeout(() => { f.classList.add("poof"); setTimeout(() => f.classList.add("sunk"), 350); }, 600 + k * 300));
+  }
+
+  // Freddie the Frog, who hops in with news about the lily-pad app.
+  let frogChar = null;
+  const mountFrog = () => { frogChar = Pixel.mount(propEl, "frog", { size: Math.min(window.innerWidth * 0.22, 170), still: calm(), label: "" }); if (!frogChar.setMouth) frogChar.setMouth = () => {}; return frogChar; };
+  const LILY = "This is my lily-pad app! It helps everyone at the Pond Fair find their way... the stage, the snacks, and when each demo starts.";
+  const FREDDIE_INTRO = "Ribbit! And I'm Freddie, Ponder's app buddy! I test every single button so the app is perfect for the fair!";
+  const FROG_HELLO = "Psst! Ponder! Ribbit! I've got something to tell you about your app!";
+  const FROG_SAYS = {
+    direct: "There's a bug. The map buttons are swapped. That's it!",
+    gentle: "Ponder, your app is amazing! Just one teeny thing... the map buttons got swapped. Easy fix!",
+    private: "Psst... just between us... the map buttons are swapped. Nobody else noticed.",
+  };
+  const RIDDLE_RIGHT = "Yes... a bottle! It has a neck, but no head. Welcome to the fair, friend.";
+  const RIDDLE_WRONG = "Hmm... not quite. No rush... try again.";
+  // Ping Pond opens with Ponder showing her lily-pad app, and Freddie, her app buddy, hopping in.
+  function aboutApp() {
+    const beats = [
+      { who: "ponder", title: "The Lily-Pad App", text: LILY, button: "Ooh, handy!", go: () => { showLilyApp(); Sfx.play("sparkle"); } },
+      { who: "frog", title: "Meet Freddie!", text: FREDDIE_INTRO, button: "Hi, Freddie!", go: () => { mountFrog(); Sfx.play("ribbit"); } },
+    ];
+    const beat = n => {
+      const b = beats[n];
+      if (b.go) b.go();
+      const frog = b.who === "frog";
+      speakerTag(frog ? "Freddie" : false);
+      const next = el("button", { class: "btn", text: b.button, onclick: () => { Sfx.play("select"); n + 1 < beats.length ? beat(n + 1) : (speakerTag(false), intro()); } });
+      const line = el("p", { class: "line", "aria-live": "polite" });
+      show(el("h2", { class: "scene-title", id: "sceneTitle", text: b.title }), line, el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+      talk(b.text, line, "talk", frog ? { speaker: "freddie", char: frogChar } : null);
+      next.focus();
+    };
+    beat(0);
+  }
+
+  // Freddie takes turns with Ponder: he kicks off each step of getting the app ready.
+  const FREDDIE_TURN = {
+    message_flood: { text: "Ribbit! Step one is my favorite: app updates! Testers are sending bottles, croaks and splashes all at once. Let's sort them out!", button: "Let's sort them!" },
+    slow_riddle: { text: "My turn! I built the welcome riddle for the app. Ponder, test it on our new friend!", button: "Bring it on!" },
+    rainstorm: { text: "Uh oh... Ponder, the sky looks funny. And the app is starting to flicker...", button: "Uh oh..." },
+    pond_fair: { text: "We did it! The app works! Ponder, the whole pond is lining up at the stage!", button: "Showtime!" },
+  };
+  const freddieDone = new Set();
+  function freddieTurn(i) {
+    const s = QUEST.scenes[i];
+    freddieDone.add(s.id);
+    step = i; renderProgress(); clearVis();
+    if (!frogChar) mountFrog();
+    if (s.id === "rainstorm") { document.body.classList.add("storm"); Sfx.play("thunder"); }
+    speakerTag("Freddie");
+    const t = FREDDIE_TURN[s.id];
+    const next = el("button", { class: "btn", text: t.button, onclick: () => { Sfx.play("select"); speakerTag(false); scene(i); } });
+    const line = el("p", { class: "line", "aria-live": "polite" });
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: s.title }), line, el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+    talk(t.text, line, "talk", { speaker: "freddie", char: frogChar });
+    next.focus();
+  }
+
+  // Before the bug report, Freddie hops up with news.
+  let lilyDone = false;
+  function frogVisit(i) {
+    lilyDone = true;
+    step = i; renderProgress(); clearVis();
+    if (!frogChar) mountFrog();
+    Sfx.play("ribbit");
+    speakerTag("Freddie");
+    const next = el("button", { class: "btn", text: "What is it, Freddie?", onclick: () => { Sfx.play("select"); speakerTag(false); scene(i); } });
+    const line = el("p", { class: "line", "aria-live": "polite" });
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "Freddie has news!" }), line, el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+    talk(FROG_HELLO, line, "talk", { speaker: "freddie", char: frogChar });
+    next.focus();
   }
 
   // ------------------------------------------------------------- state
@@ -493,7 +1251,7 @@
   // ------------------------------------------------------------- screens
   function titleCard() {
     step = -1; renderProgress();
-    propEl.replaceChildren();
+    propEl.replaceChildren(); frogChar = null;
     actorEl.className = calm() ? "" : (POND ? "offstage" : "submerged");
     actor.setMood("idle");
     const start = el("button", { class: "btn big", text: "Start the adventure", onclick: entrance });
@@ -510,8 +1268,9 @@
   // The big entrance: Chomp leaps out of the swamp; Ponder paddles in from the right.
   function entrance() {
     Sfx.play("start");
+    Music.play("calm");
     if (calm()) { actorEl.className = ""; return hello(); }
-    show(say(POND ? "..." : "*blub... blub...*", "idle"));
+    show(el("p", { class: "line muted", text: POND ? "..." : "*bubble... bubble...*" }));
     if (POND) {
       actorEl.className = "swimin";
       Sfx.play("swim");
@@ -520,6 +1279,7 @@
       bubbles();
       setTimeout(() => Sfx.play("bubbles"), 200);
       setTimeout(() => { actorEl.className = "leap"; Sfx.play("splash"); setTimeout(splash, 450); }, 1300);
+      setTimeout(() => { padEl.classList.remove("land"); void padEl.offsetWidth; padEl.classList.add("land"); Sfx.play("boing"); }, 1300 + 900);
       setTimeout(hello, 2500);
     }
   }
@@ -546,31 +1306,167 @@
   }
   function hello() {
     actorEl.className = "";
-    const next = el("button", { class: "btn", text: HELLO.button, onclick: () => { Sfx.play("select"); intro(); } });
+    const next = el("button", { class: "btn", text: HELLO.button, onclick: () => { Sfx.play("select"); POND ? aboutApp() : about(); } });
     show(say(HELLO.line), el("div", { class: "actions", style: "justify-content:flex-end" }, next));
     next.focus();
   }
+  // Chomp explains SwampBook, with a little live demo of it.
+  const ABOUT = "SwampBook is where swamp creatures share what they're building, find teammates, and cheer each other on! Look, here's how it works!";
+  function about() {
+    showSwampBook();
+    Sfx.play("sparkle");
+    const next = el("button", { class: "btn", text: "Ooh, cool!", onclick: () => { Sfx.play("select"); intro(); } });
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "What's SwampBook?" }), say(ABOUT), el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+    next.focus();
+  }
   function intro() {
+    clearVis();
     const go = el("button", { class: "btn", text: QUEST.intro.button, onclick: () => { Sfx.play(POND ? "ripple" : "splash"); scene(0); } });
     show(say(QUEST.intro.line), el("div", { class: "actions", style: "justify-content:flex-end" }, go));
     go.focus();
   }
 
-  function scene(i) {
+  // MEGA-BUG's villain moment: the sky darkens, it rises, gobbles the launch schedule and overwhelms Chomp.
+  const DARK = "Uh oh... wait. What's going on? Why is the sky getting so dark?!";
+  // A concrete example of each way to finish the app, shown under the choice.
+  const EXAMPLES = {
+    "mega_bug:large": "Example: one giant all-night push, building login, posts, likes and search all at once.",
+    "mega_bug:bite_sized": "Example: five small tasks, one at a time: 1. login 2. posts 3. likes 4. search 5. launch.",
+  };
+  function showPlan(value) {
+    if (value === "large") return setVis(`<div class="pc plan-card pop-in" style="left:6%;bottom:58%"><b>All-nighter mode</b><div class="bar"><i></i></div><small>login + posts + likes + search</small></div>`, "show");
+    setVis(`<div class="pc plan-card pop-in" style="left:6%;bottom:46%"><b>SwampBook in 5 small tasks</b>${["1. Login page", "2. Post button", "3. Like hearts", "4. Teammate search", "5. Launch!"].map((t, k) => `<div class="task" style="animation-delay:${0.8 + k * 0.45}s">✅ ${t}</div>`).join("")}</div>`, "show");
+  }
+  const SURRENDER = "No, no, NOT the scissors! Okay, okay! I surrender! I SURRENDER!";
+  const CODE_HARDER = "I'll just code FASTER! Type, type, type! Grab the code from the swamp! Take that, Time Eater!";
+  const TAUNT = "Your fast typing won't calm down this aggressive schedule. You'll never stop me!";
+  const OVERWHELM = "It's eating EVERYTHING! The whole launch schedule! It's way too much, I can't keep up!";
+  const BOSS_LINES = [
+    "Did you REALLY think you could launch SwampBook without facing ME?!",
+    "I am the TIME EATER! Born from every GIANT task that nobody EVER broke down!",
+    "Mmm... your launch schedule. Deadlines, meetings... ALL of it! Nothing can stop me now!",
+  ];
+  const BOSS_DEFEAT = {
+    large: "NOOO! Too... much... POWER! You haven't seen the last of MEEEE!",
+    // said together by the five tiny bugs, in small voices
+    bite_sized: "Oh no... we're just tiny little tasks now! Easy to finish! Run away!",
+  };
+  let bossDone = false;
+  function bossFight(i) {
+    bossDone = true;
     step = i; renderProgress();
+    propEl.className = ""; propEl.replaceChildren(); bug = null; clearVis();
+    const chompSays = { speaker: QUEST.character, char: guideChar };
+    const beats = [
+      { who: "chomp", text: DARK, button: "Uh oh...", go: () => { document.body.classList.add("boss"); Sfx.play("thunder"); actorEl.classList.add("scared"); Music.play("suspense"); } },
+      { who: "bug", text: BOSS_LINES[0], button: "Who ARE you?!", go: () => { propEl.className = calm() ? "" : "bossrise"; mountBug(); Sfx.play("splash"); Music.play("evil"); Music.cackle(); } },
+      { who: "bug", text: BOSS_LINES[1], button: "Wait, what are you doing?!" },
+      { who: "bug", text: BOSS_LINES[2], button: "Chomp?!", go: () => { showGobble(); Music.gobble(); } },
+      { who: "chomp", text: CODE_HARDER, button: "Did it work?!", go: () => { overwhelm(true); codingFrenzy(); } },
+      { who: "bug", text: TAUNT, button: "Oh no...", go: () => { Music.cackle(); } },
+      { who: "chomp", text: OVERWHELM, button: "We can beat it together!", go: () => { overwhelm(true); clearVis(); } },
+    ];
+    const beat = n => {
+      const b = beats[n];
+      if (b.go) b.go();
+      const evil = b.who === "bug";
+      speakerTag(evil);
+      const next = el("button", { class: evil ? "btn evil" : "btn", text: b.button, onclick: () => {
+        Sfx.play("boom");
+        if (n + 1 < beats.length) beat(n + 1);
+        else { speakerTag(false); overwhelm(false); clearVis(); scene(i); }
+      } });
+      const line = el("p", { class: "line", "aria-live": "polite" });
+      show(el("h2", { class: "scene-title", id: "sceneTitle", text: n === 0 ? "Something's wrong..." : "The Time Eater appears!" }), line,
+        el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+      if (n === 1 || n === 3 || n === 5) holdButtons();
+      if (n === 1) setTimeout(() => talk(b.text, line, "talk", { speaker: "megabug", char: bug }), 2600);
+      else if (n === 3) setTimeout(() => talk(b.text, line, "talk", { speaker: "megabug", char: bug }), 2200);
+      else if (n === 5) setTimeout(() => talk(b.text, line, "talk", { speaker: "megabug", char: bug }), 2700);
+      if (n !== 1 && n !== 3 && n !== 5) talk(b.text, line, "talk", evil ? { speaker: "megabug", char: bug } : chompSays);
+      if (evil && !calm()) { propEl.classList.remove("taunt"); void propEl.offsetWidth; propEl.classList.add("taunt"); }
+      next.focus();
+    };
+    beat(0);
+  }
+
+  // The server gate puzzle: what comes next in the pattern?
+  const PUZZLE_RIGHT = "YES! The tile clicks in, and the gate rumbles open! You cracked it!";
+  const PUZZLE_WRONG = "Ooh, so close! Try another one. No rush!";
+
+  function scene(i) {
     const s = QUEST.scenes[i];
-    propEl.className = ""; propEl.replaceChildren();
-    if (s.id === "mega_bug") Pixel.mount(propEl, "megabug", { size: Math.min(window.innerWidth * 0.28, 210), still: calm(), label: "" });
+    if (s.id === "mega_bug" && !bossDone) return bossFight(i);
+    if (s.id === "frog_bug" && !lilyDone) return frogVisit(i);
+    if (POND && FREDDIE_TURN[s.id] && !freddieDone.has(s.id)) return freddieTurn(i);
+    step = i; renderProgress();
+    speakerTag(false); actorEl.classList.remove("scared");
+    if (s.id !== "mega_bug") { document.body.classList.remove("boss"); if (s.id !== "rainstorm") Music.play("calm"); }
+    const keepFrog = POND && frogChar;
+    if (!keepFrog) { propEl.className = ""; propEl.replaceChildren(); frogChar = null; }
+    bug = null;
+    clearVis();
+    if (s.id !== "rainstorm") { document.body.classList.remove("storm"); Music.storm(false); }
+    if (s.id === "message_flood") showMessages(null);
+    if (s.id === "slow_riddle") showRiddle(null);
+    if (POND && !frogChar) mountFrog();
+    if (s.id === "rainstorm") startStorm();
+    if (s.id === "pond_fair") showFair(null);
+    if (s.id === "mega_bug") { mountBug(); if (!calm()) propEl.classList.add("gorged"); }
+    if (s.id === "workbench") { showWorkbench(answers[s.field] || null); Sfx.play("swim"); }
+    if (s.id === "launch_bridge") showBridge(null);
+    if (s.id === "locked_gate") showGate(false);
     if (SCENE_SFX[s.id]) setTimeout(() => Sfx.play(SCENE_SFX[s.id]), 250);
     const line = say(s.line);
     const multi = s.multi || 0;
     let picked = multi ? [...(answers[s.field] || [])] : answers[s.field] ?? null;
     const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next" : "See what I learned", onclick: () => { Sfx.play("next"); advance(); } });
     next.disabled = multi ? false : picked == null;
+    // The gate puzzle: the gate only opens once the pattern is solved (or the hero skips).
+    let solved = false;
+    let gateHint = null;
+    const puzzle = s.id !== "locked_gate" ? null : el("div", { class: "puzzle" },
+      el("p", { class: "puzzle-q dense", text: "Gate instructions: Examine the full sequence of tiles on the door, determine the rule that governs " +
+        "how the tiles repeat, keeping in mind that every tile has two separate properties (its color and its shape) that may each " +
+        "follow their own pattern, then select the one tile that continues both parts of the rule and place it in the empty slot." }),
+      el("div", { class: "puzzle-a" }, [["red", "circle"], ["blue", "circle"], ["red", "tri"], ["blue", "tri"]].map(([color, shape]) => {
+        const id = `${color}-${shape}`;
+        const b = el("button", { class: "btn secondary tile-btn", "aria-label": `${color} ${shape === "tri" ? "triangle" : "circle"}` });
+        b.innerHTML = tileHTML(color, shape) + `<span>${color} ${shape === "tri" ? "triangle" : "circle"}</span>`;
+        b.addEventListener("click", () => {
+          if (solved) return;
+          showGate(false, gateHint, id);  // the tile goes into the slot...
+          if (id === GATE_ANSWER) {
+            solved = true; b.classList.add("right");
+            Sfx.play("unlock");
+            setTimeout(() => { showGate(true, null, id); Sfx.play("success"); }, calm() ? 0 : 700);  // ...and the gate swings open
+            talk(PUZZLE_RIGHT, line, "celebrate");
+            next.disabled = false;
+          } else {
+            Sfx.play("back");
+            setTimeout(() => showGate(false, gateHint), calm() ? 0 : 700);  // ...and pops back out
+            talk(PUZZLE_WRONG, line, "talk");
+          }
+        });
+        return b;
+      })));
+    const riddle = s.id !== "slow_riddle" ? null : el("div", { class: "puzzle", hidden: "" },
+      el("p", { class: "puzzle-q" }, el("strong", { text: "What has a neck, but no head?" })),
+      el("div", { class: "puzzle-a" }, [["bottle", "🍾 A bottle"], ["turtle", "🐢 A turtle"], ["lily", "🌿 A lily pad"]].map(([v, label]) =>
+        el("button", { class: "btn secondary", text: label, onclick: e => {
+          if (solved) return;
+          if (v === "bottle") {
+            solved = true; e.target.classList.add("right");
+            Sfx.play("success"); setVis(piece(ART.bottle, 40, 20, "pop-in") + piece(ART.sparkle, 30, 50, "pop-in", .2) + piece(ART.sparkle, 56, 40, "pop-in", .4), "show");
+            talk(RIDDLE_RIGHT, line, "celebrate");
+            next.disabled = false; next.focus();
+          } else { Sfx.play("back"); talk(RIDDLE_WRONG, line, "talk"); }
+        } }))));
+    if (puzzle || riddle) next.disabled = !solved;
 
     const buttons = s.choices.map(c => {
       const b = el("button", { class: "choice", "aria-pressed": "false" },
-        el("span", { text: c.label }));
+        el("span", {}, el("span", { text: c.label }), EXAMPLES[`${s.id}:${c.value}`] ? el("small", { class: "example", text: EXAMPLES[`${s.id}:${c.value}`] }) : null));
       b.dataset.value = c.value;
       b.addEventListener("click", () => {
         if (multi) picked = picked.includes(c.value) ? picked.filter(v => v !== c.value) : (multi === 1 ? [c.value] : [...picked, c.value].slice(-multi));
@@ -579,25 +1475,81 @@
         sync();
         Sfx.play("select");
         setTimeout(() => Sfx.play(CHOICE_SFX[`${s.id}:${c.value}`] || CHOICE_SFX[s.id] || "select"), 120);
-        talk(c.reaction, line, "celebrate");
-        if (s.id === "mega_bug") {
-          if (c.value === "bite_sized") { propEl.className = ""; Pixel.squad(propEl, { still: calm(), size: 54 }); }
-          else propEl.className = "fly";
-        }
-        next.disabled = false;
+        cleanUp(i);
+        if (s.id === "powers") showPower(c.value);
+        if (s.id === "message_flood") showMessages(c.value);
+        if (s.id === "slow_riddle") { showRiddle(c.value); riddle.hidden = false; }
+        if (s.id === "rainstorm") calmStorm(c.value);
+        if (s.id === "pond_fair") { showFair(c.value); actorEl.classList.toggle("spot", c.value === "lead"); }
+        if (s.id === "workbench") showWorkbench(c.value);
+        if (s.id === "launch_bridge") showBridge(c.value);
+        if (s.id === "locked_gate") { gateHint = c.value; showGate(solved, c.value, solved ? GATE_ANSWER : null); }
+        if (s.id === "mega_bug") showPlan(c.value);
+        if (s.id === "mega_bug" && BOSS_DEFEAT[c.value]) {
+          // Chomp attacks (energy blast or magic scissors), MEGA-BUG gets its last words, then runs away.
+          mountBug(); propEl.className = "gorged";
+          guideChar.setMood("celebrate");
+          if (c.value === "large") {
+            energyBlast();
+            talk("Take THIS!", line, "celebrate");
+            setTimeout(() => {
+              propEl.className = "gorged zapped";
+              speakerTag(true);
+              talk(BOSS_DEFEAT.large, line, "talk", { speaker: "megabug", char: bug }, () => {
+                speakerTag(false); document.body.classList.remove("boss"); Music.play("calm");
+                propEl.className = "fly";
+                talk(c.reaction, line, "celebrate");
+              });
+            }, calm() ? 0 : 1100);
+          } else {
+            // The scissors snip; the Time Eater surrenders in its deep voice, shrinks with a rising whoop,
+            // and splits into five tiny bugs that squeak their last words together.
+            magicScissors();
+            talk("Snip snip!", line, "celebrate");
+            setTimeout(() => {
+              propEl.className = "gorged surrender";
+              const flag = el("div", { class: "white-flag" }); flag.innerHTML = ART.breakflag; propEl.append(flag);
+              speakerTag(true);
+              talk(SURRENDER, line, "talk", { speaker: "megabug", char: bug }, () => {
+                if (Music.shrink) Music.shrink();
+                propEl.className = "shrinking";
+                setTimeout(() => {
+                  propEl.className = ""; bug = null;
+                  Pixel.squad(propEl, { still: calm(), size: 54 });
+                  Sfx.play("pops");
+                  speakerTag("TINY BUGS");
+                  const squadVoice = { speaker: "tinybugs", char: { setMouth() {}, setMood() {} } };
+                  talk(BOSS_DEFEAT.bite_sized, line, "talk", squadVoice, () => {
+                    speakerTag(false); document.body.classList.remove("boss"); Music.play("calm");
+                    propEl.classList.add("runaway");
+                    talk(c.reaction, line, "celebrate");
+                  });
+                }, calm() ? 0 : 900);
+              });
+            }, calm() ? 0 : 900);
+          }
+        } else if (s.id === "frog_bug") {
+          // Freddie delivers the bug report the way the hero chose, then Ponder reacts.
+          showReport(c.value);
+          if (FROG_SAYS[c.value]) {
+            speakerTag("Freddie");
+            talk(FROG_SAYS[c.value], line, "talk", { speaker: "freddie", char: frogChar }, () => { speakerTag(false); talk(c.reaction, line, "celebrate"); });
+          } else talk(c.reaction, line, "celebrate");
+        } else talk(c.reaction, line, "celebrate");
+        next.disabled = (puzzle || riddle) ? !solved : false;
       });
       return b;
     });
     function sync() { buttons.forEach(b => b.setAttribute("aria-pressed", String(multi ? picked.includes(b.dataset.value) : picked === b.dataset.value))); }
     sync();
     const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { Sfx.play("next"); answers[s.field] = multi ? [] : null; advance(); } });
-    const back = el("button", { class: "btn secondary", text: "Back", onclick: () => { Sfx.play("back"); i === 0 ? intro() : scene(i - 1); } });
     show(
       el("h2", { class: "scene-title", id: "sceneTitle", text: s.title }),
       line,
       multi > 1 ? el("p", { class: "muted", text: `Pick up to ${multi}.` }) : null,
       el("div", { class: "choices", role: "group", "aria-label": s.title }, buttons),
-      el("div", { class: "actions" }, el("div", {}, back, " ", skip), next));
+      puzzle, riddle,
+      el("div", { class: "actions" }, el("div", {}, skip), next));
     buttons[0].focus();
     function advance() { i + 1 < QUEST.scenes.length ? scene(i + 1) : mirror(); }
   }
@@ -612,8 +1564,12 @@
   }
 
   function mirror() {
+    const keepFrog = POND && frogChar;
+    document.body.classList.remove("storm"); Music.storm(false); actorEl.classList.remove("spot");
+    document.body.classList.remove("boss"); speakerTag(false); clearVis();
+    Music.play("calm");
     step = QUEST.scenes.length; renderProgress();
-    propEl.className = ""; propEl.replaceChildren();
+    if (!keepFrog) { propEl.className = ""; propEl.replaceChildren(); }
     const lines = summary();
     const line = say(lines.length ? "Here's how you do your best work. Does this sound like you?" : "You skipped everything, and that's totally okay!", "idle");
     const saved = PROGRESS.visibility || {};
@@ -647,23 +1603,20 @@
   }
 
   function rocket() {
-    // A chunky cartoon rocket for SwampBook's launch.
-    const I = 'stroke="#1b1b2f" stroke-width="4" stroke-linejoin="round"';
-    return Pixel.svgFor({ width: 70, height: 120, label: "", svg:
-      `<path d="M22 84 L8 104 L26 98 Z" fill="#ff5d6c" ${I}/><path d="M48 84 L62 104 L44 98 Z" fill="#ff5d6c" ${I}/>` +
-      `<path class="flame" d="M26 98 Q35 128 44 98 Z" fill="#ffb03a" ${I}/>` +
-      `<path d="M35 4 C56 22 54 66 48 98 L22 98 C16 66 14 22 35 4 Z" fill="#f7f4ec" ${I}/>` +
-      `<path d="M35 4 C44 12 48 22 49 30 L21 30 C22 22 26 12 35 4 Z" fill="#ff5d6c" ${I}/>` +
-      `<circle cx="35" cy="54" r="10" fill="#7fd8ff" ${I}/><circle cx="32" cy="51" r="3" fill="#fff"/>` +
-      `<path d="M28 98 v-8 M42 98 v-8" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round"/>` }, 90, "");
+    // A pixel rocket for SwampBook's launch.
+    const layers = [[3,0,2,1,"#e2474b"],[2,1,4,2,"#e2474b"],[2,3,4,6,"#f4f1ea"],[5,3,1,6,"#cfcabd"],[3,4,2,2,"#3f7fd1"],[3,4,1,1,"#9fd0ff"],[0,7,2,3,"#e2474b"],[6,7,2,3,"#e2474b"],[2,9,4,1,"#9aa3ad"],[3,10,2,2,"#f6a23a"],[3,12,2,1,"#f6d44a"]];
+    return Pixel.svgFor({ width: 8, height: 13, label: "", layers }, 90, "");
   }
 
   function finale(progress) {
+    Music.play("victory");
     step = QUEST.scenes.length + 1; renderProgress();
     const line = say(QUEST.finale, "celebrate");
-    propEl.className = ""; propEl.replaceChildren();
-    if (!POND) { propEl.append(el("div", {}, rocket())); setTimeout(() => Sfx.play("rocket"), 700); if (!calm()) setTimeout(() => { propEl.className = "liftoff"; }, 900); }
-    else setTimeout(() => Sfx.play("fanfare"), 600);
+    if (!(POND && frogChar)) { propEl.className = ""; propEl.replaceChildren(); }
+    if (POND && frogChar) frogChar.setMood("celebrate");
+    if (!POND) { showLaunch(); setTimeout(() => Sfx.play("rocket"), 900); }
+    else { showFairSuccess(); setTimeout(() => Sfx.play("fanfare"), 600); }
+    document.querySelectorAll("#floaters .float").forEach(f => f.classList.add("sunk"));
     setTimeout(() => Sfx.play("badge"), POND ? 1600 : 2300);
     confetti();
     const nextId = DATA.order.find(q => !progress.completed.includes(q));
@@ -681,6 +1634,7 @@
 
   // Quick version: every question on one page, same answers saved.
   function quickMode() {
+    Music.play("calm");
     step = -1; renderProgress();
     actorEl.className = ""; actor.setMood("idle");
     const form = el("form", {});
@@ -729,7 +1683,7 @@
   voiceToggle.addEventListener("click", () => {
     voiceOn = !voiceOn; store.set("wawm-voice", voiceOn ? "1" : "0"); setVoiceButton();
     if (voiceOn) Sfx.play("toggle");
-    if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel();  // lip-sync carries on at reading pace
+    if (!voiceOn) { try { voiceAudio.pause(); } catch {} if ("speechSynthesis" in window) speechSynthesis.cancel(); }  // lip-sync carries on at reading pace
   });
 
   drawWorld();
