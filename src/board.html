@@ -10,7 +10,7 @@
   <h1>The board</h1>
   <p class="intro">Projects looking for collaborators. Open one to request to join it.</p>
 
-  {# 10 per page, most recently added first; ?page=N picks the page #}
+  {# 10 per page: most skills in common with you, then fewest pending requests, then longest on the board; ?page=N picks the page #}
   <div id="boardList">
     {% for project in board.projects %}
       <article class="project-card">

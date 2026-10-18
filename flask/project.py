@@ -677,8 +677,11 @@ BOARD_PER_PAGE = 10
 
 
 async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
-    """One page of the projects on the board, most recently added first. Projects whose owner
-    and the viewer have blocked each other (either way) are left out."""
+    """One page of the projects on the board, ordered by:
+    1. most skills shared with the viewer's own skills (ignoring case),
+    2. fewest pending collaborator requests,
+    3. longest on the board (earliest added first).
+    Projects whose owner and the viewer have blocked each other (either way) are left out."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         on_board = f"FROM projects p WHERE p.board_added_at IS NOT NULL AND {VISIBLE_TO_ME}"
@@ -689,7 +692,14 @@ async def get_board(auth0_sub, page=1, per_page=BOARD_PER_PAGE):
             f"""
             SELECT p.id, p.title, p.thumbnail IS NOT NULL AS has_thumbnail, p.skills, {like_columns("project")}
             {on_board}
-            ORDER BY p.board_added_at DESC, p.id
+            ORDER BY
+                (SELECT count(*) FROM unnest(p.skills) AS s(skill)
+                 WHERE lower(s.skill) IN (
+                     SELECT lower(mine.skill) FROM users u, unnest(u.skills) AS mine(skill) WHERE u.auth0_sub = $1
+                 )) DESC,
+                (SELECT count(*) FROM collaborator_requests r
+                 WHERE r.project_id = p.id AND r.status = 'pending'),
+                p.board_added_at, p.id
             LIMIT $2 OFFSET $3
             """,
             auth0_sub, per_page, (page - 1) * per_page,

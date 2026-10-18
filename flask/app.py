@@ -154,7 +154,7 @@ async def home():
             posts=await post.get_feed(user["sub"]),
             # Find tab: the 10 newest posts from people you aren't friends or teammates with (and haven't blocked)
             find_posts=await post.get_find_feed(user["sub"]),
-            # Board tab: the 5 most recently added; "See more" goes to /board
+            # Board tab: the first 5 in board order (see project.get_board); "See more" goes to /board
             board=(await project.get_board(user["sub"], per_page=5))["projects"],
             # Yellow/red "View profile" until they've seen an answered collaborator request on /profile
             profile_highlight=await project.request_update_highlight(user["sub"]),
