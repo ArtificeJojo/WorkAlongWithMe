@@ -19,6 +19,30 @@
 
 <div class="screenframe"></div>
 
+{# Quest progress: done / next up / locked. Both quests unlock the Tavern. #}
+<section id="quests" aria-labelledby="questsHeading">
+  <h2 id="questsHeading">Your quests</h2>
+  <div class="quest-cards">
+    {% for q in quest_cards %}
+      <article class="quest-card quest-{{ q.status }}">
+        <h3><span aria-hidden="true">{{ q.emoji }}</span> {{ q.name }}</h3>
+        <p>{{ q.card }}</p>
+        {% if q.status == "done" %}
+          <p class="quest-status">{{ q.badge }} badge earned ✓</p>
+          <a class="quest-button secondary" href="/quest/{{ q.id }}">Replay</a>
+        {% elif q.status == "open" %}
+          <a class="quest-button" href="/quest/{{ q.id }}">Start quest</a>
+        {% else %}
+          <p class="quest-status">Locked: finish Kanban Swamp first</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+  {% if quest_cards | selectattr("status", "equalto", "done") | list | length == quest_cards | length %}
+    <a class="quest-button tavern" href="/tavern">Enter the Tavern: meet your matches</a>
+  {% endif %}
+</section>
+
 <div id="feedTabs" role="tablist">
   <button role="tab" data-tab="postFeed">Posts</button>
   <button role="tab" data-tab="projectFeed">Projects</button>
@@ -276,4 +300,75 @@
   90% { transform: translate(1px, 2px) rotate(0deg); }
   100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
+
+  #quests {
+    max-width: 760px;
+    margin: 32px auto 0;
+    text-align: center;
+  }
+
+  .quest-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .quest-card {
+    flex: 1 1 300px;
+    padding: 14px 16px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 3px solid #1d2620;
+    border-radius: 16px;
+    text-align: left;
+  }
+
+  .quest-card h3 {
+    margin: 0 0 6px;
+    color: #1d2620;
+  }
+
+  .quest-card p {
+    margin: 0 0 10px;
+  }
+
+  .quest-locked {
+    opacity: 0.75;
+  }
+
+  .quest-status {
+    font-weight: bold;
+  }
+
+  .quest-button {
+    display: inline-block;
+    min-height: 44px;
+    padding: 10px 18px;
+    border: 3px solid #1d2620;
+    border-radius: 16px;
+    background: #2f7d4f;
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .quest-button.secondary {
+    background: #fffdf6;
+    color: #1d2620;
+  }
+
+  .quest-button.tavern {
+    margin-top: 16px;
+    background: #f6d44a;
+    color: #1d2620;
+  }
+
+  .quest-button:focus-visible {
+    outline: 4px solid #1f5fd6;
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button:hover { animation: none; }
+  }
 </style>
