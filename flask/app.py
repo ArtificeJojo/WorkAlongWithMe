@@ -183,6 +183,8 @@ async def view_profile():
             has_invites=await project.has_pending_invites(user["sub"]),
             # Answered collaborator requests, shown once: rejections as messages, acceptances highlighted
             request_updates=await project.take_request_updates(user["sub"]),
+            # Projects they were on that the creator deleted, shown once
+            deleted_projects=await project.take_deletion_notices(user["sub"]),
         )
 
 @app.route("/connections")
@@ -415,6 +417,16 @@ async def create_post():
 
         return render_template_string(html.read(), projects=await post.get_linkable_projects(user["sub"]))
 
+@app.route("/posts/<uuid:post_id>", methods=["DELETE"])
+async def delete_post(post_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    if not await post.delete_post(user["sub"], post_id):
+        return "You can only delete your own posts", 404
+    return jsonify({"deleted": True})
+
 @app.route("/posts/<uuid:post_id>/image")
 async def post_image(post_id):
     user = await auth0().get_user(store_options={"request": request})
@@ -464,6 +476,19 @@ async def project_board(project_id):
     if not await project.set_on_board(user["sub"], project_id, request.method == "POST"):
         return "You can only change the board for your own projects", 404
     return jsonify({"onBoard": request.method == "POST"})
+
+@app.route("/projects/<uuid:project_id>", methods=["DELETE"])
+async def delete_project(project_id):
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return "Not logged in", 401
+
+    result = await project.delete_project(user["sub"], project_id)
+    if result == "on_board":
+        return "Take the project off the board before deleting it", 409
+    if not result:
+        return "You can only delete your own projects", 404
+    return jsonify({"deleted": True})
 
 @app.route("/projects/<uuid:project_id>/collaborate", methods=["POST"])
 async def request_to_collaborate(project_id):
@@ -642,7 +667,8 @@ async def tavern():
     me, matches = await matching.matches_for(user["sub"], n=4)
     if not me:
         return redirect("/quest")
-    matches = party.explain_matches(me["display_name"], matches)
+    # Rule-based reasons now; the page then asks /tavern/why for Gemini's wording, so it opens straight away
+    matches = party.plain_reasons(matches)
     for m in matches:
         m["chips"] = party.chips(m["hero"])
     with open("..\\src\\tavern.html", encoding="utf-8") as html:
@@ -652,7 +678,23 @@ async def tavern():
             matches=matches,
             parties=await party.my_parties(user["sub"]),
             both_done=all(q in progress["completed"] for q in quests.QUEST_ORDER),
+            # Only wait for Gemini when there's something for it to word
+            gemini_pending=any(m["reasons"] for m in matches),
         )
+
+@app.route("/tavern/why")
+async def tavern_why():
+    """Gemini's friendlier 'why' sentence for each match on /tavern, by user id. Slow (Gemini), so the
+    page loads first and fetches this; empty if Gemini isn't available, so the plain reasons stay."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    me, matches = await matching.matches_for(user["sub"], n=4)
+    if not me:
+        return jsonify({"why": {}})
+    sentences = party.gemini_reasons(me["display_name"], matches) or []
+    return jsonify({"why": {m["hero"]["user_id"]: s for m, s in zip(matches, sentences) if s}})
 
 @app.route("/tavern/party", methods=["POST"])
 async def form_party():
@@ -665,6 +707,17 @@ async def form_party():
     except party.PartyError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"id": group_id}), 201
+
+@app.route("/party/<uuid:group_id>/pact", methods=["POST"])
+async def finish_party_pact(group_id):
+    """Gemini's Party Pact for a newly formed party (slow, so the party page loads first and calls this)."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+    pact = await party.finish_pact(user["sub"], group_id)
+    if pact is None:
+        return jsonify({"error": "Party not found"}), 404
+    return jsonify(pact)
 
 @app.route("/party/<uuid:group_id>")
 async def view_party(group_id):
@@ -688,7 +741,7 @@ async def quest_cards(auth0_sub):
         q = quests.QUESTS[quest_id]
         status = "done" if quest_id in completed else "open" if quest_id in unlocked else "locked"
         cards.append({
-            "id": quest_id, "name": q["name"], "card": q["card"], "emoji": q["badge_emoji"],
+            "id": quest_id, "name": q["name"], "card": q["card"],
             "badge": q["badge"], "status": status,
         })
     return cards

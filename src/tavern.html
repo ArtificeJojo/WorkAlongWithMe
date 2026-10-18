@@ -4,67 +4,91 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Work Along With Me: The Tavern</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
+
 <script src="/js/pixel.js"></script>
 <style>
-  :root { --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --focus: #1f5fd6; --chip: #eef5ea; }
+  /* Same look as the rest of the site: starry background, white headings, light-blue buttons, white cards */
+  :root { --button: rgb(107, 204, 236); --frame: rgb(35, 105, 246); --card: rgba(255, 255, 255, 0.85); --ink: #222; --muted: #555; --highlight: #ffe066; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; font-family: "Fredoka", "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45;
-         background: linear-gradient(180deg, #5a3d2b 0%, #8a5a3b 45%, #c98b52 100%); }
-  main { max-width: 900px; margin: 0 auto; padding: 16px; }
-  .panel { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); margin-bottom: 18px; }
-  h1 { margin: 0 0 6px; }
+  body { margin: 0; min-height: 100vh; background-image: url('/Images/bg.png'); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: white; line-height: 1.45; }
+  .screenframe { position: fixed; inset: 6px; border: 4px solid var(--frame); border-radius: 16px; pointer-events: none; }
+  main { max-width: 900px; margin: 0 auto; padding: 60px 40px 40px; }
+  .panel { margin-bottom: 32px; }
+  h1, h2 { color: white; margin: 0 0 12px; }
   .hosts { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-  .hosts .bubble { flex: 1 1 260px; background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 12px 14px; }
-  .meter { display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 999px; border: 3px solid var(--ink); background: #f6d44a; font-weight: bold; }
-  .matches { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-  .hero { background: var(--chip); border: 3px solid var(--ink); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-  .hero.picked { background: #fff3c4; box-shadow: inset 0 0 0 3px #f6d44a; }
+  .hosts .bubble { flex: 1 1 260px; background: var(--card); color: var(--ink); border-radius: 16px; padding: 12px 14px; margin: 0; }
+  .meter { display: inline-block; margin-top: 12px; padding: 4px 12px; border-radius: 16px; background: var(--highlight); color: var(--ink); font-weight: bold; }
+  a { color: var(--button); }
+  .matches { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .hero { background: var(--card); color: var(--ink); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .hero.picked { background: var(--highlight); }
   .hero header { display: flex; gap: 10px; align-items: center; }
-  .hero img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ink); background: #fff; }
-  .hero h3 { margin: 0; font-size: 1.15rem; }
-  .badges { font-size: .95rem; color: var(--muted); }
+  .hero img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #fff; }
+  .hero h3 { margin: 0; font-size: 1.1rem; color: var(--ink); }
+  .badges { font-size: .9rem; color: var(--muted); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
-  .chips li { background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-size: .9rem; }
+  .chips li { background: var(--button); border-radius: 16px; padding: 2px 10px; font-size: .9rem; }
   .why { margin: 0; }
-  .pick { display: flex; gap: 8px; align-items: center; min-height: 48px; font-weight: bold; cursor: pointer; }
-  .pick input { width: 22px; height: 22px; }
-  .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 12px; }
+  .why.pending { opacity: .55; }
+  .loading { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 8px 12px; border-radius: 4px; background: var(--card); color: var(--ink); font-weight: bold; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--button); border-top-color: transparent; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pick { display: flex; gap: 8px; align-items: center; min-height: 40px; font-weight: bold; cursor: pointer; }
+  .pick input { width: 20px; height: 20px; }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 16px; }
   .form-row label { display: flex; flex-direction: column; gap: 4px; font-weight: bold; flex: 1 1 260px; }
-  input[type=text] { font: inherit; min-height: 48px; border: 3px solid var(--ink); border-radius: 12px; padding: 6px 10px; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: #fff; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
-  .btn.secondary { background: var(--panel); color: var(--ink); }
-  .btn:disabled { opacity: .5; cursor: default; }
-  button:focus-visible, input:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
-  .error { color: #9b1c1c; font-weight: bold; }
-  .muted { color: var(--muted); font-size: .95rem; }
+  input[type=text] { font: inherit; padding: 6px; border: 1px solid #999; border-radius: 4px; }
+  .btn { font: inherit; padding: 6px 14px; border: none; border-radius: 16px; background: var(--button); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .btn:not(:disabled):hover { animation: shake 0.4s; }
+  #homeButton { position: absolute; top: 20px; left: 20px; }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--highlight); outline-offset: 3px; }
+  .error { color: #b00020; background: #f8d7da; font-weight: bold; padding: 8px 12px; border-radius: 4px; }
+  .error:empty { display: none; }
+  .muted { color: #d8dcf0; font-size: .95rem; }
   .parties { padding-left: 20px; }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
+<div class="screenframe"></div>
+<a id="homeButton" class="btn" href="/home">Home</a>
 <main>
   <section class="panel" aria-labelledby="title">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
-      <h1 id="title">🍺 The Tavern</h1>
-      <a class="btn secondary" href="/home">Home</a>
-    </div>
+    <h1 id="title">The Tavern</h1>
     <div class="hosts">
       <div id="chomp"></div>
       <div id="ponder"></div>
       <p class="bubble" aria-live="polite">Pull up a stool! These heroes work a lot like you do. Pick up to 3 to form your party, and we'll write your Party Pact together.</p>
     </div>
     {% if both_done %}
-      <span class="meter">Great matches 🌳 (both quests done)</span>
+      <span class="meter">Great matches (both quests done)</span>
     {% else %}
-      <span class="meter">Good matches 🌱</span>
+      <span class="meter">Good matches</span>
       <a href="/quest/turtle">Finish Ping Pond for even better matches</a>
     {% endif %}
   </section>
 
   <section class="panel" aria-labelledby="matchesTitle">
-    <h2 id="matchesTitle" style="margin-top:0">Your matches</h2>
+    <h2 id="matchesTitle">Your matches</h2>
     {% if matches %}
+      {# Shown while Gemini writes friendlier reasons; the rule-based ones are already there underneath #}
+      {% if gemini_pending %}
+        <p id="whyLoading" class="loading" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          Chomp and Ponder are writing why you'd work well together...
+        </p>
+      {% endif %}
       <div class="matches">
         {% for m in matches %}
           <article class="hero" data-id="{{ m.hero.user_id }}">
@@ -73,12 +97,12 @@
               <div>
                 <h3>{{ m.hero.display_name }}</h3>
                 <div class="badges">
-                  {% if "gators" in m.hero.completed_quests %}🐊 Swamp Launcher{% endif %}
-                  {% if "turtle" in m.hero.completed_quests %} · 🐢 Pond Keeper{% endif %}
+                  {% if "gators" in m.hero.completed_quests %}Swamp Launcher{% endif %}
+                  {% if "turtle" in m.hero.completed_quests %} · Pond Keeper{% endif %}
                 </div>
               </div>
             </header>
-            <p class="why">{{ m.why }}</p>
+            <p class="why{% if gemini_pending %} pending{% endif %}" data-user-id="{{ m.hero.user_id }}">{{ m.why }}</p>
             {% if m.chips %}
               <ul class="chips" aria-label="How {{ m.hero.display_name }} works">
                 {% for c in m.chips %}<li>{{ c }}</li>{% endfor %}
@@ -104,7 +128,7 @@
 
   {% if parties %}
     <section class="panel" aria-labelledby="partiesTitle">
-      <h2 id="partiesTitle" style="margin-top:0">Your parties</h2>
+      <h2 id="partiesTitle">Your parties</h2>
       <ul class="parties">
         {% for p in parties %}<li><a href="/party/{{ p.id }}">{{ p.name }}</a></li>{% endfor %}
       </ul>
@@ -113,6 +137,25 @@
 </main>
 
 <script>
+  // Gemini's friendlier match reasons load after the page is already showing
+  (async () => {
+    const loading = document.getElementById("whyLoading");
+    if (!loading) return;
+    const whys = [...document.querySelectorAll(".why.pending")];
+    try {
+      const response = await fetch("/tavern/why");
+      const data = response.ok ? await response.json() : { why: {} };
+      whys.forEach(why => {
+        const sentence = data.why[why.dataset.userId];
+        if (sentence) why.textContent = sentence;
+      });
+    } catch {
+      // Gemini unavailable: keep the plain reasons
+    }
+    whys.forEach(why => why.classList.remove("pending"));
+    loading.remove();
+  })();
+
   const calm = (() => { try { return localStorage.getItem("wawm-calm") === "1"; } catch { return false; } })();
   Pixel.mount(document.getElementById("chomp"), "chomp", { size: 120, still: calm });
   Pixel.mount(document.getElementById("ponder"), "ponder", { size: 130, still: calm });
@@ -135,7 +178,7 @@
     boxes.forEach(b => b.addEventListener("change", update));
     form.addEventListener("submit", async e => {
       e.preventDefault();
-      button.disabled = true; error.textContent = ""; button.textContent = "Writing your Party Pact...";
+      button.disabled = true; error.textContent = ""; button.textContent = "Forming your party...";
       try {
         const res = await fetch("/tavern/party", {
           method: "POST", headers: { "Content-Type": "application/json" },

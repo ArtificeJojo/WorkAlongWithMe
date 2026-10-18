@@ -4,6 +4,8 @@
 
 <p id="notice" role="status" hidden></p>
 
+<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
+
 <button onclick="location.href = '/profile'">Back to profile</button>
 
 <h1>Connections</h1>
@@ -268,7 +270,7 @@
 
   h1 {
     font-size: 64px;
-    font-family: "Brush Script MT", cursive;
+    font-family: "Unknown Font", monospace;
     margin-bottom: 20px;
     align-items: center;
     text-align: center;
@@ -351,8 +353,12 @@
   button:hover{
     background-color: rgb(107, 204, 236);
     animation: shake 0.4s;
+    transform:translateY(1px)
   }
 
+  button:active{
+    transform:translateY(-1px)
+  }
 
 @keyframes shake {
   0% { transform: translate(1px, 1px) rotate(0deg); }

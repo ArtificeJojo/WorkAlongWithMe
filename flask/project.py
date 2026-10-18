@@ -303,6 +303,55 @@ async def set_on_board(auth0_sub, project_id, on_board):
     return result != "UPDATE 0"
 
 
+async def delete_project(auth0_sub, project_id):
+    """Delete the logged-in user's project. Returns 'deleted', 'on_board' (take it off the board
+    first; nothing is deleted), or None if it isn't their project. Team members get a notice on
+    their profile. Its invites, requests and likes go with it; linked posts just lose the link."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        async with conn.transaction():
+            # Locked so it can't be put on the board while it's being deleted
+            row = await conn.fetchrow(
+                f"SELECT title, thumbnail, board_added_at FROM projects WHERE id = $2 AND owner_id = {ME} FOR UPDATE",
+                auth0_sub, project_id,
+            )
+            if not row:
+                return None
+            if row["board_added_at"] is not None:
+                return "on_board"
+
+            await conn.execute(
+                """
+                INSERT INTO deleted_project_notices (user_id, project_title)
+                SELECT user_id, $2 FROM project_contributors WHERE project_id = $1 AND status = 'accepted'
+                """,
+                project_id, row["title"],
+            )
+            await conn.execute("DELETE FROM projects WHERE id = $1", project_id)
+    finally:
+        await conn.close()
+
+    # Only once the delete has gone through
+    if row["thumbnail"]:
+        (THUMBNAIL_DIR / row["thumbnail"]).unlink(missing_ok=True)
+    return "deleted"
+
+
+async def take_deletion_notices(auth0_sub):
+    """Titles of projects the logged-in user was on that have since been deleted, oldest first.
+    Removes the notices, so /profile shows each one once."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        rows = await conn.fetch(
+            f"DELETE FROM deleted_project_notices WHERE user_id = {ME} RETURNING project_title, deleted_at",
+            auth0_sub,
+        )
+    finally:
+        await conn.close()
+
+    return [row["project_title"] for row in sorted(rows, key=lambda row: row["deleted_at"])]
+
+
 async def send_thumbnail(auth0_sub, project_id):
     """Respond with a project's thumbnail, for anyone who can view the project.
     None if there's no thumbnail or the project is hidden from them."""

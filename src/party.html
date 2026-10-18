@@ -4,47 +4,61 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{{ party.name }}: Party Camp</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script src="/js/pixel.js"></script>
 <style>
-  :root { --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --focus: #1f5fd6; --chip: #eef5ea; }
+  /* Same look as the rest of the site: starry background, white headings, light-blue buttons, white cards */
+  :root { --button: rgb(107, 204, 236); --frame: rgb(35, 105, 246); --card: rgba(255, 255, 255, 0.85); --ink: #222; --muted: #555; --highlight: #ffe066; }
   * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; font-family: "Fredoka", "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.5;
-         background: linear-gradient(180deg, #1f2a4a 0%, #3b3f6b 45%, #6b4e5e 75%, #c47a45 100%); }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  .panel { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); margin-bottom: 18px; }
-  h1 { margin: 0; }
-  .camp { display: flex; gap: 14px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
-  .fire { font-size: 3.2rem; line-height: 1; }
-  .members { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-  .members li { display: flex; gap: 10px; align-items: flex-start; background: var(--chip); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 12px; }
-  .members img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 3px solid var(--ink); flex: 0 0 auto; background: #fff; }
+  body { margin: 0; min-height: 100vh; background-image: url('/Images/bg.png'); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: white; line-height: 1.5; }
+  .screenframe { position: fixed; inset: 6px; border: 4px solid var(--frame); border-radius: 16px; pointer-events: none; }
+  main { max-width: 860px; margin: 0 auto; padding: 60px 40px 40px; }
+  .panel { margin-bottom: 32px; }
+  h1, h2 { color: white; margin: 0 0 12px; }
+  .eyebrow { margin: 0; color: #d8dcf0; }
+  .camp { display: flex; gap: 24px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+  .members { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .members li { display: flex; gap: 10px; align-items: flex-start; background: var(--card); color: var(--ink); border-radius: 12px; padding: 10px 12px; }
+  .members img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: #fff; }
+  .members .muted { color: var(--muted); }
   .pact { counter-reset: rule; list-style: none; padding: 0; display: grid; gap: 10px; }
-  .pact li { counter-increment: rule; display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 12px 14px; font-size: 1.1rem; }
-  .pact li::before { content: counter(rule); flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; border: 3px solid var(--ink); background: #f6d44a; font-weight: bold; }
-  .muted { color: var(--muted); font-size: .95rem; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: #fff; text-decoration: none; display: inline-flex; align-items: center; }
-  .btn.secondary { background: var(--panel); color: var(--ink); }
+  .pact li { counter-increment: rule; display: flex; gap: 12px; align-items: flex-start; background: var(--card); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: 1.05rem; }
+  .pact li::before { content: counter(rule); flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--highlight); font-weight: bold; }
+  .muted { color: #d8dcf0; font-size: .95rem; }
+  .pact.pending { opacity: .55; }
+  .loading { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 8px 12px; border-radius: 4px; background: var(--card); color: var(--ink); font-weight: bold; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--button); border-top-color: transparent; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn { font: inherit; padding: 6px 14px; border: none; border-radius: 16px; background: var(--button); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
+  .btn:hover { animation: shake 0.4s; }
   .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  a:focus-visible, button:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--highlight); outline-offset: 3px; }
   .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .confetti { display: none; } }
 </style>
 </head>
 <body>
+<div class="screenframe"></div>
 <main>
   <section class="panel" aria-labelledby="title">
-    <p class="muted" style="margin:0">Party Camp</p>
-    <h1 id="title">🔥 {{ party.name }}</h1>
+    <p class="eyebrow">Party Camp</p>
+    <h1 id="title">{{ party.name }}</h1>
     <div class="camp" aria-hidden="true">
-      <div id="chomp"></div><div class="fire">🔥</div><div id="ponder"></div>
+      <div id="chomp"></div><div id="ponder"></div>
     </div>
   </section>
 
   <section class="panel" aria-labelledby="membersTitle">
-    <h2 id="membersTitle" style="margin-top:0">Your party</h2>
+    <h2 id="membersTitle">Your party</h2>
     <ul class="members">
       {% for m in party.members %}
         <li>
@@ -56,21 +70,54 @@
   </section>
 
   <section class="panel" aria-labelledby="pactTitle">
-    <h2 id="pactTitle" style="margin-top:0">📜 Your Party Pact</h2>
+    <h2 id="pactTitle">Your Party Pact</h2>
     <p>The agreements your party works by, written from how each of you works best.</p>
-    <ol class="pact">
+    {# A new party's pact starts as the rule-based one while Gemini writes its version #}
+    {% if party.pact.source == "pending" %}
+      <p id="pactLoading" class="loading" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Chomp and Ponder are writing your Party Pact...
+      </p>
+    {% endif %}
+    <ol id="pactRules" class="pact{% if party.pact.source == "pending" %} pending{% endif %}">
       {% for rule in party.pact.rules %}<li>{{ rule }}</li>{% endfor %}
     </ol>
-    <p class="muted">{% if party.pact.source == "gemini" %}Written by Gemini{% else %}Written{% endif %} from the answers each member chose to share. "Only me" answers are never used.</p>
+    <p class="muted"><span id="pactSource">{% if party.pact.source == "gemini" %}Written by Gemini{% else %}Written{% endif %}</span> from the answers each member chose to share. "Only me" answers are never used.</p>
   </section>
 
   <div class="actions">
     <a class="btn" href="/home">Back home</a>
-    <a class="btn secondary" href="/tavern">Back to the Tavern</a>
+    <a class="btn" href="/tavern">Back to the Tavern</a>
   </div>
 </main>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 <script>
+  // A new party's pact: ask Gemini for its version after the page is showing. Leaving drops the request,
+  // and the pact stays pending, so the next visit tries again.
+  (async () => {
+    const loading = document.getElementById("pactLoading");
+    if (!loading) return;
+    const rules = document.getElementById("pactRules");
+    try {
+      const response = await fetch(`/party/${ {{ party.id|tojson }} }/pact`, { method: "POST" });
+      if (response.ok) {
+        const pact = await response.json();
+        if (pact.rules.length) {
+          rules.replaceChildren(...pact.rules.map(rule => {
+            const item = document.createElement("li");
+            item.textContent = rule;
+            return item;
+          }));
+        }
+        document.getElementById("pactSource").textContent = pact.source === "gemini" ? "Written by Gemini" : "Written";
+      }
+    } catch {
+      // Keep the rule-based pact
+    }
+    rules.classList.remove("pending");
+    loading.remove();
+  })();
+
   const calm = (() => { try { return localStorage.getItem("wawm-calm") === "1"; } catch { return false; } })();
   Pixel.mount(document.getElementById("chomp"), "chomp", { size: 130, mood: "celebrate", still: calm, label: "" });
   Pixel.mount(document.getElementById("ponder"), "ponder", { size: 140, mood: "celebrate", still: calm, label: "" });

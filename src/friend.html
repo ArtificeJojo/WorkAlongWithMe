@@ -2,6 +2,8 @@
 <meta charset="UTF-8" />
 <title>Work Along With Me</title>
 
+<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
+
 <div id="profileBar">
   <img id="profilePicture" src="{{ user.picture }}" alt="Profile picture" />
   <h1>{{ user.username }}</h1>
@@ -160,7 +162,7 @@
 <style>
   body {
     background-image: url('/Images/bg.png');
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Unknown Font", monospace;
     margin-top: 50px;
   }
 
@@ -290,6 +292,11 @@
   button:hover{
     background-color: rgb(107, 204, 236);
     animation: shake 0.4s;
+    transform:translateY(1px)
+  }
+
+  button:active{
+    transform:translateY(-1px)
   }
 
 

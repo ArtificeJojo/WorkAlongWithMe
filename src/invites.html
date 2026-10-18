@@ -4,6 +4,8 @@
 
 <p id="notice" role="status" hidden></p>
 
+<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
+
 <button onclick="location.href = '/profile'">Back to profile</button>
 
 <h1>Project invites</h1>
@@ -118,7 +120,7 @@
 
   button {
     background-color: rgb(107, 204, 236);
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Unknown Font", monospace;
     border-radius: 16px;
     border: none;
     padding: 6px 14px;
@@ -202,6 +204,11 @@
   button:hover{
     background-color: rgb(107, 204, 236);
     animation: shake 0.4s;
+    transform:translateY(1px)
+  }
+
+  button:active{
+    transform:translateY(-1px)
   }
 
 

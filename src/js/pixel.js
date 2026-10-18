@@ -176,10 +176,10 @@
     try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
   };
 
-  /** Puts an animated character in `el`. Returns { setMood, setStill, destroy }.
+  /** Puts an animated character in `el`. Returns { setMood, setStill, setMouth, destroy }.
    *  The drawing is made once; blinking, talking and celebrating just switch classes, so motion stays smooth. */
   function mount(el, name, { size = 240, mood = "idle", still = false, label } = {}) {
-    let state = { mood, still: still || prefersReduced(), flap: false };
+    let state = { mood, still: still || prefersReduced(), flap: false, mouthCtl: null }; // mouthCtl: true/false when lip-sync drives the mouth
     const timers = [];
     const wrap = document.createElement("div");
     wrap.className = "px-char px-" + name;
@@ -191,7 +191,7 @@
       const talking = state.mood === "talk";
       wrap.classList.toggle("still", state.still);
       wrap.classList.toggle("party", celebrating);
-      wrap.classList.toggle("mouth", celebrating || (talking && !state.still && state.flap));
+      wrap.classList.toggle("mouth", state.mouthCtl !== null ? state.mouthCtl : celebrating || (talking && !state.still && state.flap));
       wrap.classList.toggle("glitch", name === "megabug" && !state.still && state.flap);
       wrap.classList.toggle("px-bob", !state.still && !celebrating && name !== "megabug");
       wrap.classList.toggle("px-talk", !state.still && talking);
@@ -214,7 +214,7 @@
       const speed = name === "megabug" ? 200 : name === "ponder" ? 240 : 140; // Ponder talks slowly
       const flapLoop = () => {
         timers.push(setTimeout(() => {
-          if (state.mood === "talk" || name === "megabug") { state.flap = !state.flap; render(); }
+          if ((state.mood === "talk" && state.mouthCtl === null) || name === "megabug") { state.flap = !state.flap; render(); }
           flapLoop();
         }, speed));
       };
@@ -226,6 +226,8 @@
     return {
       setMood(m) { state.mood = m; render(); },
       setStill(s) { state.still = s || prefersReduced(); start(); },
+      /** Lip-sync: true = open, false = shut, null = back to automatic. */
+      setMouth(v) { state.mouthCtl = v; render(); },
       destroy() { clearTimers(); wrap.remove(); },
     };
   }

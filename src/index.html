@@ -4,6 +4,8 @@
 
 <div id="view-error" hidden></div>
 
+<link rel="icon" type="image/png" href="/Images/LogoNoBg.png">
+
 <div id="view-unauthenticated">
   <button id="loginButton" onclick="location.href = FLASK_BASE_URL + '/login'">Login</button>
   <button id="signupButton" onclick="location.href = FLASK_BASE_URL + '/login?screen_hint=signup'">Signup</button>
@@ -31,7 +33,7 @@
 <style>
   body {
     background-image: url("../Images/bg.png");
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Unknown Font", monospace;
     text-align: center;
     margin-top: 200px;
   }
@@ -82,8 +84,12 @@
   button:hover{
     background-color: rgb(107, 204, 236);
     animation: shake 0.4s;
+    transform:translateY(1px)
   }
 
+  button:active{
+    transform:translateY(-1px)
+  }
 
 @keyframes shake {
   0% { transform: translate(1px, 1px) rotate(0deg); }

@@ -135,7 +135,7 @@ async def get_feed(auth0_sub, limit=3):
             f"""
             {CONNECTIONS_CTE}
             SELECT p.id, p.body, p.image IS NOT NULL AS has_image, p.created_at,
-                   u.id AS author_id, u.display_name AS author_name,
+                   u.id AS author_id, u.display_name AS author_name, p.author_id = me.id AS is_mine,
                    -- Linked project, only if the viewer can see it (its owner isn't blocked either way)
                    lp.id AS project_id, lp.title AS project_title,
                    {like_columns("post")}
@@ -164,6 +164,8 @@ async def get_feed(auth0_sub, limit=3):
             "image": f"/posts/{row['id']}/image" if row["has_image"] else None,
             "created_at": row["created_at"],
             "likes": like_json(row),
+            # Only the author gets the delete button
+            "is_mine": row["is_mine"],
             "project": {"id": str(row["project_id"]), "title": row["project_title"]} if row["project_id"] else None,
             "author": {
                 "id": str(row["author_id"]),
@@ -173,6 +175,24 @@ async def get_feed(auth0_sub, limit=3):
         }
         for row in rows
     ]
+
+
+async def delete_post(auth0_sub, post_id):
+    """Delete one of the logged-in user's posts (its likes go with it). Returns False if it isn't theirs."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        result = await conn.fetchrow(
+            f"DELETE FROM posts WHERE id = $2 AND author_id = {ME} RETURNING image", auth0_sub, post_id,
+        )
+    finally:
+        await conn.close()
+
+    if not result:
+        return False
+    # Its own copy of the picture (even one copied from a project thumbnail), so nothing else uses it
+    if result["image"]:
+        (IMAGE_DIR / result["image"]).unlink(missing_ok=True)
+    return True
 
 
 async def send_image(auth0_sub, post_id):
