@@ -6,19 +6,19 @@ from uuid import uuid4
 from flask import send_from_directory
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_PICTURE = ROOT / "assets" / "donkey.jpg"
+DEFAULT_PICTURE = ROOT / "Images" / "BasicPfp.png"
 UPLOAD_DIR = ROOT / "uploads" / "profile_pictures"
 # Only image types, so an upload can never be served back as HTML or script
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 
 async def send_profile_picture(auth0_sub):
-    """Respond with the user's uploaded picture, or the default donkey if they haven't uploaded one."""
+    """Respond with the user's uploaded picture, or the default picture if they haven't uploaded one."""
     return await send_picture("SELECT profile_picture FROM users WHERE auth0_sub = $1", auth0_sub)
 
 
 async def send_picture(query, *args):
-    """Respond with the uploaded picture whose filename query returns, or the default donkey."""
+    """Respond with the uploaded picture whose filename query returns, or the default picture."""
     conn = await asyncpg.connect(env.get("DATABASE_URL"))
     try:
         filename = await conn.fetchval(query, *args)
@@ -50,7 +50,7 @@ async def replace_profile_picture(auth0_sub, file):
 
 
 async def reset_profile_picture(auth0_sub):
-    """Go back to the default donkey and delete the user's uploaded picture, if any."""
+    """Go back to the default picture and delete the user's uploaded picture, if any."""
     await _set_profile_picture(auth0_sub, None)
 
 
