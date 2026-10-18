@@ -281,6 +281,26 @@ async def respond_to_invite(auth0_sub, project_id, accept):
         await conn.close()
 
 
+async def set_on_board(auth0_sub, project_id, on_board):
+    """Put the logged-in user's project on the board (people can ask to collaborate) or take it off.
+    Returns False if it isn't their project."""
+    conn = await asyncpg.connect(env.get("DATABASE_URL"))
+    try:
+        # Adding a project that's already on the board (e.g. from a second tab) keeps its original date
+        result = await conn.execute(
+            f"""
+            UPDATE projects
+            SET board_added_at = CASE WHEN $3 THEN coalesce(board_added_at, now()) END
+            WHERE id = $2 AND owner_id = {ME}
+            """,
+            auth0_sub, project_id, on_board,
+        )
+    finally:
+        await conn.close()
+
+    return result != "UPDATE 0"
+
+
 async def send_thumbnail(auth0_sub, project_id):
     """Respond with a project's thumbnail, for anyone who can view the project.
     None if there's no thumbnail or the project is hidden from them."""
@@ -338,8 +358,8 @@ async def get_project(auth0_sub, project_id):
         row = await conn.fetchrow(
             f"""
             SELECT p.id, p.title, p.summary, p.description, p.thumbnail IS NOT NULL AS has_thumbnail,
-                   p.created_at, o.id AS owner_id, o.display_name AS owner_name,
-                   o.id = {ME} AS is_owner
+                   p.created_at, p.board_added_at IS NOT NULL AS on_board,
+                   o.id AS owner_id, o.display_name AS owner_name, o.id = {ME} AS is_owner
             FROM projects p JOIN users o ON o.id = p.owner_id
             WHERE p.id = $2 AND {VISIBLE_TO_ME}
             """,
@@ -372,6 +392,7 @@ async def get_project(auth0_sub, project_id):
         "thumbnail": f"/projects/{row['id']}/thumbnail" if row["has_thumbnail"] else None,
         "created_at": row["created_at"],
         "is_owner": row["is_owner"],
+        "on_board": row["on_board"],
         # Visible project = owner not blocked either way, so the owner is always viewable
         "owner": {**_user_json(row["owner_id"], row["owner_name"]), "viewable": True},
         "members": [{**_user_json(m["id"], m["display_name"]), "viewable": m["viewable"]} for m in members],

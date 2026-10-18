@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   organization         TEXT,
   track                TEXT CHECK (track IN ('gators', 'turtle')),
   about_you_completed  BOOLEAN NOT NULL DEFAULT FALSE,
+  -- /quiz comes right after /aboutyou; /home stays locked until it's TRUE too
+  quiz_completed       BOOLEAN NOT NULL DEFAULT FALSE,
   -- Uploaded file in uploads/profile_pictures/ (Flask); NULL = default assets/donkey.jpg.
   -- Separate from avatar, which is the quest hero's animal (e.g. 'fox').
   profile_picture      TEXT,
@@ -95,9 +97,12 @@ CREATE TABLE IF NOT EXISTS projects (
   summary      TEXT NOT NULL CHECK (btrim(summary) <> ''),
   description  TEXT,
   thumbnail    TEXT,   -- uploaded file in uploads/project_thumbnails/ (Flask); NULL = none
+  -- When the owner put it on the board (people can ask to collaborate); NULL = not on the board
+  board_added_at  TIMESTAMPTZ,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS projects_owner ON projects (owner_id);
+CREATE INDEX IF NOT EXISTS projects_on_board ON projects (board_added_at DESC) WHERE board_added_at IS NOT NULL;
 
 -- Teammates are invited: 'pending' until they accept on /invites. Rejecting deletes the row.
 CREATE TABLE IF NOT EXISTS project_contributors (

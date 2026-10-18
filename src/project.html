@@ -4,8 +4,25 @@
 
 <button id="homeButton" onclick="location.href = '/home'">Home</button>
 {% if project.is_owner %}
-  <button id="editButton" onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
+  <div id="ownerButtons">
+    <button id="boardButton"></button>
+    <button onclick="location.href = '/project/{{ project.id }}/edit'">Edit project</button>
+  </div>
+
+  <dialog id="boardDialog">
+    <h2>Add to the board?</h2>
+    <p>
+      Everyone who looks at the board will see this project and be able to request to become a
+      collaborator on it. You can take it off the board at any time.
+    </p>
+    <div class="dialog-buttons">
+      <button id="boardConfirm">Add to board</button>
+      <button id="boardCancel" class="secondary">Cancel</button>
+    </div>
+  </dialog>
 {% endif %}
+
+<p id="notice" role="status" hidden></p>
 
 <main>
   {% if project.thumbnail %}
@@ -50,6 +67,55 @@
   <p class="created">Created {{ project.created_at.strftime("%B %d, %Y") }}</p>
 </main>
 
+{% if project.is_owner %}
+<script>
+  // Owner only: the same button adds the project to the board (after a popup) or removes it (no popup)
+  const projectId = {{ project.id|tojson }};
+  let onBoard = {{ project.on_board|tojson }};
+
+  const boardButton = document.getElementById("boardButton");
+  const boardDialog = document.getElementById("boardDialog");
+  const notice = document.getElementById("notice");
+
+  const showBoardButton = () => {
+    boardButton.textContent = onBoard ? "Remove from board" : "Add to board";
+  };
+
+  const showNotice = (text, kind) => {
+    notice.textContent = text;
+    notice.className = kind;
+    notice.hidden = false;
+  };
+
+  const setOnBoard = async add => {
+    boardButton.disabled = true;
+    const response = await fetch(`/projects/${projectId}/board`, { method: add ? "POST" : "DELETE" });
+    boardButton.disabled = false;
+
+    if (!response.ok) {
+      showNotice("Couldn't update the board. Please try again.", "error");
+      return;
+    }
+    onBoard = add;
+    showBoardButton();
+    showNotice(add ? "Your project was added to the board." : "Your project was removed from the board.", "success");
+  };
+
+  boardButton.onclick = () => {
+    if (onBoard) setOnBoard(false);
+    else boardDialog.showModal();
+  };
+
+  document.getElementById("boardConfirm").onclick = () => {
+    boardDialog.close();
+    setOnBoard(true);
+  };
+  document.getElementById("boardCancel").onclick = () => boardDialog.close();
+
+  showBoardButton();
+</script>
+{% endif %}
+
 <style>
   body {
     background-image: url('/Images/bg.png');
@@ -72,10 +138,62 @@
     left: 20px;
   }
 
-  #editButton {
+  #ownerButtons {
     position: absolute;
     top: 20px;
     right: 20px;
+    display: flex;
+    gap: 8px;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  #notice {
+    max-width: 720px;
+    margin: 60px auto -40px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+
+  #notice.success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  #notice.error {
+    background-color: #f8d7da;
+    color: #b00020;
+  }
+
+  #boardDialog {
+    max-width: 420px;
+    border: none;
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+
+  #boardDialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* The page's white text would be invisible on the dialog's white background */
+  #boardDialog h2, #boardDialog p {
+    color: #222;
+    margin-top: 0;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  button.secondary {
+    background-color: #ddd;
   }
 
   main {
