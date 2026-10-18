@@ -47,6 +47,12 @@ def site_script(filename):
     # Shared page scripts (e.g. pixel.js, the animated pixel characters)
     return send_from_directory(profile.ROOT / "src" / "js", filename)
 
+@app.route("/favicon.ico")
+def favicon():
+    # Every page links here; browsers also ask for it on pages without a <link rel="icon">, e.g. plain-text error pages.
+    # A square multi-size .ico (made from LogoNoBg.png) works in both Chrome and Firefox
+    return send_from_directory(profile.ROOT / "Images", "favicon.ico", mimetype="image/x-icon")
+
 @app.route("/login")
 async def login():
     # The login cookie (_a0_tx) only reaches /callback on the same host, and Auth0 always calls
