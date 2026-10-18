@@ -182,14 +182,20 @@ def write_pact(members):
     return {"rules": fallback_pact(members), "source": "fallback"}
 
 
-def explain_matches(me_name, matches):
-    """Adds a friendly one-line 'why' to each match. Uses only reasons that are already public."""
+def plain_reasons(matches):
+    """Adds a rule-based one-line 'why' to each match, straight away (no Gemini). Uses only public reasons."""
     distinctive = lambda r: 0 if r.startswith("They bring") else 1 if "present" in r else 2
     for m in matches:
         reasons = sorted(m["reasons"], key=distinctive)  # lead with what makes each match different
         m["why"] = (". ".join(reasons[:2]) + ".") if reasons else "You could balance each other out."
+    return matches
+
+
+def gemini_reasons(me_name, matches):
+    """Friendlier 'why' sentences from Gemini, one per match in the same order, or None if Gemini
+    isn't set up, fails, or there's nothing to word. Slow, so /tavern loads it separately (/tavern/why)."""
     if not matches or not any(m["reasons"] for m in matches):
-        return matches
+        return None
     try:
         prompt = (
             f"Write one friendly sentence (under 30 words) per teammate match for {me_name}, saying why they'd work "
@@ -199,12 +205,19 @@ def explain_matches(me_name, matches):
         )
         data = _ask_gemini_json(prompt)
         sentences = data.get("sentences") if isinstance(data, dict) else None
-        if isinstance(sentences, list) and len(sentences) == len(matches):
-            for m, s in zip(matches, sentences):
-                if isinstance(s, str) and 0 < len(strip_emoji(s)) <= 240:
-                    m["why"] = strip_emoji(s)
+        if not isinstance(sentences, list) or len(sentences) != len(matches):
+            return None
+        return [strip_emoji(s) if isinstance(s, str) and 0 < len(strip_emoji(s)) <= 240 else None for s in sentences]
     except Exception:
-        pass
+        return None
+
+
+def explain_matches(me_name, matches):
+    """Plain reasons, then Gemini's wording where it has some (both steps at once)."""
+    plain_reasons(matches)
+    for m, sentence in zip(matches, gemini_reasons(me_name, matches) or []):
+        if sentence:
+            m["why"] = sentence
     return matches
 
 
@@ -215,7 +228,8 @@ async def _connect():
 
 
 async def create_party(auth0_sub, teammate_ids, name):
-    """Form a party with up to 3 teammates, write its pact and save it. Returns the group id."""
+    """Form a party with up to 3 teammates and save it with the rule-based pact, marked "pending" so
+    the party page asks Gemini for its version (finish_pact) without making this wait. Returns the group id."""
     name = (name or "").strip()[:60] or "The Unstoppable Party"
     try:
         ids = list(dict.fromkeys(str(UUID(str(i))) for i in teammate_ids))
@@ -232,7 +246,7 @@ async def create_party(auth0_sub, teammate_ids, name):
         raise PartyError("Invalid teammate")
     members = [me] + [profiles[i] for i in ids]
 
-    pact = write_pact(members)
+    pact = {"rules": fallback_pact(members), "source": "pending"}
     conn = await _connect()
     try:
         async with conn.transaction():
@@ -246,6 +260,39 @@ async def create_party(auth0_sub, teammate_ids, name):
     finally:
         await conn.close()
     return str(group_id)
+
+
+async def finish_pact(auth0_sub, group_id):
+    """Replaces a party's pending pact with Gemini's (or keeps the rule-based one, for good, if Gemini
+    isn't available). Slow, so the party page calls it after loading. Returns the pact, or None if the
+    party doesn't exist or this student isn't in it. A pact that's already finished is returned as is."""
+    conn = await _connect()
+    try:
+        group = await conn.fetchrow("SELECT team_guide FROM groups WHERE id = $1", group_id)
+        member_ids = [str(r["user_id"]) for r in await conn.fetch(
+            "SELECT user_id FROM group_members WHERE group_id = $1 ORDER BY joined_at", group_id)]
+    finally:
+        await conn.close()
+    if not group:
+        return None
+    profiles = {p["user_id"]: p for p in await get_all_profiles()}
+    me = next((p for p in profiles.values() if p["auth0_sub"] == auth0_sub), None)
+    if not me or me["user_id"] not in member_ids:
+        return None
+
+    pact = json.loads(group["team_guide"]) if group["team_guide"] else {"rules": [], "source": "fallback"}
+    if pact.get("source") == "pending":
+        pact = write_pact([profiles[i] for i in member_ids if i in profiles])
+        conn = await _connect()
+        try:
+            # Only if it's still pending, in case another tab finished it first
+            await conn.execute(
+                "UPDATE groups SET team_guide = $2 WHERE id = $1 AND team_guide = $3",
+                group_id, json.dumps(pact), group["team_guide"],
+            )
+        finally:
+            await conn.close()
+    return {"rules": [strip_emoji(rule) for rule in pact.get("rules", [])], "source": pact.get("source")}
 
 
 async def get_party(auth0_sub, group_id):

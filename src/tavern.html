@@ -28,6 +28,10 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
   .chips li { background: var(--button); border-radius: 16px; padding: 2px 10px; font-size: .9rem; }
   .why { margin: 0; }
+  .why.pending { opacity: .55; }
+  .loading { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 8px 12px; border-radius: 4px; background: var(--card); color: var(--ink); font-weight: bold; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--button); border-top-color: transparent; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .pick { display: flex; gap: 8px; align-items: center; min-height: 40px; font-weight: bold; cursor: pointer; }
   .pick input { width: 20px; height: 20px; }
   .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 16px; }
@@ -75,6 +79,13 @@
   <section class="panel" aria-labelledby="matchesTitle">
     <h2 id="matchesTitle">Your matches</h2>
     {% if matches %}
+      {# Shown while Gemini writes friendlier reasons; the rule-based ones are already there underneath #}
+      {% if gemini_pending %}
+        <p id="whyLoading" class="loading" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          Chomp and Ponder are writing why you'd work well together...
+        </p>
+      {% endif %}
       <div class="matches">
         {% for m in matches %}
           <article class="hero" data-id="{{ m.hero.user_id }}">
@@ -88,7 +99,7 @@
                 </div>
               </div>
             </header>
-            <p class="why">{{ m.why }}</p>
+            <p class="why{% if gemini_pending %} pending{% endif %}" data-user-id="{{ m.hero.user_id }}">{{ m.why }}</p>
             {% if m.chips %}
               <ul class="chips" aria-label="How {{ m.hero.display_name }} works">
                 {% for c in m.chips %}<li>{{ c }}</li>{% endfor %}
@@ -123,6 +134,25 @@
 </main>
 
 <script>
+  // Gemini's friendlier match reasons load after the page is already showing
+  (async () => {
+    const loading = document.getElementById("whyLoading");
+    if (!loading) return;
+    const whys = [...document.querySelectorAll(".why.pending")];
+    try {
+      const response = await fetch("/tavern/why");
+      const data = response.ok ? await response.json() : { why: {} };
+      whys.forEach(why => {
+        const sentence = data.why[why.dataset.userId];
+        if (sentence) why.textContent = sentence;
+      });
+    } catch {
+      // Gemini unavailable: keep the plain reasons
+    }
+    whys.forEach(why => why.classList.remove("pending"));
+    loading.remove();
+  })();
+
   const calm = (() => { try { return localStorage.getItem("wawm-calm") === "1"; } catch { return false; } })();
   Pixel.mount(document.getElementById("chomp"), "chomp", { size: 120, still: calm });
   Pixel.mount(document.getElementById("ponder"), "ponder", { size: 130, still: calm });
@@ -145,7 +175,7 @@
     boxes.forEach(b => b.addEventListener("change", update));
     form.addEventListener("submit", async e => {
       e.preventDefault();
-      button.disabled = true; error.textContent = ""; button.textContent = "Writing your Party Pact...";
+      button.disabled = true; error.textContent = ""; button.textContent = "Forming your party...";
       try {
         const res = await fetch("/tavern/party", {
           method: "POST", headers: { "Content-Type": "application/json" },
