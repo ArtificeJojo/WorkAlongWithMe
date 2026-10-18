@@ -24,6 +24,10 @@
   .pact li { counter-increment: rule; display: flex; gap: 12px; align-items: flex-start; background: var(--card); color: var(--ink); border-radius: 12px; padding: 12px 14px; font-size: 1.05rem; }
   .pact li::before { content: counter(rule); flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--highlight); font-weight: bold; }
   .muted { color: #d8dcf0; font-size: .95rem; }
+  .pact.pending { opacity: .55; }
+  .loading { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; padding: 8px 12px; border-radius: 4px; background: var(--card); color: var(--ink); font-weight: bold; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--button); border-top-color: transparent; animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .btn { font: inherit; padding: 6px 14px; border: none; border-radius: 16px; background: var(--button); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
   .btn:hover { animation: shake 0.4s; }
   .actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -68,10 +72,17 @@
   <section class="panel" aria-labelledby="pactTitle">
     <h2 id="pactTitle">Your Party Pact</h2>
     <p>The agreements your party works by, written from how each of you works best.</p>
-    <ol class="pact">
+    {# A new party's pact starts as the rule-based one while Gemini writes its version #}
+    {% if party.pact.source == "pending" %}
+      <p id="pactLoading" class="loading" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Chomp and Ponder are writing your Party Pact...
+      </p>
+    {% endif %}
+    <ol id="pactRules" class="pact{% if party.pact.source == "pending" %} pending{% endif %}">
       {% for rule in party.pact.rules %}<li>{{ rule }}</li>{% endfor %}
     </ol>
-    <p class="muted">{% if party.pact.source == "gemini" %}Written by Gemini{% else %}Written{% endif %} from the answers each member chose to share. "Only me" answers are never used.</p>
+    <p class="muted"><span id="pactSource">{% if party.pact.source == "gemini" %}Written by Gemini{% else %}Written{% endif %}</span> from the answers each member chose to share. "Only me" answers are never used.</p>
   </section>
 
   <div class="actions">
@@ -81,6 +92,32 @@
 </main>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 <script>
+  // A new party's pact: ask Gemini for its version after the page is showing. Leaving drops the request,
+  // and the pact stays pending, so the next visit tries again.
+  (async () => {
+    const loading = document.getElementById("pactLoading");
+    if (!loading) return;
+    const rules = document.getElementById("pactRules");
+    try {
+      const response = await fetch(`/party/${ {{ party.id|tojson }} }/pact`, { method: "POST" });
+      if (response.ok) {
+        const pact = await response.json();
+        if (pact.rules.length) {
+          rules.replaceChildren(...pact.rules.map(rule => {
+            const item = document.createElement("li");
+            item.textContent = rule;
+            return item;
+          }));
+        }
+        document.getElementById("pactSource").textContent = pact.source === "gemini" ? "Written by Gemini" : "Written";
+      }
+    } catch {
+      // Keep the rule-based pact
+    }
+    rules.classList.remove("pending");
+    loading.remove();
+  })();
+
   const calm = (() => { try { return localStorage.getItem("wawm-calm") === "1"; } catch { return false; } })();
   Pixel.mount(document.getElementById("chomp"), "chomp", { size: 130, mood: "celebrate", still: calm, label: "" });
   Pixel.mount(document.getElementById("ponder"), "ponder", { size: 140, mood: "celebrate", still: calm, label: "" });

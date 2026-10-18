@@ -86,8 +86,9 @@ def test_gemini_words_the_matches_when_available(client, monkeypatch):
         return {"sentences": [f"Gemini sentence {i}" for i in range(n)]}
     monkeypatch.setattr(party, "_ask_gemini_json", fake)
     play_both(client)
-    html = client.get("/tavern").get_data(as_text=True)
-    assert "Gemini sentence 0" in html
+    # The page opens without waiting for Gemini, then fetches its wording from /tavern/why
+    assert "Gemini sentence" not in client.get("/tavern").get_data(as_text=True)
+    assert "Gemini sentence 0" in client.get("/tavern/why").get_json()["why"].values()
     # Only public reasons are sent to Gemini
     assert "step_away" not in prompts[0] and "take_time" not in prompts[0]
 
@@ -124,6 +125,9 @@ def test_gemini_writes_the_pact_and_never_sees_only_me_answers(client, monkeypat
     monkeypatch.setattr(party, "_ask_gemini_json", fake)
     play_both(client)
     r = form(client, [SAM])
+    # Forming doesn't wait for Gemini: the party page asks for the pact afterwards
+    assert "prompt" not in seen
+    assert client.post(f"/party/{r.get_json()['id']}/pact").get_json()["source"] == "gemini"
     html = client.get(f"/party/{r.get_json()['id']}").get_data(as_text=True)
     assert "We plan in the group chat." in html and "Written by Gemini" in html
     # Sam marked cool_down "Only me": it must not reach Gemini
@@ -140,6 +144,7 @@ def test_broken_gemini_falls_back(client, monkeypatch):
     assert client.get("/tavern").status_code == 200
     r = form(client, [MAYA])
     assert r.status_code == 201
+    assert client.post(f"/party/{r.get_json()['id']}/pact").get_json()["source"] == "fallback"
     assert "Written from the answers" in client.get(f"/party/{r.get_json()['id']}").get_data(as_text=True)
 
 

@@ -667,7 +667,8 @@ async def tavern():
     me, matches = await matching.matches_for(user["sub"], n=4)
     if not me:
         return redirect("/quest")
-    matches = party.explain_matches(me["display_name"], matches)
+    # Rule-based reasons now; the page then asks /tavern/why for Gemini's wording, so it opens straight away
+    matches = party.plain_reasons(matches)
     for m in matches:
         m["chips"] = party.chips(m["hero"])
     with open("..\\src\\tavern.html", encoding="utf-8") as html:
@@ -677,7 +678,23 @@ async def tavern():
             matches=matches,
             parties=await party.my_parties(user["sub"]),
             both_done=all(q in progress["completed"] for q in quests.QUEST_ORDER),
+            # Only wait for Gemini when there's something for it to word
+            gemini_pending=any(m["reasons"] for m in matches),
         )
+
+@app.route("/tavern/why")
+async def tavern_why():
+    """Gemini's friendlier 'why' sentence for each match on /tavern, by user id. Slow (Gemini), so the
+    page loads first and fetches this; empty if Gemini isn't available, so the plain reasons stay."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+
+    me, matches = await matching.matches_for(user["sub"], n=4)
+    if not me:
+        return jsonify({"why": {}})
+    sentences = party.gemini_reasons(me["display_name"], matches) or []
+    return jsonify({"why": {m["hero"]["user_id"]: s for m, s in zip(matches, sentences) if s}})
 
 @app.route("/tavern/party", methods=["POST"])
 async def form_party():
@@ -690,6 +707,17 @@ async def form_party():
     except party.PartyError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"id": group_id}), 201
+
+@app.route("/party/<uuid:group_id>/pact", methods=["POST"])
+async def finish_party_pact(group_id):
+    """Gemini's Party Pact for a newly formed party (slow, so the party page loads first and calls this)."""
+    user = await auth0().get_user(store_options={"request": request})
+    if not user:
+        return jsonify({"error": "Not logged in"}), 401
+    pact = await party.finish_pact(user["sub"], group_id)
+    if pact is None:
+        return jsonify({"error": "Party not found"}), 404
+    return jsonify(pact)
 
 @app.route("/party/<uuid:group_id>")
 async def view_party(group_id):
