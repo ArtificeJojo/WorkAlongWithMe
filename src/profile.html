@@ -12,7 +12,7 @@
 <div id="profileBar">
   <img id="profilePicture" src="/profile-picture" alt="Profile picture" title="Click to change" />
   <button id="resetPicture" {% if not has_custom_picture %}hidden{% endif %}>Reset to default</button>
-  <h1>{{ username }}</h1>
+  <h1>Welcome, {{ username }}</h1>
 </div>
 <input id="pictureInput" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" hidden />
 
