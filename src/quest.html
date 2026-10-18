@@ -8,44 +8,83 @@
 <style>
   :root {
     --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
-    --focus: #1f5fd6; --chip: #eef5ea;
+    --focus: #1f5fd6; --chip: #eef5ea; --tag: #2f7d4f; --sun-y: 0px;
   }
+  body.pond { --tag: #2c7f86; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink);
-    font-size: 18px; line-height: 1.45;
-    background: linear-gradient(180deg, #ffcf8a 0%, #f6a46b 35%, #4f9e8a 70%, #2f6f63 100%);
-  }
-  body.pond { background: linear-gradient(180deg, #bfe6ff 0%, #8fd0e8 40%, #5fb39a 75%, #3b8a73 100%); }
-  body.calm { background: #eef3ec; }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
-  header h1 { margin: 0; font-size: 1.3rem; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); }
+  html, body { margin: 0; min-height: 100%; }
+  body { font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink); font-size: 18px; line-height: 1.45; background: #1f1a3d; }
+  body.pond { background: #7ec8f0; }
+
+  /* ---------- the scenic world (decorative, behind everything) ---------- */
+  #world { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  #world svg { width: 100%; height: 100%; display: block; }
+  #sun { transform: translateY(var(--sun-y)); transition: transform 1.6s steps(12); }
+  .shimmer { animation: shimmer 2.4s steps(4) infinite; }
+  .shimmer.d2 { animation-delay: .6s; } .shimmer.d3 { animation-delay: 1.2s; }
+  @keyframes shimmer { 0%,100% { opacity: .9 } 50% { opacity: .25 } }
+  .firefly { animation: firefly 4s steps(8) infinite; }
+  @keyframes firefly { 0%,100% { transform: translate(0,0); opacity: .2 } 25% { opacity: 1 } 50% { transform: translate(6px,-5px); opacity: .5 } 75% { opacity: 1; transform: translate(-4px,-8px) } }
+  .cloud { animation: drift 60s linear infinite; }
+  .cloud.slow { animation-duration: 90s; }
+  @keyframes drift { from { transform: translateX(-60px) } to { transform: translateX(380px) } }
+  .fly { animation: flit 5s steps(10) infinite; }
+  @keyframes flit { 0%,100% { transform: translate(0,0) } 30% { transform: translate(18px,-8px) } 60% { transform: translate(-10px,-14px) } }
+
+  /* ---------- layout ---------- */
+  #ui { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; max-width: 980px; margin: 0 auto; padding: 12px 16px 16px; }
+  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  header h1 { margin: 0; font-size: 1.15rem; background: var(--panel); padding: 6px 14px; border-radius: 14px; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); }
   .toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-  .toggles label { background: var(--panel); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; display: flex; gap: 6px; align-items: center; min-height: 48px; cursor: pointer; }
-  .toggles input { width: 20px; height: 20px; }
-  .progress { display: flex; gap: 8px; margin: 14px 0; justify-content: center; }
-  .progress span { width: 22px; height: 22px; border: 3px solid var(--ink); border-radius: 4px; background: var(--panel); }
-  .progress span.done { background: #f6d44a; }
-  .progress span.now { background: #ffffff; outline: 3px solid var(--focus); }
-  .stage { background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 18px; box-shadow: 0 6px 0 var(--ink); }
-  .scene-title { margin: 0 0 8px; font-size: 1.5rem; }
-  .row { display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap; margin-top: 18px; }
-  .guide { flex: 0 0 auto; }
-  .bubble { flex: 1 1 260px; position: relative; background: #ffffff; border: 3px solid var(--ink); border-radius: 16px; padding: 14px 16px; font-size: 1.15rem; min-height: 90px; }
-  .prop { display: flex; justify-content: center; align-items: flex-end; min-height: 40px; margin: 10px 0; }
-  .prop.fly .px-char { transform: translateY(-140%) scale(.3); opacity: 0; transition: transform .8s steps(6), opacity .8s steps(6); }
+  .pill { font: inherit; font-size: 1rem; background: var(--panel); color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 12px; display: inline-flex; gap: 6px; align-items: center; min-height: 48px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 0 var(--ink); }
+  .pill input { width: 20px; height: 20px; }
+  .pill[aria-pressed="false"] { opacity: .75; }
+
+  /* journey map */
+  .map { position: relative; margin: 14px 4px 0; height: 74px; }
+  .map .trail { position: absolute; left: 22px; right: 22px; top: 50px; border-top: 5px dashed rgba(255,253,246,.85); }
+  .map .stops { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: flex-end; }
+  .map .stop { width: 44px; height: 44px; border-radius: 12px; border: 3px solid var(--ink); background: var(--panel); display: grid; place-items: center; font-size: 1.3rem; box-shadow: 0 3px 0 var(--ink); }
+  .map .stop.done { background: #f6d44a; }
+  .map .stop.now { outline: 4px solid #fff; outline-offset: 2px; }
+  .map .traveler { position: absolute; top: -4px; width: 44px; transform: translateX(-50%); transition: left .9s steps(9); }
+
+  /* stage: the character lives here, standing in the world */
+  .stage { position: relative; flex: 1 1 auto; min-height: clamp(190px, 34vh, 340px); }
+  #actor { position: absolute; left: 3%; bottom: -6px; transform-origin: 50% 100%; }
+  #actor.submerged { transform: translateY(115%); }
+  #actor.leap { animation: leap 1.1s steps(11) forwards; }
+  @keyframes leap { 0% { transform: translateY(115%) } 45% { transform: translateY(-28%) rotate(-4deg) } 70% { transform: translateY(6%) rotate(2deg) } 100% { transform: translateY(0) } }
+  #actor.offstage { transform: translateX(160%); }
+  #actor.swimin { animation: swimin 2.6s steps(16) forwards; }
+  @keyframes swimin { 0% { transform: translateX(160%) translateY(0) } 25% { transform: translateX(110%) translateY(-3%) } 50% { transform: translateX(60%) translateY(0) } 75% { transform: translateX(20%) translateY(-3%) } 100% { transform: translateX(0) translateY(0) } }
+  #prop { position: absolute; right: 5%; bottom: 0; display: flex; align-items: flex-end; }
+  #prop.fly .px-char, #prop.liftoff > * { transform: translateY(-160%) scale(.4); opacity: 0; transition: transform 1s steps(8), opacity 1s steps(8); }
+  .bubble-dot { position: absolute; width: 10px; height: 10px; border: 2px solid rgba(255,255,255,.9); border-radius: 50%; animation: rise 1.4s steps(7) forwards; }
+  @keyframes rise { from { transform: translateY(0); opacity: 1 } to { transform: translateY(-90px); opacity: 0 } }
+  .drop { position: absolute; width: 10px; height: 10px; background: #bfe6ff; box-shadow: 0 0 0 2px #2c3c53; animation: splash .8s steps(8) forwards; }
+  @keyframes splash { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
+
+  /* dialogue box, like a story game */
+  .dialog { position: relative; background: var(--panel); border: 4px solid var(--ink); border-radius: 20px; padding: 22px 18px 16px; box-shadow: 0 6px 0 var(--ink); max-height: 62vh; overflow: auto; }
+  .name-tag { position: absolute; z-index: 2; top: -18px; left: 18px; background: var(--tag); color: #fff; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; padding: 4px 14px; border: 3px solid var(--ink); border-radius: 10px; font-size: .95rem; }
+  .dialog-wrap { position: relative; margin-top: 18px; }
+  .scene-title { margin: 0 0 6px; font-size: 1.05rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .line { margin: 0; font-size: 1.25rem; min-height: 2.6em; }
   .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
-  .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--chip); cursor: pointer; color: var(--ink); }
+  .choice { font: inherit; text-align: left; display: flex; gap: 10px; align-items: center; min-height: 64px; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--chip); cursor: pointer; color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
   .choice .emoji { font-size: 1.6rem; }
-  .choice[aria-pressed="true"] { background: #f6d44a; box-shadow: inset 0 0 0 3px var(--ink); }
-  .choice:disabled { opacity: .55; cursor: default; }
-  .choice:hover:not(:disabled) { transform: translateY(-2px); }
+  .choice[aria-pressed="true"] { background: #f6d44a; }
+  .choice:hover { transform: translateY(-2px); }
   .actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
-  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  .btn { font: inherit; font-weight: bold; min-height: 52px; padding: 10px 20px; border-radius: 16px; border: 3px solid var(--ink); background: var(--accent); color: var(--accent-ink); cursor: pointer; box-shadow: 0 4px 0 var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
   .btn.secondary { background: var(--panel); color: var(--ink); }
+  .btn.big { font-size: 1.3rem; padding: 14px 28px; background: #f6d44a; color: var(--ink); }
   .btn:disabled { opacity: .5; cursor: default; }
   button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+  .title-card { text-align: center; }
+  .title-card h2 { margin: 0 0 6px; font-size: 1.7rem; }
+  .title-card p { margin: 0 0 14px; }
   .mirror-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; }
   .mirror-list li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; background: var(--chip); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; }
   .mirror-list select { font: inherit; min-height: 44px; border: 2px solid var(--ink); border-radius: 10px; padding: 4px 8px; }
@@ -54,34 +93,60 @@
   .error { color: #9b1c1c; font-weight: bold; }
   fieldset { border: 3px solid var(--ink); border-radius: 14px; margin: 0 0 12px; padding: 10px 14px; }
   legend { font-weight: bold; padding: 0 6px; }
-  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
   .confetti i { position: absolute; top: -12px; width: 10px; height: 10px; animation: fall 1.8s steps(12) forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  body.calm .px-bob, body.calm .px-jump, body.calm .px-wobble, body.calm .px-pop { animation: none !important; }
-  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } .choice:hover { transform: none; } }
+
+  /* calm mode and reduced motion: everything holds still */
+  body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; }
+  body.calm #actor { transform: none !important; }
+  body.calm .confetti { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    #actor { transform: none !important; }
+    .confetti { display: none; }
+  }
+  @media (max-width: 560px) { .map .stop { width: 34px; height: 34px; font-size: 1rem; } .line { font-size: 1.1rem; } }
 </style>
 </head>
 <body>
-<main>
+<div id="world" aria-hidden="true"></div>
+<div id="ui">
   <header>
     <h1 id="questName">Quest</h1>
     <div class="toggles">
-      <label><input type="checkbox" id="calmToggle" /> Calm mode</label>
-      <label><input type="checkbox" id="readToggle" /> Read aloud</label>
-      <a class="btn secondary" href="/home" style="display:flex;align-items:center;text-decoration:none">Home</a>
+      <button class="pill" id="voiceToggle" aria-pressed="true">🔊 Voice</button>
+      <label class="pill"><input type="checkbox" id="calmToggle" /> Calm mode</label>
+      <a class="pill" href="/home">Home</a>
     </div>
   </header>
-  <div class="progress" id="progress" aria-hidden="true"></div>
+  <nav class="map" id="map" aria-label="Quest journey"></nav>
   <p class="sr-only" id="progressText" aria-live="polite"></p>
-  <section class="stage" id="stage" aria-labelledby="sceneTitle"></section>
-</main>
+  <div class="stage" id="stage" aria-hidden="true"><div id="actor"></div><div id="prop"></div></div>
+  <div class="dialog-wrap">
+    <div class="name-tag" id="nameTag"></div>
+    <section class="dialog" id="dialog" aria-labelledby="questName"></section>
+  </div>
+</div>
 <div class="confetti" id="confetti" aria-hidden="true"></div>
 
 <script>
   const DATA = {{ quests_json|safe }};
   const PROGRESS = {{ progress_json|safe }};
   const QUEST = DATA.quests["{{ quest_id }}"];
+  const POND = QUEST.id === "turtle";
+
+  // Journey map landmarks, one per scene, plus the finale.
+  const LANDMARKS = {
+    powers: "✨", workbench: "🧰", mega_bug: "👾", launch_bridge: "🌉", locked_gate: "🚪",
+    message_flood: "🍾", slow_riddle: "⏳", frog_bug: "🐸", rainstorm: "⛈️", pond_fair: "🎪",
+  };
+  const FINALE_LANDMARK = POND ? "🏆" : "🚀";
+  // The first words, before the quest's own intro line: the "who, me?" moment.
+  const HELLO = POND
+    ? { line: "Oh... hello there. Sorry, I'm a little slow. I was hoping someone kind would come by.", button: "Hi, Ponder!" }
+    : { line: "WHOA, hey! You! Yeah, YOU! You're the hero everyone's been talking about, right?! I NEED your help!", button: "Who, me?" };
 
   // ------------------------------------------------------------- settings (kept per browser)
   const store = {
@@ -89,24 +154,113 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
   const calmToggle = document.getElementById("calmToggle");
-  const readToggle = document.getElementById("readToggle");
+  const voiceToggle = document.getElementById("voiceToggle");
   calmToggle.checked = store.get("wawm-calm") === "1";
-  readToggle.checked = store.get("wawm-read") === "1";
+  let voiceOn = store.get("wawm-voice") !== "0";
+  const setVoiceButton = () => { voiceToggle.setAttribute("aria-pressed", String(voiceOn)); voiceToggle.textContent = voiceOn ? "🔊 Voice" : "🔇 Voice off"; };
+  setVoiceButton();
 
-  document.body.classList.toggle("pond", QUEST.id === "turtle");
+  document.body.classList.toggle("pond", POND);
+  document.body.classList.toggle("calm", calmToggle.checked);
   document.getElementById("questName").textContent = `${QUEST.badge_emoji} ${QUEST.name}`;
+  document.getElementById("nameTag").textContent = QUEST.guide;
 
-  // ------------------------------------------------------------- state
-  const answers = {};
-  const fields = QUEST.scenes.map(s => s.field);
-  fields.forEach(f => { if (PROGRESS.answers && PROGRESS.answers[f] != null) answers[f] = PROGRESS.answers[f]; });
-  let step = -1;        // -1 intro, 0..n-1 scenes, n mirror, n+1 finale
-  let guide = null;     // animated character
-  let quick = false;
+  // ------------------------------------------------------------- voice
+  // Picks a female English voice when the computer has one; Chomp is quick and bright, Ponder slow and calm.
+  const FEMALE = /(aria|jenny|zira|samantha|ava|allison|susan|karen|moira|tessa|serena|michelle|emma|sonia|libby|google us english|google uk english female|female)/i;
+  let chosenVoice = null;
+  function pickVoice() {
+    if (!("speechSynthesis" in window)) return;
+    const voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+    chosenVoice = voices.find(v => FEMALE.test(v.name) && /natural|online|neural/i.test(v.name))
+      || voices.find(v => FEMALE.test(v.name)) || voices.find(v => /en-US/i.test(v.lang)) || voices[0] || null;
+  }
+  if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(text) {
+    if (!voiceOn || !("speechSynthesis" in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (chosenVoice) u.voice = chosenVoice;
+      u.rate = POND ? 0.86 : 1.12;
+      u.pitch = POND ? 1.05 : 1.3;
+      speechSynthesis.speak(u);
+    } catch {}
+  }
 
-  const stageEl = document.getElementById("stage");
-  // Wrapper so optional pieces (null) are skipped instead of printed as text.
-  const stage = { replaceChildren: (...nodes) => stageEl.replaceChildren(...nodes.flat().filter(n => n != null)), querySelector: s => stageEl.querySelector(s) };
+  // ------------------------------------------------------------- the world
+  function drawWorld() {
+    const R = (x, y, w, h, c, cls = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"${cls ? ` class="${cls}"` : ""}/>`;
+    const disc = (cx, cy, r, c) => { let s = ""; for (let dy = -r; dy <= r; dy += 2) { const w = 2 * Math.floor(Math.sqrt(r * r - dy * dy)); s += R(cx - w / 2, cy + dy, w, 2, c); } return s; };
+    const tree = (x, base, h, w, c) => { let s = R(x + w / 2 - 2, base - h * 0.35, 4, h * 0.35, c); for (let i = 0; i < h * 0.75; i += 4) { const ww = Math.max(4, w * (1 - i / (h * 0.75))); s += R(x + (w - ww) / 2, base - h * 0.3 - i, ww, 4, c); } return s; };
+    let svg = "";
+    if (!POND) {
+      const sky = ["#1f1a3d", "#2e2050", "#4a2a5e", "#6e3466", "#9a4466", "#c75a5f", "#e47a5a", "#f39b5e", "#f8bd6e", "#f9d27f"];
+      sky.forEach((c, i) => { svg += R(0, i * 12, 320, 12, c); });
+      svg += `<g id="sun">${disc(236, 64, 16, "#ffe08a")}${disc(232, 60, 6, "#fff4c4")}</g>`;
+      [[10, 40, 18], [40, 52, 22], [78, 36, 16], [120, 46, 20], [170, 38, 18], [262, 50, 22], [296, 40, 18]].forEach(([x, h, w]) => { svg += tree(x, 120, h, w, "#4b2b55"); });
+      svg += R(0, 116, 320, 6, "#3b2347");
+      const water = ["#3d4f6b", "#34465f", "#2c3c53", "#253447", "#1f2d3e"];
+      water.forEach((c, i) => { svg += R(0, 120 + i * 12, 320, 12, c); });
+      [[228, 124, 18], [232, 130, 12, "d2"], [226, 137, 22, "d3"], [234, 145, 10], [230, 153, 14, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#f6b26b", `shimmer ${d || ""}`); });
+      [[52, 150], [140, 160], [196, 142], [286, 166]].forEach(([x, y]) => { svg += R(x, y, 18, 4, "#3f7a45") + R(x + 3, y - 2, 12, 2, "#3f7a45") + R(x + 8, y - 4, 3, 3, "#f39ac1"); });
+      [[0, 60, 30], [290, 70, 30]].forEach(([x, h, w]) => { svg += tree(x, 180, h * 1.6, w * 1.4, "#2a1b33"); });
+      for (let i = 0; i < 7; i++) svg += R(8 + i * 5, 150 - (i % 3) * 6, 1, 30 + (i % 3) * 6, "#4f6b45");
+      for (let i = 0; i < 10; i++) { const x = (i * 37) % 320, h = 16 + (i % 4) * 5; svg += R(x, 180 - h, 2, h, "#1e2a22") + R(x - 1, 180 - h - 6, 4, 6, "#5a3a2a"); }
+      for (let i = 0; i < 12; i++) svg += `<rect x="${(i * 53 + 17) % 310}" y="${80 + (i * 29) % 70}" width="2" height="2" fill="#fff3a0" class="firefly" style="animation-delay:${(i % 6) * 0.6}s"/>`;
+    } else {
+      const sky = ["#6fbfee", "#7ec8f0", "#8fd0f2", "#a2d8f3", "#b6e0f4", "#c9e8f5", "#dcf0f6", "#eaf6f2", "#f4f8e6", "#f7f4d6"];
+      sky.forEach((c, i) => { svg += R(0, i * 11, 320, 11, c); });
+      svg += `<g id="sun">${disc(256, 34, 12, "#fff6c2")}${disc(254, 32, 5, "#ffffff")}</g>`;
+      const cloud = (x, y, s) => R(x, y, 26 * s, 6 * s, "#ffffff") + R(x + 5 * s, y - 5 * s, 14 * s, 6 * s, "#ffffff") + R(x + 2 * s, y + 5 * s, 22 * s, 3 * s, "#e6f2fb");
+      svg += `<g class="cloud">${cloud(20, 26, 1)}</g><g class="cloud slow">${cloud(140, 16, 1.3)}</g><g class="cloud">${cloud(230, 44, .8)}</g>`;
+      svg += R(0, 96, 320, 14, "#9fd49a") + R(30, 90, 90, 8, "#9fd49a") + R(190, 92, 110, 6, "#9fd49a");
+      svg += R(0, 106, 320, 14, "#7cc28a") + R(60, 102, 80, 6, "#7cc28a");
+      const water = ["#5cbcbc", "#4fb0b0", "#45a2a6", "#3b9398", "#33848a"];
+      water.forEach((c, i) => { svg += R(0, 118 + i * 13, 320, 13, c); });
+      [[40, 128, 26], [120, 140, 18, "d2"], [210, 132, 30, "d3"], [270, 150, 20], [80, 162, 24, "d2"]].forEach(([x, y, w, d]) => { svg += R(x, y, w, 2, "#e8fbff", `shimmer ${d || ""}`); });
+      [[60, 152], [150, 164], [238, 146], [300, 168]].forEach(([x, y]) => { svg += R(x, y, 18, 4, "#4fae5c") + R(x + 3, y - 2, 12, 2, "#4fae5c") + R(x + 8, y - 4, 3, 3, "#f39ac1"); });
+      // Willow tree, kept inside the area every screen shape shows
+      svg += R(68, 60, 6, 60, "#6b4a33");
+      for (let i = 0; i < 9; i++) svg += R(50 + i * 5, 52 + (i % 2) * 4, 4, 34 + (i % 3) * 8, "#4f9b5a");
+      svg += R(48, 46, 50, 10, "#5fae6a") + R(54, 40, 38, 6, "#5fae6a");
+      for (let i = 0; i < 9; i++) { const x = (i * 41 + 9) % 320, h = 14 + (i % 3) * 6; svg += R(x, 180 - h, 2, h, "#2f6b45") + R(x - 1, 180 - h - 5, 4, 5, "#7a5a3a"); }
+      for (let i = 0; i < 4; i++) svg += `<g class="fly" style="animation-delay:${i}s">${R(70 + i * 60, 100 + (i % 2) * 14, 4, 1, "#2c6f8a")}${R(71 + i * 60, 99 + (i % 2) * 14, 2, 1, "#9ff0f4")}</g>`;
+    }
+    document.getElementById("world").innerHTML =
+      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  }
+
+  // ------------------------------------------------------------- journey map
+  const map = document.getElementById("map");
+  const stopsCount = QUEST.scenes.length + 1;
+  map.innerHTML = `<div class="trail"></div><div class="stops"></div><div class="traveler"></div>`;
+  map.querySelector(".stops").append(...[...QUEST.scenes.map(s => LANDMARKS[s.id] || "⭐"), FINALE_LANDMARK].map(icon => {
+    const d = document.createElement("div"); d.className = "stop"; d.textContent = icon; return d;
+  }));
+  map.querySelector(".traveler").append(Pixel.svgFor(Pixel.sprites[QUEST.character]({}), 44, ""));
+
+  function renderProgress() {
+    const stops = [...map.querySelectorAll(".stop")];
+    const at = Math.max(0, Math.min(step, stopsCount - 1));
+    stops.forEach((s, i) => { s.className = "stop" + (i < at || (step > QUEST.scenes.length) ? " done" : "") + (i === at && step >= 0 ? " now" : ""); });
+    const pct = stopsCount > 1 ? at / (stopsCount - 1) : 0;
+    map.querySelector(".traveler").style.left = `calc(22px + (100% - 44px) * ${pct})`;
+    // The sun sets as the journey goes on.
+    document.documentElement.style.setProperty("--sun-y", `${Math.round(pct * (POND ? 30 : 52))}px`);
+    document.getElementById("progressText").textContent =
+      step >= 0 && step < QUEST.scenes.length ? `Scene ${step + 1} of ${QUEST.scenes.length}: ${QUEST.scenes[step].title}` : "";
+  }
+
+  // ------------------------------------------------------------- the character in the world
+  const actorEl = document.getElementById("actor");
+  const propEl = document.getElementById("prop");
+  const actorSize = () => Math.round(Math.min(window.innerWidth * 0.32, POND ? 280 : 250));
+  const actor = Pixel.mount(actorEl, QUEST.character, { size: actorSize(), mood: "idle", still: calmToggle.checked, label: "" });
+  const calm = () => calmToggle.checked || matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ------------------------------------------------------------- dialogue box
+  const dialog = document.getElementById("dialog");
   const el = (tag, props = {}, ...kids) => {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
@@ -118,95 +272,119 @@
     kids.flat().forEach(c => c != null && n.append(c));
     return n;
   };
-
-  function speak(text) {
-    if (!readToggle.checked || !("speechSynthesis" in window)) return;
-    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = QUEST.id === "turtle" ? 0.85 : 1; speechSynthesis.speak(u); } catch {}
+  const show = (...nodes) => dialog.replaceChildren(...nodes.flat().filter(n => n != null));
+  function say(text, mood = "talk") {
+    const p = el("p", { class: "line", "aria-live": "polite", text });
+    actor.setMood(mood);
+    speak(text);
+    return p;
   }
 
-  function renderProgress() {
-    const p = document.getElementById("progress");
-    p.replaceChildren(...QUEST.scenes.map((_, i) => el("span", { class: i < step ? "done" : i === step ? "now" : "" })));
-    const t = step >= 0 && step < QUEST.scenes.length ? `Scene ${step + 1} of ${QUEST.scenes.length}` : "";
-    document.getElementById("progressText").textContent = t;
-  }
-
-  function guideRow(line) {
-    const holder = el("div", { class: "guide" });
-    const bubble = el("p", { class: "bubble", "aria-live": "polite" });
-    bubble.textContent = line;
-    guide = Pixel.mount(holder, QUEST.character, { size: window.innerWidth < 520 ? 150 : 210, mood: "talk", still: calmToggle.checked });
-    speak(line);
-    return { row: el("div", { class: "row" }, holder, bubble), bubble };
-  }
+  // ------------------------------------------------------------- state
+  const answers = {};
+  QUEST.scenes.forEach(s => { if (PROGRESS.answers && PROGRESS.answers[s.field] != null) answers[s.field] = PROGRESS.answers[s.field]; });
+  let step = -1; // -1 intro, 0..n-1 scenes, n mirror, n+1 finale
 
   // ------------------------------------------------------------- screens
-  function intro() {
+  function titleCard() {
     step = -1; renderProgress();
-    const { row } = guideRow(QUEST.intro.line);
-    stage.replaceChildren(
-      el("h2", { class: "scene-title", id: "sceneTitle", text: QUEST.name }),
-      row,
+    propEl.replaceChildren();
+    actorEl.className = calm() ? "" : (POND ? "offstage" : "submerged");
+    actor.setMood("idle");
+    const start = el("button", { class: "btn big", text: "▶ Start the adventure", onclick: entrance });
+    show(el("div", { class: "title-card" },
+      el("h2", { text: QUEST.name }),
+      el("p", { text: QUEST.card }),
       el("p", { class: "muted", text: "No timers, no wrong answers. Every choice is a win, and you can skip anything." }),
-      el("div", { class: "actions" },
-        el("button", { class: "btn secondary", onclick: quickMode, text: "Quick version (one page)" }),
-        el("button", { class: "btn", onclick: () => scene(0), text: QUEST.intro.button }),
-      ),
-    );
-    stage.querySelector(".btn:last-child").focus();
+      el("div", { class: "actions", style: "justify-content:center" },
+        start, el("button", { class: "btn secondary", text: "Quick version (one page)", onclick: quickMode }))));
+    start.focus();
+  }
+
+  // The big entrance: Chomp leaps out of the swamp; Ponder paddles in from the right.
+  function entrance() {
+    if (calm()) { actorEl.className = ""; return hello(); }
+    show(say(POND ? "..." : "*blub... blub...*", "idle"));
+    if (POND) {
+      actorEl.className = "swimin";
+      setTimeout(hello, 2600);
+    } else {
+      bubbles();
+      setTimeout(() => { actorEl.className = "leap"; setTimeout(splash, 450); }, 1300);
+      setTimeout(hello, 2500);
+    }
+  }
+  function bubbles() {
+    const stage = document.getElementById("stage");
+    for (let i = 0; i < 6; i++) {
+      const b = el("span", { class: "bubble-dot" });
+      b.style.left = `calc(3% + ${40 + Math.random() * 120}px)`; b.style.bottom = "10px"; b.style.animationDelay = `${i * 0.18}s`;
+      stage.append(b); setTimeout(() => b.remove(), 2400);
+    }
+  }
+  function splash() {
+    const stage = document.getElementById("stage");
+    for (let i = 0; i < 14; i++) {
+      const d = el("span", { class: "drop" });
+      d.style.left = `calc(3% + ${actorSize() / 2}px)`; d.style.bottom = "8px";
+      d.style.setProperty("--dx", `${(Math.random() - 0.5) * 260}px`);
+      d.style.setProperty("--dy", `${-60 - Math.random() * 120}px`);
+      stage.append(d); setTimeout(() => d.remove(), 1000);
+    }
+  }
+  function hello() {
+    actorEl.className = "";
+    const next = el("button", { class: "btn", text: HELLO.button, onclick: intro });
+    show(say(HELLO.line), el("div", { class: "actions", style: "justify-content:flex-end" }, next));
+    next.focus();
+  }
+  function intro() {
+    const go = el("button", { class: "btn", text: QUEST.intro.button, onclick: () => scene(0) });
+    show(say(QUEST.intro.line), el("div", { class: "actions", style: "justify-content:flex-end" }, go));
+    go.focus();
   }
 
   function scene(i) {
     step = i; renderProgress();
     const s = QUEST.scenes[i];
-    const { row, bubble } = guideRow(s.line);
-    const prop = el("div", { class: "prop" });
-    if (s.id === "mega_bug") Pixel.mount(prop, "megabug", { size: 170, still: calmToggle.checked });
+    propEl.className = ""; propEl.replaceChildren();
+    if (s.id === "mega_bug") Pixel.mount(propEl, "megabug", { size: Math.min(window.innerWidth * 0.28, 210), still: calm(), label: "" });
+    const line = say(s.line);
     const multi = s.multi || 0;
     let picked = multi ? [...(answers[s.field] || [])] : answers[s.field] ?? null;
-    const next = el("button", { class: "btn", text: "Next", onclick: () => advance() });
+    const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next ▶" : "See what I learned ▶", onclick: () => advance() });
     next.disabled = multi ? false : picked == null;
 
     const buttons = s.choices.map(c => {
       const b = el("button", { class: "choice", "aria-pressed": "false" },
-        el("span", { class: "emoji", "aria-hidden": "true", text: c.emoji }),
-        el("span", { text: c.label }));
+        el("span", { class: "emoji", "aria-hidden": "true", text: c.emoji }), el("span", { text: c.label }));
+      b.dataset.value = c.value;
       b.addEventListener("click", () => {
-        if (multi) {
-          picked = picked.includes(c.value) ? picked.filter(v => v !== c.value)
-            : (multi === 1 ? [c.value] : [...picked, c.value].slice(-multi));
-        } else picked = c.value;
+        if (multi) picked = picked.includes(c.value) ? picked.filter(v => v !== c.value) : (multi === 1 ? [c.value] : [...picked, c.value].slice(-multi));
+        else picked = c.value;
         answers[s.field] = picked;
         sync();
-        bubble.textContent = c.reaction;
+        line.textContent = c.reaction;
         speak(c.reaction);
-        guide.setMood("celebrate");
+        actor.setMood("celebrate");
         if (s.id === "mega_bug") {
-          if (c.value === "bite_sized") Pixel.squad(prop, { still: calmToggle.checked });
-          else { prop.classList.add("fly"); }
+          if (c.value === "bite_sized") { propEl.className = ""; Pixel.squad(propEl, { still: calm(), size: 54 }); }
+          else propEl.className = "fly";
         }
         next.disabled = false;
       });
-      b.dataset.value = c.value;
       return b;
     });
-    function sync() {
-      buttons.forEach(b => {
-        const on = multi ? picked.includes(b.dataset.value) : picked === b.dataset.value;
-        b.setAttribute("aria-pressed", String(on));
-      });
-    }
+    function sync() { buttons.forEach(b => b.setAttribute("aria-pressed", String(multi ? picked.includes(b.dataset.value) : picked === b.dataset.value))); }
     sync();
-
     const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { answers[s.field] = multi ? [] : null; advance(); } });
-    const back = el("button", { class: "btn secondary", text: "Back", onclick: () => (i === 0 ? intro() : scene(i - 1)) });
-    stage.replaceChildren(
-      el("h2", { class: "scene-title", id: "sceneTitle", text: s.title }),
-      row, prop,
+    const back = el("button", { class: "btn secondary", text: "◀ Back", onclick: () => (i === 0 ? intro() : scene(i - 1)) });
+    show(
+      el("h2", { class: "scene-title", id: "sceneTitle", text: `${LANDMARKS[s.id] || ""} ${s.title}` }),
+      line,
       multi > 1 ? el("p", { class: "muted", text: `Pick up to ${multi}.` }) : null,
       el("div", { class: "choices", role: "group", "aria-label": s.title }, buttons),
-      el("div", { class: "actions" }, el("div", {}, back, " ", skip), next),
-    );
+      el("div", { class: "actions" }, el("div", {}, back, " ", skip), next));
     buttons[0].focus();
     function advance() { i + 1 < QUEST.scenes.length ? scene(i + 1) : mirror(); }
   }
@@ -222,9 +400,9 @@
 
   function mirror() {
     step = QUEST.scenes.length; renderProgress();
+    propEl.className = ""; propEl.replaceChildren();
     const lines = summary();
-    const { row } = guideRow(lines.length ? "Here's how you do your best work. Does this sound like you?" : "You skipped everything, and that's okay!");
-    guide.setMood("idle");
+    const line = say(lines.length ? "Here's how you do your best work. Does this sound like you?" : "You skipped everything, and that's totally okay!", "idle");
     const saved = PROGRESS.visibility || {};
     const list = el("ul", { class: "mirror-list" }, lines.map(l => {
       const sel = el("select", { "aria-label": `Who can see: ${l.title}`, "data-field": l.field },
@@ -241,67 +419,61 @@
       const visibility = {};
       list.querySelectorAll("select").forEach(s => { visibility[s.dataset.field] = s.value; });
       try {
-        const res = await fetch(`/quest/${QUEST.id}/finish`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers, visibility }),
-        });
+        const res = await fetch(`/quest/${QUEST.id}/finish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, visibility }) });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || "Couldn't save your quest. Try again?");
         finale(body.progress);
       } catch (e) { error.textContent = e.message; yes.disabled = false; }
     });
-    stage.replaceChildren(
-      el("h2", { class: "scene-title", id: "sceneTitle", text: "The Mirror" }),
-      row, list,
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "🪞 The Mirror" }), line, list,
       el("p", { class: "muted", text: "Choose who can see each answer. \"After we match\" answers help matching but stay hidden until your group forms. \"Only me\" answers are never used or shown." }),
       error,
-      el("div", { class: "actions" }, el("button", { class: "btn secondary", text: "Not quite, let me change it", onclick: () => scene(0) }), yes),
-    );
+      el("div", { class: "actions" }, el("button", { class: "btn secondary", text: "Not quite, let me change it", onclick: () => scene(0) }), yes));
     yes.focus();
+  }
+
+  function rocket() {
+    // A tiny pixel rocket for SwampBook's launch.
+    const layers = [[3,0,2,1,"#e2474b"],[2,1,4,2,"#e2474b"],[2,3,4,6,"#f4f1ea"],[3,4,2,2,"#3f7fd1"],[0,7,2,3,"#e2474b"],[6,7,2,3,"#e2474b"],[2,9,4,1,"#9aa3ad"],[3,10,2,2,"#f6a23a"],[3,12,2,1,"#f6d44a"]];
+    return Pixel.svgFor({ width: 8, height: 13, label: "", layers }, 90, "");
   }
 
   function finale(progress) {
     step = QUEST.scenes.length + 1; renderProgress();
-    const { row } = guideRow(QUEST.finale);
-    guide.setMood("celebrate");
+    const line = say(QUEST.finale, "celebrate");
+    propEl.className = ""; propEl.replaceChildren();
+    if (!POND) { propEl.append(el("div", {}, rocket())); if (!calm()) setTimeout(() => { propEl.className = "liftoff"; }, 900); }
     confetti();
     const nextId = DATA.order.find(q => !progress.completed.includes(q));
     const nextQuest = nextId && DATA.quests[nextId];
-    stage.replaceChildren(
-      el("h2", { class: "scene-title", id: "sceneTitle", text: "Quest complete!" }),
-      row,
+    const go = nextQuest
+      ? el("a", { class: "btn big", href: `/quest/${nextId}`, text: `${nextQuest.badge_emoji} Start ${nextQuest.name.split(":")[0]} ▶` })
+      : el("a", { class: "btn big", href: "/tavern", text: "🍺 Enter the Tavern ▶" });
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "Quest complete!" }), line,
       el("p", {}, el("span", { class: "badge" }, el("span", { "aria-hidden": "true", text: QUEST.badge_emoji }), `${QUEST.badge} badge earned`)),
-      nextQuest
-        ? el("p", { text: `Unlocked: ${nextQuest.badge_emoji} ${nextQuest.name}. ${nextQuest.card}` })
+      nextQuest ? el("p", { text: `Unlocked: ${nextQuest.name}. ${nextQuest.card}` })
         : el("p", { text: "Both quests done! The Tavern now knows how you work best, so your matches will be great." }),
-      el("div", { class: "actions" },
-        el("a", { class: "btn secondary", href: "/home", style: "text-decoration:none;display:flex;align-items:center", text: "Back home" }),
-        nextQuest
-          ? el("a", { class: "btn", href: `/quest/${nextId}`, style: "text-decoration:none;display:flex;align-items:center", text: `Start ${nextQuest.name.split(":")[0]}` })
-          : el("a", { class: "btn", href: "/tavern", style: "text-decoration:none;display:flex;align-items:center", text: "Enter the Tavern" }),
-      ),
-    );
-    stage.querySelector(".actions .btn:last-child").focus();
+      el("div", { class: "actions" }, el("a", { class: "btn secondary", href: "/home", text: "Back home" }), go));
+    go.focus();
   }
 
   // Quick version: every question on one page, same answers saved.
   function quickMode() {
-    quick = true; step = -1; renderProgress();
+    step = -1; renderProgress();
+    actorEl.className = ""; actor.setMood("idle");
     const form = el("form", {});
     QUEST.scenes.forEach(s => {
       const multi = s.multi || 0;
-      const type = multi === 0 || multi === 1 ? "radio" : "checkbox";
+      const type = multi <= 1 ? "radio" : "checkbox";
       const current = answers[s.field];
-      form.append(el("fieldset", {},
-        el("legend", { text: `${s.title}${multi > 1 ? ` (up to ${multi})` : ""}` }),
+      form.append(el("fieldset", {}, el("legend", { text: `${s.title}${multi > 1 ? ` (up to ${multi})` : ""}` }),
         s.choices.map(c => {
           const input = el("input", { type, name: s.field, value: c.value });
           input.checked = Array.isArray(current) ? current.includes(c.value) : current === c.value;
           return el("label", { style: "display:flex;gap:8px;align-items:center;min-height:40px" }, input, `${c.emoji} ${c.label}`);
         })));
     });
-    const go = el("button", { class: "btn", type: "submit", text: "See my mirror" });
-    form.append(el("div", { class: "actions" }, el("button", { class: "btn secondary", type: "button", text: "Back to the story", onclick: intro }), go));
+    form.append(el("div", { class: "actions" }, el("button", { class: "btn secondary", type: "button", text: "Back to the story", onclick: titleCard }), el("button", { class: "btn", type: "submit", text: "See my mirror" })));
     form.addEventListener("submit", e => {
       e.preventDefault();
       QUEST.scenes.forEach(s => {
@@ -310,18 +482,16 @@
       });
       mirror();
     });
-    stage.replaceChildren(el("h2", { class: "scene-title", id: "sceneTitle", text: `${QUEST.name}: quick version` }), form);
+    show(el("h2", { class: "scene-title", id: "sceneTitle", text: "Quick version" }), form);
   }
 
   function confetti() {
-    if (calmToggle.checked) return;
+    if (calm()) return;
     const box = document.getElementById("confetti");
     const colors = ["#f6d44a", "#5cae4f", "#e8873a", "#3fe0e6", "#c94fb0", "#6cc3a8"];
     box.replaceChildren(...Array.from({ length: 60 }, (_, i) => {
       const p = document.createElement("i");
-      p.style.left = `${Math.random() * 100}%`;
-      p.style.background = colors[i % colors.length];
-      p.style.animationDelay = `${Math.random() * 0.6}s`;
+      p.style.left = `${Math.random() * 100}%`; p.style.background = colors[i % colors.length]; p.style.animationDelay = `${Math.random() * 0.6}s`;
       return p;
     }));
     setTimeout(() => box.replaceChildren(), 3000);
@@ -330,14 +500,16 @@
   calmToggle.addEventListener("change", () => {
     store.set("wawm-calm", calmToggle.checked ? "1" : "0");
     document.body.classList.toggle("calm", calmToggle.checked);
-    if (guide) guide.setStill(calmToggle.checked);
+    actor.setStill(calmToggle.checked);
+    if (calmToggle.checked) actorEl.className = "";
   });
-  readToggle.addEventListener("change", () => {
-    store.set("wawm-read", readToggle.checked ? "1" : "0");
-    if (!readToggle.checked && "speechSynthesis" in window) speechSynthesis.cancel();
+  voiceToggle.addEventListener("click", () => {
+    voiceOn = !voiceOn; store.set("wawm-voice", voiceOn ? "1" : "0"); setVoiceButton();
+    if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel();
   });
-  document.body.classList.toggle("calm", calmToggle.checked);
-  intro();
+
+  drawWorld();
+  titleCard();
 </script>
 </body>
 </html>
