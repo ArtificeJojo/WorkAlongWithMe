@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Work Along With Me: Quest</title>
 <script src="/js/pixel.js"></script>
+<script src="/js/sfx.js"></script>
 <style>
   :root {
     --ink: #1d2620; --panel: #fffdf6; --muted: #4b5a50; --accent: #2f7d4f; --accent-ink: #ffffff;
@@ -29,6 +30,12 @@
   .cloud.slow { animation-duration: 90s; }
   @keyframes drift { from { transform: translateX(-60px) } to { transform: translateX(380px) } }
   .fly { animation: flit 5s steps(10) infinite; }
+  /* Floating code blocks (swamp) and message bottles (pond): they sink away as the journey goes on */
+  .float { animation: bob 2.4s steps(4) infinite; transition: opacity 1.2s steps(6); }
+  .float:nth-child(2n) { animation-duration: 3s; animation-delay: .4s; }
+  .float:nth-child(3n) { animation-duration: 2.7s; animation-delay: .9s; }
+  .float.sunk { opacity: 0; }
+  @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(1.5px) } }
   @keyframes flit { 0%,100% { transform: translate(0,0) } 30% { transform: translate(18px,-8px) } 60% { transform: translate(-10px,-14px) } }
 
   /* ---------- layout ---------- */
@@ -116,7 +123,7 @@
   <header>
     <h1 id="questName">Quest</h1>
     <div class="toggles">
-      <button class="pill" id="voiceToggle" aria-pressed="true">🔊 Voice</button>
+      <button class="pill" id="voiceToggle" aria-pressed="true">🔊 Sound</button>
       <label class="pill"><input type="checkbox" id="calmToggle" /> Calm mode</label>
       <a class="pill" href="/home">Home</a>
     </div>
@@ -148,6 +155,17 @@
     ? { line: "Oh... hello there. Sorry, I'm a little slow. I was hoping someone kind would come by.", button: "Hi, Ponder!" }
     : { line: "WHOA, hey! You! Yeah, YOU! You're the hero everyone's been talking about, right?! I NEED your help!", button: "Who, me?" };
 
+  // Sound effects: when a scene opens, and for each choice (scene id, or "scene:value" for a specific choice).
+  const SCENE_SFX = { mega_bug: "splash", rainstorm: "thunder", message_flood: "clink", frog_bug: "ribbit" };
+  const CHOICE_SFX = {
+    powers: "sparkle", workbench: "clunk",
+    "mega_bug:bite_sized": "pops", "mega_bug:large": "boom",
+    "launch_bridge:checkins": "planks", "launch_bridge:single_deadline": "whoosh", "launch_bridge:flexible": "boing",
+    locked_gate: "unlock",
+    message_flood: "clink", "slow_riddle:take_time": "tick", "slow_riddle:instant": "whoosh",
+    frog_bug: "ribbit", rainstorm: "calm", pond_fair: "fanfare",
+  };
+
   // ------------------------------------------------------------- settings (kept per browser)
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -156,8 +174,12 @@
   const calmToggle = document.getElementById("calmToggle");
   const voiceToggle = document.getElementById("voiceToggle");
   calmToggle.checked = store.get("wawm-calm") === "1";
-  let voiceOn = store.get("wawm-voice") !== "0";
-  const setVoiceButton = () => { voiceToggle.setAttribute("aria-pressed", String(voiceOn)); voiceToggle.textContent = voiceOn ? "🔊 Voice" : "🔇 Voice off"; };
+  let voiceOn = store.get("wawm-voice") !== "0";  // controls the voice AND the sound effects
+  const setVoiceButton = () => {
+    voiceToggle.setAttribute("aria-pressed", String(voiceOn));
+    voiceToggle.textContent = voiceOn ? "🔊 Sound" : "🔇 Sound off";
+    Sfx.enabled = voiceOn;
+  };
   setVoiceButton();
 
   document.body.classList.toggle("pond", POND);
@@ -208,6 +230,16 @@
       for (let i = 0; i < 7; i++) svg += R(8 + i * 5, 150 - (i % 3) * 6, 1, 30 + (i % 3) * 6, "#4f6b45");
       for (let i = 0; i < 10; i++) { const x = (i * 37) % 320, h = 16 + (i % 4) * 5; svg += R(x, 180 - h, 2, h, "#1e2a22") + R(x - 1, 180 - h - 6, 4, 6, "#5a3a2a"); }
       for (let i = 0; i < 12; i++) svg += `<rect x="${(i * 53 + 17) % 310}" y="${80 + (i * 29) % 70}" width="2" height="2" fill="#fff3a0" class="firefly" style="animation-delay:${(i % 6) * 0.6}s"/>`;
+      // Tangled code blocks floating in the swamp (story: "the swamp is FLOODED with tangled code blocks")
+      const blockColors = [["#5c7cfa", "#3b5bdb"], ["#f59f00", "#d9480f"], ["#e64980", "#a61e4d"], ["#20c997", "#087f5b"], ["#fab005", "#e67700"], ["#7950f2", "#5f3dc4"], ["#4dabf7", "#1864ab"], ["#ff8787", "#c92a2a"]];
+      let blocks = "";
+      [[100, 124], [152, 129], [204, 123], [126, 136], [180, 139], [238, 131], [92, 146], [216, 147]].forEach(([x, y], i) => {
+        const [fill, edge] = blockColors[i];
+        blocks += `<g class="float">${R(x - 1, y - 1, 20, 12, edge)}${R(x, y, 18, 10, fill)}` +
+          R(x + 2, y + 2, 1, 6, "#ffffff") + R(x + 3, y + 2, 1, 1, "#ffffff") + R(x + 3, y + 7, 1, 1, "#ffffff") +
+          R(x + 6, y + 3, 8 - (i % 3) * 2, 1, "#ffffffb0") + R(x + 6, y + 6, 5 + (i % 2) * 4, 1, "#ffffffb0") + `</g>`;
+      });
+      svg += `<g id="floaters">${blocks}</g>`;
     } else {
       const sky = ["#6fbfee", "#7ec8f0", "#8fd0f2", "#a2d8f3", "#b6e0f4", "#c9e8f5", "#dcf0f6", "#eaf6f2", "#f4f8e6", "#f7f4d6"];
       sky.forEach((c, i) => { svg += R(0, i * 11, 320, 11, c); });
@@ -226,9 +258,18 @@
       svg += R(48, 46, 50, 10, "#5fae6a") + R(54, 40, 38, 6, "#5fae6a");
       for (let i = 0; i < 9; i++) { const x = (i * 41 + 9) % 320, h = 14 + (i % 3) * 6; svg += R(x, 180 - h, 2, h, "#2f6b45") + R(x - 1, 180 - h - 5, 4, 5, "#7a5a3a"); }
       for (let i = 0; i < 4; i++) svg += `<g class="fly" style="animation-delay:${i}s">${R(70 + i * 60, 100 + (i % 2) * 14, 4, 1, "#2c6f8a")}${R(71 + i * 60, 99 + (i % 2) * 14, 2, 1, "#9ff0f4")}</g>`;
+      // Message bottles crowding the pond (story: "the pond is flooded with bottles, croaks and splashes")
+      let bottles = "";
+      [[108, 126], [148, 133], [196, 124], [232, 137], [128, 145], [178, 147], [254, 129]].forEach(([x, y]) => {
+        bottles += `<g class="float">${R(x - 1, y - 1, 8, 12, "#2f6f73")}${R(x, y, 6, 10, "#bfe8e0")}${R(x + 2, y - 4, 2, 4, "#bfe8e0")}${R(x + 2, y - 5, 2, 1, "#8a5a3a")}${R(x + 2, y + 2, 2, 5, "#fffdf6")}</g>`;
+      });
+      svg += `<g id="floaters">${bottles}</g>`;
     }
+    const deep = POND ? ["#2d7a80", "#286f75", "#23646a"] : ["#1b2837", "#172230", "#131c28"];
+    deep.forEach((c, i) => { svg += R(0, 180 + i * 12, 320, 12, c); });
+    // Raised by 30 so the water, the floating blocks and the characters sit above the dialogue box.
     document.getElementById("world").innerHTML =
-      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+      `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,-30)">${svg}</g></svg>`;
   }
 
   // ------------------------------------------------------------- journey map
@@ -246,6 +287,10 @@
     stops.forEach((s, i) => { s.className = "stop" + (i < at || (step > QUEST.scenes.length) ? " done" : "") + (i === at && step >= 0 ? " now" : ""); });
     const pct = stopsCount > 1 ? at / (stopsCount - 1) : 0;
     map.querySelector(".traveler").style.left = `calc(22px + (100% - 44px) * ${pct})`;
+    // The swamp/pond clears as the journey goes on: floaters sink away one by one.
+    const floaters = [...document.querySelectorAll("#floaters .float")];
+    const keep = Math.round(floaters.length * (1 - pct));
+    floaters.forEach((f, i) => f.classList.toggle("sunk", i < floaters.length - keep));
     // The sun sets as the journey goes on.
     document.documentElement.style.setProperty("--sun-y", `${Math.round(pct * (POND ? 30 : 52))}px`);
     document.getElementById("progressText").textContent =
@@ -292,6 +337,7 @@
     actorEl.className = calm() ? "" : (POND ? "offstage" : "submerged");
     actor.setMood("idle");
     const start = el("button", { class: "btn big", text: "▶ Start the adventure", onclick: entrance });
+    // (sounds can only start after this first click, so the title card itself is silent)
     show(el("div", { class: "title-card" },
       el("h2", { text: QUEST.name }),
       el("p", { text: QUEST.card }),
@@ -303,14 +349,17 @@
 
   // The big entrance: Chomp leaps out of the swamp; Ponder paddles in from the right.
   function entrance() {
+    Sfx.play("start");
     if (calm()) { actorEl.className = ""; return hello(); }
     show(say(POND ? "..." : "*blub... blub...*", "idle"));
     if (POND) {
       actorEl.className = "swimin";
+      Sfx.play("swim");
       setTimeout(hello, 2600);
     } else {
       bubbles();
-      setTimeout(() => { actorEl.className = "leap"; setTimeout(splash, 450); }, 1300);
+      setTimeout(() => Sfx.play("bubbles"), 200);
+      setTimeout(() => { actorEl.className = "leap"; Sfx.play("splash"); setTimeout(splash, 450); }, 1300);
       setTimeout(hello, 2500);
     }
   }
@@ -334,12 +383,12 @@
   }
   function hello() {
     actorEl.className = "";
-    const next = el("button", { class: "btn", text: HELLO.button, onclick: intro });
+    const next = el("button", { class: "btn", text: HELLO.button, onclick: () => { Sfx.play("select"); intro(); } });
     show(say(HELLO.line), el("div", { class: "actions", style: "justify-content:flex-end" }, next));
     next.focus();
   }
   function intro() {
-    const go = el("button", { class: "btn", text: QUEST.intro.button, onclick: () => scene(0) });
+    const go = el("button", { class: "btn", text: QUEST.intro.button, onclick: () => { Sfx.play(POND ? "ripple" : "splash"); scene(0); } });
     show(say(QUEST.intro.line), el("div", { class: "actions", style: "justify-content:flex-end" }, go));
     go.focus();
   }
@@ -349,10 +398,11 @@
     const s = QUEST.scenes[i];
     propEl.className = ""; propEl.replaceChildren();
     if (s.id === "mega_bug") Pixel.mount(propEl, "megabug", { size: Math.min(window.innerWidth * 0.28, 210), still: calm(), label: "" });
+    if (SCENE_SFX[s.id]) setTimeout(() => Sfx.play(SCENE_SFX[s.id]), 250);
     const line = say(s.line);
     const multi = s.multi || 0;
     let picked = multi ? [...(answers[s.field] || [])] : answers[s.field] ?? null;
-    const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next ▶" : "See what I learned ▶", onclick: () => advance() });
+    const next = el("button", { class: "btn", text: i + 1 < QUEST.scenes.length ? "Next ▶" : "See what I learned ▶", onclick: () => { Sfx.play("next"); advance(); } });
     next.disabled = multi ? false : picked == null;
 
     const buttons = s.choices.map(c => {
@@ -364,6 +414,8 @@
         else picked = c.value;
         answers[s.field] = picked;
         sync();
+        Sfx.play("select");
+        setTimeout(() => Sfx.play(CHOICE_SFX[`${s.id}:${c.value}`] || CHOICE_SFX[s.id] || "select"), 120);
         line.textContent = c.reaction;
         speak(c.reaction);
         actor.setMood("celebrate");
@@ -377,8 +429,8 @@
     });
     function sync() { buttons.forEach(b => b.setAttribute("aria-pressed", String(multi ? picked.includes(b.dataset.value) : picked === b.dataset.value))); }
     sync();
-    const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { answers[s.field] = multi ? [] : null; advance(); } });
-    const back = el("button", { class: "btn secondary", text: "◀ Back", onclick: () => (i === 0 ? intro() : scene(i - 1)) });
+    const skip = el("button", { class: "btn secondary", text: "Skip", onclick: () => { Sfx.play("next"); answers[s.field] = multi ? [] : null; advance(); } });
+    const back = el("button", { class: "btn secondary", text: "◀ Back", onclick: () => { Sfx.play("back"); i === 0 ? intro() : scene(i - 1); } });
     show(
       el("h2", { class: "scene-title", id: "sceneTitle", text: `${LANDMARKS[s.id] || ""} ${s.title}` }),
       line,
@@ -422,6 +474,7 @@
         const res = await fetch(`/quest/${QUEST.id}/finish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, visibility }) });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || "Couldn't save your quest. Try again?");
+        Sfx.play("success");
         finale(body.progress);
       } catch (e) { error.textContent = e.message; yes.disabled = false; }
     });
@@ -442,7 +495,9 @@
     step = QUEST.scenes.length + 1; renderProgress();
     const line = say(QUEST.finale, "celebrate");
     propEl.className = ""; propEl.replaceChildren();
-    if (!POND) { propEl.append(el("div", {}, rocket())); if (!calm()) setTimeout(() => { propEl.className = "liftoff"; }, 900); }
+    if (!POND) { propEl.append(el("div", {}, rocket())); setTimeout(() => Sfx.play("rocket"), 700); if (!calm()) setTimeout(() => { propEl.className = "liftoff"; }, 900); }
+    else setTimeout(() => Sfx.play("fanfare"), 600);
+    setTimeout(() => Sfx.play("badge"), POND ? 1600 : 2300);
     confetti();
     const nextId = DATA.order.find(q => !progress.completed.includes(q));
     const nextQuest = nextId && DATA.quests[nextId];
@@ -498,6 +553,7 @@
   }
 
   calmToggle.addEventListener("change", () => {
+    Sfx.play("toggle");
     store.set("wawm-calm", calmToggle.checked ? "1" : "0");
     document.body.classList.toggle("calm", calmToggle.checked);
     actor.setStill(calmToggle.checked);
@@ -505,6 +561,7 @@
   });
   voiceToggle.addEventListener("click", () => {
     voiceOn = !voiceOn; store.set("wawm-voice", voiceOn ? "1" : "0"); setVoiceButton();
+    if (voiceOn) Sfx.play("toggle");
     if (!voiceOn && "speechSynthesis" in window) speechSynthesis.cancel();
   });
 
