@@ -24,6 +24,8 @@ import skills
 
 load_dotenv()
 app = Flask(__name__)
+# The page templates, found the same way on Windows and on Linux servers
+SRC = profile.ROOT / "src"
 
 # Everyone plays both quest tracks in order (Gators, then Turtle), so /aboutyou no longer picks one.
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile pictures)
@@ -33,7 +35,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload limit (profile
 def start():
     asyncio.run(main())
     
-    with open("..\\src\\index.html", encoding="utf-8") as html:
+    with open(SRC / "index.html", encoding="utf-8") as html:
     
         return html.read()
 
@@ -150,7 +152,7 @@ async def home():
     if step := setup_step(about_you):
         return redirect(step)
 
-    with open("..\\src\\home.html", encoding="utf-8") as html:
+    with open(SRC / "home.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -175,7 +177,7 @@ async def board():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\board.html", encoding="utf-8") as html:
+    with open(SRC / "board.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), board=await project.get_board(user["sub"], request.args.get("page", 1, type=int)))
 
@@ -188,7 +190,7 @@ async def view_profile():
     if step := setup_step(about_you):
         return redirect(step)
 
-    with open("..\\src\\profile.html", encoding="utf-8") as html:
+    with open(SRC / "profile.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -213,7 +215,7 @@ async def connections():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\connections.html", encoding="utf-8") as html:
+    with open(SRC / "connections.html", encoding="utf-8") as html:
 
         return html.read()
 
@@ -375,7 +377,7 @@ async def project_create():
             return jsonify({"error": str(e), "missing": e.missing}), 400
         return jsonify({"id": str(project_id)}), 201
 
-    with open("..\\src\\project_create.html", encoding="utf-8") as html:
+    with open(SRC / "project_create.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=None, **skill_picker_options())
 
@@ -411,7 +413,7 @@ async def project_edit(project_id):
         return "Project not found", 404
 
     # Same form as creating a project, filled in with the current values
-    with open("..\\src\\project_create.html", encoding="utf-8") as html:
+    with open(SRC / "project_create.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details, **skill_picker_options())
 
@@ -438,7 +440,7 @@ async def view_project(project_id):
     if not details:
         return "Project not found", 404
 
-    with open("..\\src\\project.html", encoding="utf-8") as html:
+    with open(SRC / "project.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details, **skill_picker_options())
 
@@ -475,7 +477,7 @@ async def create_post():
             return jsonify({"error": str(e), "missing": e.missing}), 400
         return jsonify({"id": str(post_id)}), 201
 
-    with open("..\\src\\create_post.html", encoding="utf-8") as html:
+    with open(SRC / "create_post.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), projects=await post.get_linkable_projects(user["sub"]))
 
@@ -505,7 +507,7 @@ async def invites():
     if step := await setup_redirect(user["sub"]):
         return redirect(step)
 
-    with open("..\\src\\invites.html", encoding="utf-8") as html:
+    with open(SRC / "invites.html", encoding="utf-8") as html:
 
         return html.read()
 
@@ -577,7 +579,7 @@ async def collaborator_requests(project_id):
     if not details:
         return "Project not found", 404
 
-    with open("..\\src\\requests.html", encoding="utf-8") as html:
+    with open(SRC / "requests.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), project=details)
 
@@ -625,7 +627,7 @@ async def view_other_profile(user_id):
     if other["relationship"] == "self":
         return redirect("/profile")
 
-    with open("..\\src\\friend.html", encoding="utf-8") as html:
+    with open(SRC / "friend.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), user=other)
 
@@ -656,7 +658,7 @@ async def about_you():
 
     # Pre-fill whatever they've answered before
     about_you = await get_about_you(user["sub"])
-    with open("..\\src\\about_you.html", encoding="utf-8") as html:
+    with open(SRC / "about_you.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), about_you=about_you or {}, **skill_picker_options())
 
@@ -686,7 +688,7 @@ async def quest_page(quest_id):
         # Turtle opens after Gators: send them to the quest they still need
         return redirect(f"/quest/{quests.next_quest(progress['completed'])}")
 
-    with open("..\\src\\quest.html", encoding="utf-8") as html:
+    with open(SRC / "quest.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -733,7 +735,7 @@ async def tavern():
     matches = party.plain_reasons(matches)
     for m in matches:
         m["chips"] = party.chips(m["hero"])
-    with open("..\\src\\tavern.html", encoding="utf-8") as html:
+    with open(SRC / "tavern.html", encoding="utf-8") as html:
 
         return render_template_string(
             html.read(),
@@ -789,7 +791,7 @@ async def view_party(group_id):
     details = await party.get_party(user["sub"], group_id)
     if not details:
         return "Party not found", 404
-    with open("..\\src\\party.html", encoding="utf-8") as html:
+    with open(SRC / "party.html", encoding="utf-8") as html:
 
         return render_template_string(html.read(), party=details)
 
@@ -875,4 +877,4 @@ def auth0():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run()

@@ -1,0 +1,6 @@
+flask[async]
+asyncpg
+python-dotenv
+auth0-server-python
+google-genai
+gunicorn
